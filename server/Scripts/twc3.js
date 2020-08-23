@@ -440,111 +440,38 @@ const GetMonthPrecipitation = async (WeatherParameters) => {
 	const DateTime = luxon.DateTime;
 	const today = DateTime.local().startOf('day').toISO().replace('.000','');
 
-	//https://api.weather.com/v3/location/near?apiKey=6532d6454b8aa370768e63d6ba5a832e&geocode=40.83%2C-73.02&product=airport&subproduct=major&format=json
-	$.ajaxCORS({
-		type: 'GET',
-		url: `https://api.weather.gov/products?location=${WeatherParameters.WeatherOffice}&type=CLI&start=${today}`,
-		dataType: 'json',
-		crossDomain: true,
-		cache: false,
-		success: function (json) {
-			var AirportName = json.location.airportName[0];
-			var AirportCode = json.location.iataCode[0];
-			WeatherParameters.AirportCode = AirportCode;
+	try {
+		const cliProducts = await $.ajax({
+			type: 'GET',
+			url: '/cors/',
+			data: {
+				u: `https://api.weather.gov/products?location=${WeatherParameters.WeatherOffice}&type=CLI&start=${today}`,
+			},
+			dataType: 'json',
+			crossDomain: true,
+		});
+		
+		// get the first url from the list
+		const cli = await $.ajax({
+			type: 'GET',
+			url: '/cors/',
+			data: {
+				u: cliProducts['@graph'][0]['@id'],
+			},
+			dataType: 'json',
+			crossDomain: true,
+		});
 
-			//https://forecast.weather.gov/product.php?site=NWS&issuedby=ISP&product=CLI&format=txt&version=1&glossary=1&highlight=off
-			var Url = 'https://forecast.weather.gov/product.php?site=NWS&issuedby=';
-			Url += AirportCode;
-			Url += '&product=CLI&format=txt&version=1&glossary=1&highlight=off';
-			$.ajaxCORS({
-				type: 'GET',
-				url: Url,
-				dataType: 'text',
-				crossDomain: true,
-				cache: false,
-				success: function (text) {
+		WeatherParameters.WeatherMonthlyTotals = WeatherMonthlyTotalsParser(cli.productText);
+		console.log(WeatherParameters.WeatherMonthlyTotals);
 
-					WeatherParameters.WeatherMonthlyTotalsParser = new WeatherMonthlyTotalsParser(text);
-					console.log(WeatherParameters.WeatherMonthlyTotalsParser);
+	}
+	catch (e) {
+		console.error('GetMonthPrecipitation failed');
+		console.error(e);
+		return false;
+	}
 
-					WeatherParameters.WeatherMonthlyTotals = new WeatherMonthlyTotals(WeatherParameters.WeatherMonthlyTotalsParser);
-					console.log(WeatherParameters.WeatherMonthlyTotals);
-					//PopulateCurrentConditions(WeatherParameters.WeatherMonthlyTotals);
-
-					// Check to see if we need to also parse the Almanac information
-					if (WeatherParameters.Progress.Almanac != LoadStatuses.Loaded) {
-						if (WeatherParameters.WeatherMonthlyTotalsParser.Precipitation === '') {
-							WeatherParameters.Progress.Almanac = LoadStatuses.NoData;
-							GetCurrentWeather(WeatherParameters);
-							ShowRegionalMap(_WeatherParameters);
-							return;
-						}
-
-						//https://api.weather.com/v2/astro?apiKey=6532d6454b8aa370768e63d6ba5a832e&geocode=40.81999969%2C-73&days=1&date=20181223&format=json
-						//This also has the moon and sun data: https://api.weather.com/v3/wx/forecast/daily/3day?language=en-US&apiKey=6532d6454b8aa370768e63d6ba5a832e&geocode=40.83%2C-73.02&units=e&format=json
-						var Url = 'https://api.weather.com/v2/astro?apiKey=6532d6454b8aa370768e63d6ba5a832e&geocode=';
-						Url += WeatherParameters.Latitude.toString() + '%2C';
-						Url += WeatherParameters.Longitude.toString();
-						Url += '&days=1&date=' + Now.getFullYear().pad() + (Now.getMonth() + 1).pad(2) + Now.getDate().pad(2) + '&format=json';
-
-						// Load the xml file using ajax 
-						$.ajaxCORS({
-							type: 'GET',
-							url: Url,
-							dataType: 'json',
-							crossDomain: true,
-							cache: false,
-							success: function (json) {
-								WeatherParameters.MoonPhasesParser = new MoonPhasesParser3(json);
-								console.log(WeatherParameters.MoonPhasesParser);
-
-								WeatherParameters.SunRiseSetParserToday = new SunRiseSetParser3(json);
-								console.log(WeatherParameters.SunRiseSetParserToday);
-
-								var Now = new Date();
-								Now = Now.addDays(1);
-								//https://api.weather.com/v2/astro?apiKey=6532d6454b8aa370768e63d6ba5a832e&geocode=40.81999969%2C-73&days=1&date=20181223&format=json
-								var Url = 'https://api.weather.com/v2/astro?apiKey=6532d6454b8aa370768e63d6ba5a832e&geocode=';
-								Url += WeatherParameters.Latitude.toString() + '%2C';
-								Url += WeatherParameters.Longitude.toString();
-								Url += '&days=1&date=' + Now.getFullYear().pad() + (Now.getMonth() + 1).pad(2) + Now.getDate().pad(2) + '&format=json';
-
-								$.ajaxCORS({
-									type: 'GET',
-									url: Url,
-									dataType: 'json',
-									crossDomain: true,
-									cache: false,
-									success: function (json) {
-										WeatherParameters.SunRiseSetParserTomorrow = new SunRiseSetParser3(json);
-										console.log(WeatherParameters.SunRiseSetParserTomorrow);
-
-										WeatherParameters.AlmanacInfo = new AlmanacInfo(WeatherParameters.MoonPhasesParser, WeatherParameters.SunRiseSetParserToday, WeatherParameters.SunRiseSetParserTomorrow);
-										console.log(WeatherParameters.AlmanacInfo);
-
-										GetOutlook(WeatherParameters);
-									},
-									error: function (xhr, error, errorThrown) {
-										console.error('Getting SunRiseSetParserTomorrow failed: ' + errorThrown);
-									},
-								});
-							},
-							error: function (xhr, error, errorThrown) {
-								console.error('Getting SunRiseSetParserTomorrow failed: ' + errorThrown);
-							},
-						});
-					}
-				},
-				error: function (xhr, error, errorThrown) {
-					console.error('GetMonthPrecipitation failed: ' + errorThrown);
-				},
-			});
-
-		},
-		error: function (xhr, error, errorThrown) {
-			console.error('GetMonthPrecipitation failed: ' + errorThrown);
-		},
-	});
 };
 
 var GetTideInfo = function (WeatherParameters)
@@ -3161,12 +3088,7 @@ $(() => {
 		window.clearInterval(GetWeatherIntervalId);
 
 		// get initial weather data
-		const point = await $.ajax({
-			type: 'GET',
-			url: `https://api.weather.gov/points/${window.parent.latLon.lat},${window.parent.latLon.lon}`,
-			dataType: 'json',
-			crossDomain: true,
-		});
+		const point = await getPoint(window.parent.latLon.lat, window.parent.latLon.lon);
 
 		// get stations
 		const stations = await $.ajax({
@@ -3224,6 +3146,23 @@ $(() => {
 		},
 	});
 });
+
+const getPoint = async (lat, lon) => {
+	try {
+		return await $.ajax({
+			type: 'GET',
+			url: `https://api.weather.gov/points/${lat},${lon}`,
+			dataType: 'json',
+			crossDomain: true,
+		});
+	}
+	catch (e) {
+		console.error('Unable to get point');
+		console.error(lat,lon);
+		console.error(e);
+		return false;
+	};
+};
 
 var NavigateMenu = function ()
 {
@@ -3589,6 +3528,7 @@ var Navigate = function (Offset)
 		//window.location.hash = "aHazards";
 		canvasHazards.scrollIntoView();
 		break;
+	default:
 	}
 
 	if (Math.floor(_CurrentPosition) != _CurrentCanvasType)
@@ -4166,6 +4106,7 @@ var AssignPlayMsOffsets = function (CalledFromProgress)
 		case CanvasTypes.Hazards:
 			_PlayMs = _PlayMsOffsets.Hazards_Start;
 			break;
+		default:
 		}
 	}
 
@@ -4366,55 +4307,7 @@ var UpdatePlayPosition = function ()
 
 	Navigate();
 
-	//_PlayMs += _PlayInterval;
 
-
-	//switch (_CurrentCanvasType)
-	//{
-	//    case CanvasTypes.TravelForecast:
-	//        // Wait 3 seconds and then start scrolling.
-	//        if (_PlayMs < 3000)
-	//        {
-	//            _UpdateTravelCitiesY = 0;
-	//        }
-	//        if (_PlayMs >= 3000)
-	//        {
-	//            //y += 1;
-	//            _UpdateTravelCitiesY = 3 * ((_PlayMs - 3000) / _PlayInterval);
-	//        }
-	//        if (_PlayMs >= 60000)
-	//        {
-	//            _PlayMs = 0;
-	//            Navigate(1);
-	//        }
-	//        if (_UpdateTravelCitiesY > cnvTravelCitiesScroll.height() - 289)
-	//        {
-	//            _UpdateTravelCitiesY = cnvTravelCitiesScroll.height() - 289;
-
-	//            // Wait 10 seconds and start all over.
-	//        }
-
-	//        UpdateTravelCities(-1);
-	//        break;
-
-	//    default:
-	//        if (_PlayMs >= 10000)
-	//        {
-	//            _PlayMs = 0;
-	//            Navigate(1);
-	//        }
-	//        break;
-	//}
-
-
-	//if (_CurrentCanvasType == CanvasTypes.Progress)
-	//{
-	//    _PlayMs = 0;
-	//    Navigate(1);
-	//}
-			
-
-	//NavigateNext();
 };
 
 var NavigatePlayToggle = function ()
@@ -4934,24 +4827,7 @@ var DwmlDataParametersPressure = function (pressure)
 	this.time_layout = pressure.attr('time-layout');
 	this.value = pressure.find('value').text();
 };
-//<probability-of-precipitation type="12 hour" units="percent" time-layout="k-p12h-n15-1">
-//<name>12 Hourly Probability of Precipitation</name>
-//<value>30</value>
-//<value>30</value>
-//<value>20</value>
-//<value>20</value>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//<value xsi:nil="true"/>
-//</probability-of-precipitation>
+
 var DwmlDataParametersProbabilityOfPrecipitation = function (probability_of_precipitation)
 {
 	this.type = probability_of_precipitation.attr('type');
@@ -4968,34 +4844,7 @@ var DwmlDataParametersProbabilityOfPrecipitation = function (probability_of_prec
 	// Forecast Only
 	this.name = probability_of_precipitation.find('name').text();
 };
-//<wordedForecast time-layout="k-p12h-n15-1" dataSource="lwxNetcdf" wordGenerator="markMitchell">
-//<name>Text Forecast</name>
-//<text>
-//Scattered showers and thunderstorms. Partly sunny, with a high near 93. West wind around 7 mph. Chance of precipitation is 30%.
-//</text>
-//<text>
-//Scattered showers and thunderstorms before midnight, then a slight chance of showers between midnight and 3am. Patchy fog after 2am. Otherwise, mostly cloudy, with a low around 71. Northwest wind around 5 mph becoming calm in the evening. Chance of precipitation is 30%.
-//</text>
-//<text>
-//A slight chance of showers and thunderstorms after 2pm. Patchy fog before 8am. Otherwise, partly sunny, with a high near 94. Southwest wind 3 to 8 mph. Chance of precipitation is 20%.
-//</text>
-//<text>
-//A slight chance of showers and thunderstorms before 8pm, then a slight chance of showers and thunderstorms after 2am. Mostly cloudy, with a low around 68. South wind 6 to 8 mph becoming west after midnight. Chance of precipitation is 20%.
-//</text>
-//<text>
-//Mostly sunny, with a high near 82. Northwest wind 8 to 11 mph.
-//</text>
-//<text>Clear, with a low around 57.</text>
-//<text>Sunny, with a high near 82.</text>
-//<text>Mostly clear, with a low around 61.</text>
-//<text>Mostly sunny, with a high near 85.</text>
-//<text>Mostly clear, with a low around 64.</text>
-//<text>Mostly sunny, with a high near 85.</text>
-//<text>Partly cloudy, with a low around 56.</text>
-//<text>Sunny, with a high near 77.</text>
-//<text>Partly cloudy, with a low around 56.</text>
-//<text>Mostly sunny, with a high near 78.</text>
-//</wordedForecast>
+
 var DwmlDataParametersWordedForecast = function (wordedForecast)
 {
 	this.time_layout = wordedForecast.attr('time-layout');
@@ -5010,16 +4859,7 @@ var DwmlDataParametersWordedForecast = function (wordedForecast)
 		_self.text.push($(this).text());
 	});
 };
-//<hazards time-layout="">
-//<name>Watches, Warnings, and Advisories</name>
-//<hazard-conditions>
-//<hazard headline="Short Term Forecast">
-//<hazardTextURL>
-//    http://forecast.weather.gov/showsigwx.php?warnzone=FLZ045&warncounty=FLC095&firewxzone=FLZ045&local_place1=2+Miles+N+Orlando+FL&product1=Short+Term+Forecast
-//</hazardTextURL>
-//</hazard>
-//</hazard-conditions>
-//</hazards>
+
 var DwmlDataParametersHazards = function (hazards)
 {
 	this.time_layout = hazards.attr('time-layout');
@@ -5039,14 +4879,6 @@ var DwmlDataParametersHazardsHazardConditions = function (hazards_conditions)
 };
 //</parameters>
 
-// See: http://www.moratech.com/aviation/metar-class/metar.html
-//<response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XML-Schema-instance" version="1.2" xsi:noNamespaceSchemaLocation="http://aviationweather.gov/adds/schema/metar1_2.xsd">
-//<request_index>293913582</request_index>
-//<data_source name="metars"/>
-//<request type="retrieve"/>
-//<errors/>
-//<warnings/>
-//<time_taken_ms>3</time_taken_ms>
 var WeatherMetarsParser = function (xml, StationId)
 {
 	//this._self = this;
@@ -5076,62 +4908,7 @@ var WeatherMetarsParser = function (xml, StationId)
 	
 };
 
-//var WeatherRegionalMetarsParser = function (xml)
-//{
-//    var _self = this;
-
-//    var response = xml.find("response");
-
-//    this.xmlns_xsd = response.attr("xmlns:xsd");
-//    this.xmlns_xsi = response.attr("xmlns:xsi");
-//    this.version = response.attr("version");
-//    this.xsi_noNamespaceSchemaLocation = response.attr("xsi:noNamespaceSchemaLocation");
-
-//    this.request_index = response.find("request_index").text();
-//    this.data_source_name = response.find("data_source").attr("name");
-//    this.request_type = response.find("request").attr("type");
-//    this.errors = response.find("errors").text();
-//    this.warnings = response.find("warnings").text();
-//    this.time_taken_ms = response.find("time_taken_ms").text();
-
-//    this.data_METAR = [];
-//    response.find("data").find("METAR").each(function()
-//    {
-//        var DataMetar = new ResponseDataMetar($(this));
-//        _self.data_METAR.push(DataMetar);
-//    });
-
-	
 //};
-
-//http://www.moratech.com/aviation/metar-class/metar-pg10-sky.html
-//<raw_text>
-//KHWV 120156Z AUTO 36010KT 10SM CLR 22/08 A3011 RMK AO2 SLP196 T02170083 TSNO
-//</raw_text>
-//<station_id>KHWV</station_id>
-//<observation_time>2016-09-12T01:56:00Z</observation_time>
-//<latitude>40.82</latitude>
-//<longitude>-72.87</longitude>
-//<temp_c>21.7</temp_c>
-//<dewpoint_c>8.3</dewpoint_c>
-//<wind_dir_degrees>360</wind_dir_degrees>
-//<wind_speed_kt>10</wind_speed_kt>
-//<visibility_statute_mi>10.0</visibility_statute_mi>
-//<altim_in_hg>30.109253</altim_in_hg>
-//<sea_level_pressure_mb>1019.6</sea_level_pressure_mb>
-//<quality_control_flags>
-//<auto>TRUE</auto>
-//<auto_station>TRUE</auto_station>
-//<lightning_sensor_off>TRUE</lightning_sensor_off>
-//</quality_control_flags>
-//<sky_condition sky_cover="CLR"/>
-//<sky_condition sky_cover="FEW" cloud_base_ft_agl="1600"/>
-//<sky_condition sky_cover="SCT" cloud_base_ft_agl="2200"/>
-//<sky_condition sky_cover="SCT" cloud_base_ft_agl="3000"/>
-//<flight_category>VFR</flight_category>
-//<three_hr_pressure_tendency_mb>1.1</three_hr_pressure_tendency_mb>
-//<metar_type>METAR</metar_type>
-//<elevation_m>21.0</elevation_m>
 var ResponseDataMetar = function (METAR)
 {
 	this.raw_text = METAR.find('raw_text').text();
@@ -5284,7 +5061,7 @@ var WeatherCurrentConditions = function (WeatherDwmlParser, WeatherMetarsParser)
 					_self.Ceiling = this.cloud_base_ft_agl;
 				}
 
-				break;
+			default:
 			}
 		});
 	}
@@ -5628,7 +5405,7 @@ var PopulateCurrentConditions = function (WeatherParameters)
 		WindChill = WeatherCurrentConditions.WindChillC;
 		WindGust = WeatherCurrentConditions.WindGustC;
 		Humidity = WeatherCurrentConditions.Humidity;
-		break;
+	default:
 	}
 
 	divTemperature.html(WeatherCurrentConditions.Temperature + '&deg;');
@@ -5641,16 +5418,6 @@ var PopulateCurrentConditions = function (WeatherParameters)
 	divWind.html('Wind: ' + WeatherCurrentConditions.WindDirection + ' ' + WeatherCurrentConditions.WindSpeed);
 	divPressure.html('Pressure: ' + WeatherCurrentConditions.Pressure + ' ' + WeatherCurrentConditions.PressureDirection);// + " " + WeatherCurrentConditions.PressureDirection);
 	
-	//switch (WeatherCurrentConditions.PressureDirection)
-	//{
-	//    case "R": //&uarr;
-	//        divPressure.html(divPressure.html() + " &uarr;");
-	//        break;
-	//    case "F": //&darr;
-	//        divPressure.html(divPressure.html() + " &darr;");
-	//        break;
-	//}
-
 	divHeatIndex.empty();
 	if (WeatherCurrentConditions.HeatIndex != WeatherCurrentConditions.Temperature)
 	{
@@ -5750,7 +5517,7 @@ var PopulateCurrentConditions = function (WeatherParameters)
 				// Fill
 				DrawTriangle(context, '#FFFF00', 550, 324, 541, 314, 559, 314);
 				DrawBox(context, '#FFFF00', 548, 301, 4, 15);
-				break;
+			default:
 			}
 
 			//WeatherCurrentConditions.HeatIndex = "100";
@@ -5819,27 +5586,6 @@ var WeatherExtendedForecast = function (WeatherParser)
 	var _self = this;
 	this.Day = [];
 
-	//$([2, 3, 4]).each(function ()
-	//{
-	//    var DayName = Today.addDays(this).getDayName();
-
-	//    $(WeatherParser.data_forecast.time_layout).each(function ()
-	//    {
-	//        _LayoutKey = this.layout_key;
-
-	//        $(this.start_valid_time).each(function (Index, Value)
-	//        {
-	//            if (this.period_name == DayName || this.period_name == DayName + " Night")
-	//            {
-	//                _PeriodIndex[DayName + "_" + _LayoutKey] = Index;
-	//                return false;
-	//            }
-	//        });
-	//    });
-
-	//    _Days.push(DayName);
-	//});
-
 	$(_Days).each(function ()
 	{
 		var NewDate = Today.addDays(this);
@@ -5867,51 +5613,12 @@ var WeatherExtendedForecast = function (WeatherParser)
 	});
 
 
-	//$(WeatherParser.data_forecast.time_layout).each(function ()
-	//{
-	//    //if (this.layout_key != "k-p24h-n7-2")
-	//    //if (this.layout_key != "k-p24h-n7-1")
-	//    if (this.layout_key.startsWith("k-p24h-") == false)
-	//    {
-	//        return true;
-	//    }
-
-	//    if (this.start_valid_time[1].period_name.endsWith("Night"))
-	//    {
-	//        return true;
-	//    }
-
-	//    _Days.push(this.start_valid_time[1].period_name);
-	//    _Days.push(this.start_valid_time[2].period_name);
-	//    _Days.push(this.start_valid_time[3].period_name);
-
-	//    return false;
-	//});
-
-	////_Days.push(_Today.addDays(2));
-	////_Days.push(_Today.addDays(3));
-	////_Days.push(_Today.addDays(4));
-
 	$(_Dates).each(function ()
 	{
 		//_PeriodIndex = [];
 		_Day = {};
 		var Date = this.Date;
 		var DayName = this.DayName;
-
-		//$(WeatherParser.data_forecast.time_layout).each(function ()
-		//{
-		//    _LayoutKey = this.layout_key;
-
-		//    $(this.start_valid_time).each(function (Index, Value)
-		//    {
-		//        if (this.period_name == DayName || this.period_name == DayName + " Night")
-		//        {
-		//            _PeriodIndex[_LayoutKey] = Index;
-		//            return false;
-		//        }
-		//    });
-		//});
 
 		_Day.Date = Date;
 		_Day.DayName = DayName;
@@ -5984,8 +5691,6 @@ var WeatherExtendedForecast = function (WeatherParser)
 
 		_LayoutKey = WeatherParser.data_forecast.parameters.conditions_icon.time_layout;
 		_Day.Icon = WeatherParser.data_forecast.parameters.conditions_icon.icon_link[_PeriodIndex[Date + '_' + _LayoutKey]];
-		//_Day.Icon = GetWeatherIconFromIconLink(_Day.Icon);
-		//_Day.Icon = GetWeatherIconFromIconLink(_Day.Icon, _Day.Conditions);
 		_Day.Icon = GetWeatherIcon2FromIconLink(_Day.Icon, _Day.Conditions);
 
 		_self.Day.push(_Day);
@@ -6068,10 +5773,10 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex)
 		canvas = canvasExtendedForecast1[0];
 		break;
 	case 2:
+	default:
 		LBound = 3;
 		UBound = 5;
 		canvas = canvasExtendedForecast2[0];
-		break;
 	}
 	var context = canvas.getContext('2d');
 
@@ -6179,33 +5884,7 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex)
 			{
 				if (Index < LBound || Index > UBound) return true;
 
-				//var Day = this;
-				//var Conditions = Day.Conditions.split(" ");
 
-				//if (Day.Conditions.indexOf("then") != -1)
-				//{
-				//    Conditions = Day.Conditions.split(" then ");
-				//    Conditions = Conditions[1].split(" ");
-				//}
-
-				//var Conditions1 = Conditions[0].substr(0, 10);
-				//var Conditions2 = "";
-				//if (Conditions[1])
-				//{
-				//    if (Conditions1.endsWith(".") == false)
-				//    {
-				//        Conditions2 = Conditions[1].substr(0, 10);
-				//    }
-				//    else
-				//    {
-				//        Conditions1 = Conditions1.replaceAll(".", "");
-				//    }
-
-				//    //if (Conditions2.indexOf("then") != -1)
-				//    //{
-				//    //    Conditions2 = "";
-				//    //}
-				//}
 
 				var Day = this;
 				var Conditions1 = Day.Conditions1;
@@ -6349,36 +6028,7 @@ var WeatherForecastParser = function (text)
 
 };
 
-//var WeatherLocalForecast = function (WeatherParser)
-//{
-//    var _self = this;
 
-//    this.Conditions = [];
-
-//    $(WeatherParser.data_forecast.time_layout).each(function ()
-//    {
-//        if (this.layout_key.startsWith("k-p12h-") == false)
-//        {
-//            return true;
-//        }
-
-//        $(this.start_valid_time).each(function (Index, start_valid_time)
-//        {
-//            if (Index > 2)
-//            {
-//                return false;
-//            }
-
-//            _self.Conditions.push({
-//                DayName: start_valid_time.period_name,
-//                Text: WeatherParser.data_forecast.parameters.wordedForecast.text[Index],
-//            });
-//        });
-
-//        return false;
-//    });
-
-//};
 
 var WeatherLocalForecast = function (WeatherForecastParser)
 {
@@ -6514,29 +6164,6 @@ var ConvertConditionsToMetric = function (Condition)
 				}
 			}
 
-			//// LOWS|HIGHS IN THE MID|UPPER|LOWER XS.
-			//else if (Word == "MID" || Word == "UPPER" || Word == "LOWER")
-			//{
-			//    var TempF = parseInt(Words[Index + 1]);
-			//    var TempC = TempF;
-
-			//    switch (Word)
-			//    {
-			//        case "MID":
-			//            TempC += 5;
-			//            break;
-			//        case "UPPER":
-			//            TempC += 9;
-			//            break;
-			//        case "LOWER":
-			//            TempC += 1;
-			//            break;
-			//    }
-			//    TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
-
-			//    Words[Index + 1] = Words[Index + 1].replaceAll(TempF.toString() + "S", TempC.toString());
-			//    Words[Index] = "NEAR";
-			//}
 
 			// LOWS|HIGHS IN THE [MID|UPPER|LOWER] XS.
 			// LOWS|HIGHS NEAR XS.
@@ -6828,10 +6455,6 @@ var PopulateLocalForecast = function (WeatherParameters)
 		AlertText = AlertText.replaceAll('...', '');
 
 		var PrependAlert = false;
-		//AlertText = "WIND ADVISORY IN EFFECT FROM 2 PM THIS AFTERNOON TO 6 AM EDT SUNDAY";
-		//AlertText = "WIND ADVISORY IN EFFECT FROM 2 PM THIS AFTERNOON TO 6 AM EDT SUNDAY WIND ADVISORY IN EFFECT FROM 2 PM THIS AFTERNOON TO 6 AM EDT SUNDAY";
-		//AlertText = "WIND ADVISORY IN EFFECT FROM 2 PM THIS AFTERNOON TO 6 AM EDT SUNDAY. THE RED HOUR IS UPON US!  SEEK SHELTER IF YOU DO NOT WANT TO PARTAKE IN THE PARTY. WE RECOMMEND THAT YOU DRESS ACCORDINGLY";
-		//AlertText = "WIND ADVISORY IN EFFECT FROM 2 PM THIS AFTERNOON TO 6 AM EDT SUNDAY. THE RED HOUR IS UPON US!  SEEK SHELTER IF YOU DO NOT WANT TO PARTAKE IN THE PARTY. WE RECOMMEND THAT YOU DRESS ACCORDINGLY.  IF YOU DO NOT PARTAKE THEN YOU WILL BE ABSORBED";
 		if (AlertText != '')
 		{
 			var NumberOfRevChars = 5;
@@ -6851,17 +6474,7 @@ var PopulateLocalForecast = function (WeatherParameters)
 				//var Line = Lines[Index].centerText((MaxCols - 4));
 				var Line = Lines[Index].centerText((MaxCols - NumberOfRevChars));
 
-				//var l = Line.length;
-				//var w2 = Math.floor((MaxCols - 4) / 2);
-				//var l2 = Math.floor(l / 2);
-				//var s = new Array(w2 - l2 + 1).join(" ");
-				//Line = s + Line + s;
-				//if (Line.length < (MaxCols - 4))
-				//{
-				//    Line += new Array((MaxCols - 4) - Line.length + 1).join(" ");
-				//}
 
-				//ScreenText += "*  " + Line + "*\n";
 				ScreenText += '*  ' + Line + ' *\n';
 			}
 			ScreenText += '\n';
@@ -6942,33 +6555,6 @@ var PopulateLocalForecast = function (WeatherParameters)
 			_UpdateLocalForecastIndex = 0;
 			_UpdateLocalForecastCounterMs = 0;
 		}
-
-		//window.setInterval(function ()
-		//{
-		//    // Determine which screen text to show.
-		//    if (_UpdateLocalForecastCounterMs >= 10000)
-		//    {
-		//        _UpdateLocalForecastCounterMs = 0;
-		//        _UpdateLocalForecastIndex++;
-		//        if (_UpdateLocalForecastIndex > LocalForecastScreenTexts.length - 1)
-		//        {
-		//            _UpdateLocalForecastIndex = 0;
-		//        }
-		//    }
-
-		//    // Clear the previous text.
-		//    DrawBox(context, "rgb(33, 40, 90)", 65, 105, 505, 280);
-
-		//    // Draw the text.
-		//    var y = 140;
-		//    $(LocalForecastScreenTexts[_UpdateLocalForecastIndex].split("\n")).each(function ()
-		//    {
-		//        var Text = this.toString();
-
-		//        DrawText(context, "Star4000", "24pt", "#FFFFFF", 75, y, Text, 2);
-		//        y += 40;
-		//    });
-		//}, 500);
 
 		WeatherParameters.LocalForecastScreenTexts = LocalForecastScreenTexts;
 		WeatherParameters.Progress.WordedForecast = LoadStatuses.Loaded;
@@ -7360,47 +6946,11 @@ var UpdateHazards = function (Offset)
 	DrawBox(context, 'rgb(112, 35,35)', 0, 0, 640, 385);
 	context.drawImage(cnvHazardsScroll[0], 0, _UpdateHazardsY, 640, 385, 0, 0, 640, 385);
 
-	//    // Wait until the weather has been loaded.
-	//    if (WeatherParameters.Progress.GetTotalPercentage() != 100)
-	//    {
-	//        return;
-	//    }
 
-	//    // Wait 3 seconds and then start scrolling.
-	//    if (_UpdateHazardsCounterMs == 0)
-	//    {
-	//        y = -385;
-	//    }
-	//    if (_UpdateHazardsCounterMs > 0)
-	//    {
-	//        //y += 1;
-	//        y += 5;
-	//    }
-	//    if (y > cnvHazardsScroll.height())
-	//    {
-	//        y = cnvHazardsScroll.height();
-	//        _UpdateHazardsCounterMs = 0;
-	//    }
 };
 
 String.prototype.wordWrap =  function (intWidth, strBreak, cut)
 {
-	//  discuss at: http://locutus.io/php/wordwrap/
-	// original by: Jonas Raoni Soares Silva (http://www.jsfromhell.com)
-	// improved by: Nick Callen
-	// improved by: Kevin van Zonneveld (http://kvz.io)
-	// improved by: Sakimori
-	//  revised by: Jonas Raoni Soares Silva (http://www.jsfromhell.com)
-	// bugfixed by: Michael Grier
-	// bugfixed by: Feras ALHAEK
-	//      note 1: It would be great if this function could be split up to have
-	//      note 1: smaller line lengths, less ternary operators, and more readable variable names
-	//   example 1: wordwrap('Kevin van Zonneveld', 6, '|', true)
-	//   returns 1: 'Kevin |van |Zonnev|eld'
-	//   example 2: wordwrap('The quick brown fox jumped over the lazy dog.', 20, '<br />\n')
-	//   returns 2: 'The quick brown fox <br />\njumped over the lazy<br />\n dog.'
-	//   example 3: wordwrap('Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.')
-	//   returns 3: 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod \ntempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim \nveniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea \ncommodo consequat.'
 
 	var str = this;
 
@@ -7435,135 +6985,14 @@ String.prototype.wordWrap =  function (intWidth, strBreak, cut)
 	return r.join('\n').replaceAll('\n ', '\n');
 };
 
-//var wordwrap = function (long_string, max_char)
-//{
-
-//    var sum_length_of_words = function (word_array)
-//    {
-//        var out = 0;
-//        if (word_array.length != 0)
-//        {
-//            for (var i = 0; i < word_array.length; i++)
-//            {
-//                var word = word_array[i];
-//                out = out + word.length;
-//            }
-//        };
-//        return out;
-//    }
-
-//    var split_out = [[]];
-//    var split_string = long_string.split(' ');
-//    for (var i = 0; i < split_string.length; i++)
-//    {
-//        var word = split_string[i];
-
-//        if ((sum_length_of_words(split_out[split_out.length - 1]) + word.length) > max_char)
-//        {
-//            split_out = split_out.concat([[]]);
-//        }
-
-//        split_out[split_out.length - 1] = split_out[split_out.length - 1].concat(word);
-//    }
-
-//    for (var i = 0; i < split_out.length; i++)
-//    {
-//        split_out[i] = split_out[i].join(" ");
-//    }
-
-//    return split_out.join('\n');
-//};
-
-//function wordwrap(str, width, brk, cut)
-//{
-
-//    brk = brk || 'n';
-//    width = width || 75;
-//    cut = cut || false;
-
-//    if (!str) { return str; }
-
-//    var regex = '.{1,' + width + '}(\s|$)' + (cut ? '|.{' + width + '}|.+$' : '|\S+?(\s|$)');
-
-//    return str.match(RegExp(regex, 'g')).join(brk);
-
-//}
-
 String.prototype.replaceAll = function (search, replacement)
 {
 	var target = this;
 	return target.split(search).join(replacement);
 };
 
-//String.prototype.wordWrap = function (maxWidth)
-//{
-//    var str = this;
-//    var testWhite = function (x)
-//    {
-//        var white = new RegExp(/^\s$/);
-//        return white.test(x.charAt(0));
-//    };
-
-//    var newLineStr = "\n"; done = false; res = '';
-//    do
-//    {
-//        found = false;
-//        // Inserts new line at first whitespace of the line
-//        for (i = maxWidth - 1; i >= 0; i--)
-//        {
-//            if (testWhite(str.charAt(i)))
-//            {
-//                res = res + [str.slice(0, i), newLineStr].join('');
-//                str = str.slice(i + 1);
-//                found = true;
-//                break;
-//            }
-//        }
-//        // Inserts new line at maxWidth position, the word is too long to wrap
-//        if (!found)
-//        {
-//            res += [str.slice(0, maxWidth), newLineStr].join('');
-//            str = str.slice(maxWidth);
-//        }
-
-//        if (str.length < maxWidth)
-//            done = true;
-//    } while (!done);
-
-//    return res + str;
-//}
-
-
-//var WeatherMonthlyTotalsParser = function (html)
-//{
-//    this.Precipitation = html.find("span:contains(Precipitation)").parent().parent().children().eq(4).find(".wx-value").text();
-//};
-//var WeatherMonthlyTotalsParser = function (json) {
-var WeatherMonthlyTotalsParser = function (text) {
-	this.Precipitation = '';
-
-	//try {
-	//    this.Precipitation = json.history.summary.precip_sum;
-	//} catch (ex) { }
-
-	var PrecipitationIndex = text.indexOf('PRECIPITATION (IN)');
-	var SubText = text.substr(PrecipitationIndex);
-	var MonthIndex = SubText.indexOf('MONTH TO DATE');
-	var MonthText = SubText.substr(MonthIndex + 13);
-	var MonthArray = MonthText.split(' ');
-	var self = this;
-
-	$(MonthArray).each(function () {
-		var item = this.toString();
-		if (item == '') {
-			return true;
-		}
-		else {
-			self.Precipitation = item;
-			return false;
-		}
-	});
-
+const WeatherMonthlyTotalsParser = (text) => {
+	return +text.match(/MONTH TO DATE\s*(\d{1,2}\.\d\d)/)[1];
 };
 
 var WeatherMonthlyTotals = function (WeatherMonthlyTotalsParser)
@@ -8281,76 +7710,31 @@ Date.prototype.toTimeAMPM = function ()
 	return strTime;
 };
 
-var GetTravelWeather = function (WeatherParameters)
-{
-	var TravelCities = WeatherParameters.TravelCities;
-	var Total = TravelCities.length;
-	var Count = 0;
+const GetTravelWeather = async (WeatherParameters) => {
+	const TravelCities = WeatherParameters.TravelCities;
 
-	$(TravelCities).each(function ()
-	{
-		var TravelCity = this;
-
-		//var Url = "https://forecast.weather.gov/MapClick.php?FcstType=dwml";
-		var Url;
-
-		//if (TravelCity.WFO)
-		//{
-		//    Url = "https://api.weather.gov/gridpoints";
-		//    Url += "/" + TravelCity.WFO.toString();
-		//    Url += "/" + TravelCity.X.toString();
-		//    Url += "," + TravelCity.Y.toString();
-		//    Url += "/forecast";
-
-		//    //Url = "https://api.weather.gov/gridpoints/LWX/96,70/forecast";
-		//}
-		//else
-		{
-			Url = 'https://forecast.weather.gov/MapClick.php?FcstType=dwml';
-			Url += '&lat=' + TravelCity.Latitude.toString();
-			Url += '&lon=' + TravelCity.Longitude.toString();
+	const forecastPromises = TravelCities.map(async city => {
+		try {
+			// get point then forecast
+			const point = await getPoint(city.Latitude, city.Longitude);
+			const forecast = await $.ajax({
+				url: point.properties.forecast,
+				dataType: 'json',
+				crossDomain: true,
+			});
+			// combine forecast with city name
+			return Object.assign({}, forecast.properties, {city: city.Name});
 		}
-
-		//Url = "cors/?u=" + encodeURIComponent(Url);
-
-		// Load the xml file using ajax 
-		$.ajaxCORS({
-			type: 'GET',
-			url: Url,
-			dataType: 'xml',
-			crossDomain: true,
-			cache: false,
-			success: function (xml)
-			{
-				var $xml = $(xml);
-				//console.log(xml);
-
-				TravelCity.WeatherDwmlParser = new WeatherDwmlParser($xml);
-				//console.log(WeatherDwmlParser);
-
-				TravelCity.WeatherTravelForecast = new WeatherTravelForecast(TravelCity.WeatherDwmlParser);
-
-				Count++;
-				if (Count == Total)
-				{
-					PopulateTravelCities(WeatherParameters);
-					//WeatherParameters.Progress.TravelForecast = LoadStatuses.Loaded;
-				}
-			},
-			error: function (xhr, error, errorThrown)
-			{
-				console.error('GetTravelWeather for city \'' + TravelCity.Name + '\' failed: ' + errorThrown);
-
-				Count++;
-				if (Count == Total)
-				{
-					PopulateTravelCities(WeatherParameters);
-					//WeatherParameters.Progress.TravelForecast = LoadStatuses.Loaded;
-				}
-			},
-		});
-
+		catch (e) {
+			console.error(`GetTravelWeather for ${city.Name} failed`);
+			console.error(e);
+			return false;
+		}	
 	});
+	
+	// wait for all forecasts
+	const forecasts = await Promise.all(forecastPromises);
+	PopulateTravelCities(WeatherParameters);
 
 };
 
