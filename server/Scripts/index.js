@@ -9,13 +9,8 @@ if (location.protocol != 'https:' && location.href.indexOf('localhost') == -1 &&
 
 var frmGetLatLng;
 var txtAddress;
-var btnGetLatLng;
 var btnClearQuery;
 var btnGetGps;
-var divLat;
-var spanLat;
-var divLng;
-var spanLng;
 
 var divTwc;
 var divTwcTop;
@@ -24,14 +19,10 @@ var divTwcBottom;
 var divTwcLeft;
 var divTwcRight;
 var divTwcNavContainer;
-var divTwcNav;
 var iframeTwc;
-var btnFullScreen;
 
-var divRefresh;
 var spanLastRefresh;
 var chkAutoRefresh;
-var lblRefreshCountDown;
 var spanRefreshCountDown;
 
 var spanCity;
@@ -43,7 +34,6 @@ var spanZoneId;
 var frmScrollText;
 var chkScrollText;
 var txtScrollText;
-var btnScrollText;
 
 //var _InFullScreen = false;
 var _AutoSelectQuery = false;
@@ -101,13 +91,9 @@ var FullScreenResize = function ()
 	var IFrameWidth;
 	var IFrameHeight;
 	var LeftWidth;
-	var LeftHeight;
 	var RightWidth;
-	var RightHeight;
 	var TopHeight;
-	var TopWidth;
 	var BottomHeight;
-	var BottomWidth;
 	var Offset;
 	var inFullScreen = InFullScreen();
 
@@ -595,6 +581,7 @@ var TwcCallBack = function (e)
 			$('img[src=\'images/nav/ic_hearing_white_24dp_2x.png\']').attr('src', 'images/nav/ic_no_hearing_white_24dp_2x.png');
 		}
 		break;
+	default:
 	}
 };
 
