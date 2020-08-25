@@ -3,11 +3,6 @@
 
 /* globals _StationInfo, luxon */
 
-//timemachine.config({
-//    dateString: 'February 19, 2017 11:12:59',
-//    tick: true,
-//});
-
 const _DayShortNames = { 'Sunday': 'Sun', 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat' };
 const _DayLongNameArray = Object.keys(_DayShortNames);
 const _DayLongNames = { 'Sun': 'Sunday', 'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday', 'Thu': 'Thursday', 'Fri': 'Friday', 'Sat': 'Saturday' };
@@ -192,7 +187,7 @@ if (_UserAgent.indexOf('iPod') !== -1) _OperatingSystem = OperatingSystems.iOS;
 if (_UserAgent.toLowerCase().indexOf('android') !== -1) _OperatingSystem = OperatingSystems.Andriod;
 if (_UserAgent.indexOf('Windows Phone') !== -1) _OperatingSystem = OperatingSystems.WindowsPhone;
 
-const  GetCurrentWeather = (WeatherParameters) => {
+const GetCurrentWeather = (WeatherParameters) => {
 	var Url = 'https://forecast.weather.gov/MapClick.php?FcstType=dwml';
 	Url += '&lat=' + WeatherParameters.Latitude.toString();
 	Url += '&lon=' + WeatherParameters.Longitude.toString();
@@ -1178,29 +1173,10 @@ var GetOutlookDescription = function (OutlookIndicator)
 	}
 };
 
-var GetMarineForecast = function (WeatherParameters)
-{
-
-	// mjb 08/28/19 Begin
-	//// mjb 08/02/19 Begin
-	////// mjb 05/19/19 Begin
-	//////var Url = "https://www.wunderground.com/cgi-bin/findweather/getForecast?query="; //Montauk%2C+NY
-	//////Url += encodeURIComponent(WeatherParameters.City) + "%2C";
-	//////Url += WeatherParameters.State;
-	//////Url += "&hdf=1"; // mjb 08/15/18
-
-	////var Url = "https://www.wunderground.com/weather/us/"; //ny/shirley
-	////Url += WeatherParameters.State + "/";
-	////Url += encodeURIComponent(WeatherParameters.City);
-	////// mjb 05/19/19 End
-
-	//var Url = "https://www.wunderground.com/cgi-bin/marineRedirect?zip=";
-	//Url += WeatherParameters.ZipCode;
-	//// mjb 08/02/19 End
+var GetMarineForecast = async (WeatherParameters) =>  {
 
 	var Url = 'https://l-36.com/weather_marine_cg.php?lat_long2=';
 	Url += encodeURIComponent(WeatherParameters.Latitude) + ',' + encodeURIComponent(WeatherParameters.Longitude);
-	// mjb 08/28/19 End
 
 	WeatherParameters.MarineForecast = null;
 
@@ -1213,32 +1189,6 @@ var GetMarineForecast = function (WeatherParameters)
 		cache: false,
 		success: function (html)
 		{
-			////var $html = $(html);
-			////$html.find("[src]").attr("src", ""); // Prevents the browser from loading any images on this page.
-
-			//////<a href="/marine-weather/AN/350.html" id="water-link">Marine Forecast</a>
-			////var aWaterLink = $html.find("#water-link");
-
-			////if (aWaterLink.length === 0)
-			////{
-			////    // Marine forecast available for this location.
-
-			////    //PopulateAlmanacInfo(_WeatherParameters);
-			////    //GetCurrentWeather(WeatherParameters);
-			////    //ShowRegionalMap(_WeatherParameters);
-
-			////    GetWeatherForecast(_WeatherParameters);
-
-			////    return;
-			////}
-
-			////var href = aWaterLink.attr("href");
-			////var MarineZoneId = href.replaceAll("/marine-weather/", "").replaceAll(".html", "").replaceAll("/", "Z");
-
-			//var index1 = text.indexOf("https://www.wunderground.com/MAR/")
-			//var href = text.substr(index1, "https://www.wunderground.com/MAR/XY/123.html".length);
-			//var MarineZoneId = href.replaceAll("https://www.wunderground.com/MAR/", "").replaceAll(".html", "").replaceAll("/", "Z");
-
 			var $html = $(html);
 			$html.find('[src]').attr('src', ''); // Prevents the browser from loading any images on this page.
 			var MarineZoneId = null;
@@ -1493,66 +1443,10 @@ var GetMarineForecast = function (WeatherParameters)
 									}
 								}
 							}
-
-							//Index = ForecastText.indexOf("SEAS ");
-							//else
-							//{
-							//    Index = ForecastText.indexOf("SEAS 1 FT OR LESS");
-							//    if (Index !== -1)
-							//    {
-							//        TideHigh = 1;
-							//    }
-							//    else
-							//    {
-							//        Index = ForecastText.indexOf("WAVES AROUND ");
-							//        if (Index !== -1)
-							//        {
-							//            Index += 12;
-							//            Index2 = ForecastText.indexOf(" FT", Index);
-							//            TideHigh = parseInt(ForecastText.substr(Index, Index2 - Index));
-							//            MarineForecast.SeasOrWaves = "WAVES";
-							//        }
-							//        else
-							//        {
-							//            Index = ForecastText.indexOf("WAVES 1 FT OR LESS");
-							//            if (Index !== -1)
-							//            {
-							//                TideHigh = 1;
-							//                MarineForecast.SeasOrWaves = "WAVES";
-							//            }
-							//            else
-							//            {
-							//                Index = ForecastText.indexOf("WAVES ");
-							//                if (Index !== -1)
-							//                {
-							//                    Index += 4;
-							//                    Index2 = ForecastText.indexOf(" TO ", Index);
-							//                    TideLow = parseInt(ForecastText.substr(Index, Index2 - Index));
-							//                    Index = Index2 + 4;
-							//                    Index2 = ForecastText.indexOf(" FT", Index);
-							//                    TideHigh = parseInt(ForecastText.substr(Index, Index2 - Index));
-							//                    MarineForecast.SeasOrWaves = "WAVES";
-							//                }
-							//            }
-							//        }
-							//    }
-							//}
 						}
 
 						TideConditions = 'LIGHT';
-						////TideConditions = "";
-						//if (ForecastText.toLowerCase().indexOf(" light ") !== -1)
-						//{
-						//    TideConditions = "LIGHT";
-						//}
-						//else if (ForecastText.toLowerCase().indexOf(" rough") !== -1)
-						//{
-						//    TideConditions = "ROUGH";
-						//}
-						//else if (ForecastText.toLowerCase().indexOf(" chop") !== -1)
-						//{
-						//    TideConditions = "CHOPPY";
-						//}
+
 						if (TideHigh > 7)
 						{
 							TideConditions = 'ROUGH';
@@ -1575,6 +1469,7 @@ var GetMarineForecast = function (WeatherParameters)
 						switch (DayIndex)
 						{
 						case 0:
+						default:
 							// Today/Tonight
 							MarineForecast.TodayDayName = DayName;
 							MarineForecast.TodayWindSpeedHigh = WindSpeedHigh;
@@ -1609,10 +1504,6 @@ var GetMarineForecast = function (WeatherParameters)
 					WeatherParameters.MarineForecast = MarineForecast;
 
 					PopulateMarineForecast(WeatherParameters);
-
-					//PopulateAlmanacInfo(_WeatherParameters);
-					//GetCurrentWeather(WeatherParameters);
-					//ShowRegionalMap(_WeatherParameters);
 
 					GetWeatherForecast(_WeatherParameters);
 
@@ -2054,14 +1945,13 @@ var GetAirQuality2 = function (WeatherParameters)
 
 var GetAirQuality3 = function (WeatherParameters)
 {
-	//http://www.airnowapi.org/aq/forecast/zipCode/?format=application/json&zipCode=11763&date=2020-07-21&distance=25&API_KEY=E0E326E6-E199-4ABC-B382-0F9F9522E143
-
-
 	if (!WeatherParameters.ZipCode)
 	{
 		GetMarineForecast(WeatherParameters);
 		return;
 	}
+
+	// TODO, this code does not currently execute because no zip code is provided
 
 	var ZipCode = WeatherParameters.ZipCode;
 	var date = new Date();
@@ -2783,84 +2673,24 @@ var GetWeatherMetar = function (WeatherParameters)
 	});
 };
 
-var GetWeatherForecast = function (WeatherParameters)
-{
-	var Url = 'https://tgftp.nws.noaa.gov/data/forecasts/zone/';
-	Url += WeatherParameters.ZoneId.substr(0, 2).toLowerCase() + '/';
-	Url += WeatherParameters.ZoneId.toLowerCase() + '.txt';
-	//Url += "," + (new Date().getTime()); // Prevents caching
-	//Url = "https://crossorigin.me/" + Url; // Need to do this for Chrome and CORS
-	//Url = "cors/?u=" + encodeURIComponent(Url);
+const GetWeatherForecast = async (WeatherParameters) => {
+	try {
+		const forecast = await $.ajax({
+			type: 'GET',
+			url: WeatherParameters.Forecast,
+			dataType: 'json',
+			crossDomain: true,
+		});
 
-	//var Count = 0;
+		WeatherParameters.WeatherLocalForecast = WeatherLocalForecast(forecast);
+		console.log(WeatherParameters.WeatherLocalForecast);
+		PopulateLocalForecast(WeatherParameters);
+	}
+	catch (e) {
+		console.error(`GetWeatherForecast failed: ${WeatherParameters.Forecast}`);
+		console.error(e);
+	}
 
-	//var DoAjax = function ()
-	//{
-	//    // Load the xml file using ajax 
-	//    $.ajax({
-	//        type: "GET",
-	//        url: Url,
-	//        dataType: "text",
-	//        crossDomain: true,
-	//        cache: false,
-	//        success: function (text)
-	//        {
-	//            //console.log(text);
-
-	//            WeatherParameters.WeatherForecastParser = new WeatherForecastParser(text);
-	//            console.log(WeatherParameters.WeatherForecastParser);
-
-	//            WeatherParameters.WeatherLocalForecast = new WeatherLocalForecast(WeatherParameters.WeatherForecastParser);
-	//            console.log(WeatherParameters.WeatherLocalForecast);
-	//            PopulateLocalForecast(WeatherParameters);
-	//            //WeatherParameters.Progress.WordedForecast = LoadStatuses.Loaded;
-	//        },
-	//        error: function (xhr, error, errorThrown)
-	//        {
-	//            console.error("GetWeatherForecast failed: " + errorThrown);
-
-	//            Count++;
-	//            if (Count === 1)
-	//            {
-	//                Url = "http://tgftp.nws.noaa.gov/data/forecasts/zone/";
-	//                Url += WeatherParameters.ZoneId.substr(0, 2).toLowerCase() + "/";
-	//                Url += WeatherParameters.ZoneId.toLowerCase() + ".txt";
-	//                //Url = "cors/?u=" + encodeURIComponent(Url);
-	//                Url = "https://crossorigin.me/" + Url; // Need to do this for Chrome and CORS
-
-	//                DoAjax();
-	//                return;
-	//            }
-	//            WeatherParameters.Progress.WordedForecast = LoadStatuses.Failed;
-	//        }
-	//    });
-	//};
-	//DoAjax();
-
-	$.ajaxCORS({
-		type: 'GET',
-		url: Url,
-		dataType: 'text',
-		crossDomain: true,
-		cache: false,
-		success: function (text)
-		{
-			//console.log(text);
-
-			WeatherParameters.WeatherForecastParser = new WeatherForecastParser(text);
-			console.log(WeatherParameters.WeatherForecastParser);
-
-			WeatherParameters.WeatherLocalForecast = new WeatherLocalForecast(WeatherParameters.WeatherForecastParser);
-			console.log(WeatherParameters.WeatherLocalForecast);
-			PopulateLocalForecast(WeatherParameters);
-			//WeatherParameters.Progress.WordedForecast = LoadStatuses.Loaded;
-		},
-		error: function (xhr, error, errorThrown)
-		{
-			console.error('GetWeatherForecast failed: ' + errorThrown);
-			WeatherParameters.Progress.WordedForecast = LoadStatuses.Failed;
-		},
-	});
 };
 
 $(() => {
@@ -2966,11 +2796,6 @@ $(() => {
 
 	audMusic = $('#audMusic');
 	PopulateMusicUrls();
-	//audMusic[0].onerror = audMusic_OnError;
-	//audMusic[0].ontimeupdate = AudioOnTimeUpdate;
-	//audMusic[0].onplay = RefreshStateOfMusicAudio;
-	//audMusic[0].onpause = RefreshStateOfMusicAudio;
-	//audMusic[0].onplaying = RefreshStateOfMusicAudio;
 
 	canvasProgress.mousemove(canvasProgress_mousemove);
 	canvasProgress.click(canvasProgress_click);
@@ -2979,7 +2804,7 @@ $(() => {
 
 	_WeatherParameters.WeatherHazardConditions = {};
 
-	var WeatherCanvases = [];
+	const WeatherCanvases = [];
 	WeatherCanvases.push(canvasProgress);
 	WeatherCanvases.push(canvasCurrentWeather);
 	WeatherCanvases.push(canvasLatestObservations);
@@ -3028,10 +2853,12 @@ $(() => {
 
 		const StationId = stations.features[0].properties.stationIdentifier;
 
+		let city = point.properties.relativeLocation.properties.city;
+
 		if (StationId in _StationInfo)
 		{
-			City = _StationInfo[StationId].City;
-			City = City.split('/')[0];
+			city = _StationInfo[StationId].City;
+			city = city.split('/')[0];
 		}
 
 		_WeatherParameters.Latitude = window.parent.latLon.lat;
@@ -3040,9 +2867,10 @@ $(() => {
 		_WeatherParameters.RadarId = point.properties.radarStation.substr(-3);
 		_WeatherParameters.StationId = StationId;
 		_WeatherParameters.WeatherOffice = point.properties.cwa;
-		_WeatherParameters.City = City;
+		_WeatherParameters.City = city;
 		_WeatherParameters.State = point.properties.relativeLocation.properties.state;
 		_WeatherParameters.TimeZone = point.properties.relativeLocation.properties.timeZone;
+		_WeatherParameters.Forecast = point.properties.forecast;
 
 		GetMonthPrecipitation(_WeatherParameters);
 		GetTravelWeather(_WeatherParameters);
@@ -5876,209 +5704,116 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex)
 };
 
 
-var WeatherForecastParser = function (text)
-{
-	var Lines = text.split('\n');
-	var Index;
-	var InCondition = false;
-	var InAlert = false;
-	var _self = this;
+const WeatherLocalForecast = (_forecast) => {
 
-	this.Alert = '';
-	this.Text = [];
+	// only use the first 6 lines
+	const forecast = _forecast.properties.periods.slice(0,6);
 
-	$(Lines).each(function ()
-	{
-		var Line = this.toString();
-
-		if (Line === '')
-		{
-			InCondition = false;
-			return true;
-		}
-
-		if (Line.startsWith('.') === false)
-		{
-			if (InCondition)
-			{
-				_self.Text[_self.Text.length - 1] += ' ' + Line;
-			}
-			else if (InAlert)
-			{
-				_self.Alert += ' ' + Line;
-			}
-
-			return true;
-		}
-
-		if (Line.startsWith('...'))
-		{
-			// Line is an alert.
-			InAlert = true;
-			_self.Alert = Line;
-			return true;
-		}
-
-		InAlert = false;
-		InCondition = true;
-
-		_self.Text.push(Line.toString());
-
-		//Index = Line.indexOf("...");
-		//_self.Conditions.push({
-		//    DayName: Line.substr(1, Index - 1),
-		//    Text: Line.substr(Index + 3),
-		//});
-	});
-
+	return forecast.map(text => ({
+		DayName: text.name.toUpperCase(),
+		Text: text.detailedForecast,
+		TextC: ConvertConditionsToMetric(text.detailedForecast),
+	}));
 };
 
-
-
-var WeatherLocalForecast = function (WeatherForecastParser)
-{
-	var Index2;
-	var _self = this;
-
-	this.Alerts = '';
-	this.AlertsC = '';
-	if (WeatherForecastParser.Alert !== '')
-	{
-		//this.Alerts = "*** " + WeatherForecastParser.Alert + " ***";
-		this.Alerts = WeatherForecastParser.Alert;
-		this.AlertsC = ConvertConditionsToMetric(WeatherForecastParser.Alert);
-	}
-
-	this.Conditions = [];
-
-	$(WeatherForecastParser.Text).each(function (Index, Text)
-	{
-		//if (Index > 2)
-		if (Index > 5)
-		{
-			return false;
-		}
-
-		Index2 = Text.indexOf('...');
-
-		var DayName = Text.substr(1, Index2 - 1);
-		var Condition = Text.substr(Index2 + 3);
-		Condition = Condition.replaceAll('  ', ' ');
-		var ConditionC = ConvertConditionsToMetric(Condition);
-
-		_self.Conditions.push({
-			DayName: DayName,
-			Text: Condition,
-			TextC: ConditionC,
-		});
-	});
-
-};
-
-var ConvertConditionsToMetric = function (Condition)
-{
-	var Words = Condition.toUpperCase().split(' ');
-	var Word;
-	var Metric = '';
+const ConvertConditionsToMetric = (condition) => {
+	const words = condition.toUpperCase().split(' ');
 
 	// X TO Y MPH.
-	for (var Index = 0; Index <= Words.length - 1; Index++)
-	{
-		Word = Words[Index];
-
+	words.forEach((word, idx) => {
 		try {
-			if (Word.startsWith('MPH')) {
-				if ($.isNumeric(Words[Index - 1])) {
-					Words[Index - 1] = ConvertMphToKph(Words[Index - 1]);
+			// winds in mph
+			if (word.startsWith('MPH')) {
+				if ($.isNumeric(words[idx - 1])) {
+					words[idx - 1] = ConvertMphToKph(words[idx - 1]);
 				}
-				if (Words[Index - 2] === 'TO') {
-					if ($.isNumeric(Words[Index - 3])) {
-						Words[Index - 3] = ConvertMphToKph(Words[Index - 3]);
+				if (words[idx - 2] === 'TO') {
+					if ($.isNumeric(words[idx - 3])) {
+						words[idx - 3] = ConvertMphToKph(words[idx - 3]);
 					}
 				}
 
-				Words[Index] = Word.replaceAll('MPH', 'KPH');
+				words[idx] = word.replaceAll('MPH', 'KPH');
 			}
 
 			// X TO Y INCH[ES].
-			else if (Word.startsWith('INCH')) {
-				//if (Words[Index - 1] === "AN")
+			else if (word.startsWith('INCH')) {
 
-				if ($.isNumeric(Words[Index - 1])) {
-					Words[Index - 1] = Math.round(ConvertInchesToCentimeters(Words[Index - 1]));
+				if ($.isNumeric(words[idx - 1])) {
+					words[idx - 1] = Math.round(ConvertInchesToCentimeters(words[idx - 1]));
 				}
-				if (Words[Index - 2] === 'TO') {
-					if ($.isNumeric(Words[Index - 3])) {
-						Words[Index - 3] = Math.round(ConvertInchesToCentimeters(Words[Index - 3]));
+				if (words[idx - 2] === 'TO') {
+					if ($.isNumeric(words[idx - 3])) {
+						words[idx - 3] = Math.round(ConvertInchesToCentimeters(words[idx - 3]));
 					}
 				}
 
-				Words[Index] = Words[Index].replaceAll('INCHES', 'CMS');
-				Words[Index] = Words[Index].replaceAll('INCH', 'CM');
+				words[idx] = words[idx].replaceAll('INCHES', 'CMS');
+				words[idx] = words[idx].replaceAll('INCH', 'CM');
 			}
 
 			// X TO Y FEET.
-			else if (Word.startsWith('FEET')) {
-				if ($.isNumeric(Words[Index - 1])) {
-					Words[Index - 1] = ConvertFeetToMeters(Words[Index - 1]);
+			else if (word.startsWith('FEET')) {
+				if ($.isNumeric(words[idx - 1])) {
+					words[idx - 1] = ConvertFeetToMeters(words[idx - 1]);
 				}
-				if (Words[Index - 2] === 'TO') {
-					if ($.isNumeric(Words[Index - 3])) {
-						Words[Index - 3] = ConvertFeetToMeters(Words[Index - 3]);
+				if (words[idx - 2] === 'TO') {
+					if ($.isNumeric(words[idx - 3])) {
+						words[idx - 3] = ConvertFeetToMeters(words[idx - 3]);
 					}
 				}
 
-				Words[Index] = Word.replaceAll('FEET', 'METERS');
+				words[idx] = word.replaceAll('FEET', 'METERS');
 			}
 
 			// X TO Y MILE[S].
-			else if (Word.startsWith('MILE')) {
-				if ($.isNumeric(Words[Index - 1])) {
-					Words[Index - 1] = ConvertMilesToKilometers(Words[Index - 1]);
+			else if (word.startsWith('MILE')) {
+				if ($.isNumeric(words[idx - 1])) {
+					words[idx - 1] = ConvertMilesToKilometers(words[idx - 1]);
 				}
-				if (Words[Index - 2] === 'TO') {
-					if ($.isNumeric(Words[Index - 3])) {
-						Words[Index - 3] = ConvertMilesToKilometers(Words[Index - 3]);
+				if (words[idx - 2] === 'TO') {
+					if ($.isNumeric(words[idx - 3])) {
+						words[idx - 3] = ConvertMilesToKilometers(words[idx - 3]);
 					}
 				}
 
-				Words[Index] = Word.replaceAll('MILE', 'KM');
+				words[idx] = word.replaceAll('MILE', 'KM');
 			}
 
 			// X AM.
-			else if (Word.startsWith('AM')) {
-				if ($.isNumeric(Words[Index - 1])) {
-					var HH = parseInt(Words[Index - 1]);
+			else if (word.startsWith('AM')) {
+				if ($.isNumeric(words[idx - 1])) {
+					let HH = parseInt(words[idx - 1]);
 					if (HH === 12) {
 						HH = 0;
 					}
-					Words[Index - 1] = HH.toString() + ':00';
-					Words[Index] = Word.replaceAll('AM', '?');
+					words[idx - 1] = HH.toString() + ':00';
+					words[idx] = word.replaceAll('AM', '?');
 				}
 			}
 
 			// X PM.
-			else if (Word.startsWith('PM')) {
-				if ($.isNumeric(Words[Index - 1])) {
-					var HH = parseInt(Words[Index - 1]);
+			else if (word.startsWith('PM')) {
+				if ($.isNumeric(words[idx - 1])) {
+					let HH = parseInt(words[idx - 1]);
 					if (HH < 12) {
 						HH += 12;
 					}
-					Words[Index - 1] = HH.toString() + ':00';
-					Words[Index] = Word.replaceAll('PM', '?');
+					words[idx - 1] = HH.toString() + ':00';
+					words[idx] = word.replaceAll('PM', '?');
 				}
 			}
 
 
 			// LOWS|HIGHS IN THE [MID|UPPER|LOWER] XS.
 			// LOWS|HIGHS NEAR XS.
-			else if (Word === 'LOWS' || Word === 'HIGHS') {
-				if (Words[Index + 1] === 'IN' && Words[Index + 2] === 'THE') {
-					if (Words[Index + 3] === 'MID' || Words[Index + 3] === 'UPPER' || Words[Index + 3] === 'LOWER') {
-						var TempF = parseInt(Words[Index + 4]);
-						var TempC = TempF;
+			else if (word === 'LOWS' || word === 'HIGHS') {
+				if (words[idx + 1] === 'IN' && words[idx + 2] === 'THE') {
+					if (words[idx + 3] === 'MID' || words[idx + 3] === 'UPPER' || words[idx + 3] === 'LOWER') {
+						const TempF = parseInt(words[idx + 4]);
+						let TempC = TempF;
 
-						switch (Words[Index + 3]) {
+						switch (words[idx + 3]) {
 						case 'MID':
 							TempC += 5;
 							break;
@@ -6088,17 +5823,18 @@ var ConvertConditionsToMetric = function (Condition)
 						case 'LOWER':
 							TempC += 1;
 							break;
+						default:
 						}
 						TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-						Words[Index + 4] = Words[Index + 4].replaceAll(TempF.toString() + 'S', TempC.toString());
-						Words[Index + 3] = 'NEAR';
+						words[idx + 4] = words[idx + 4].replaceAll(TempF.toString() + 'S', TempC.toString());
+						words[idx + 3] = 'NEAR';
 
-						if (Words[Index + 5] && Words[Index + 5] === 'TO') {
-							var TempF = parseInt(Words[Index + 7]);
-							var TempC = TempF;
+						if (words[idx + 5] && words[idx + 5] === 'TO') {
+							const TempF = parseInt(words[idx + 7]);
+							let TempC = TempF;
 
-							switch (Words[Index + 6]) {
+							switch (words[idx + 6]) {
 							case 'MID':
 								TempC += 5;
 								break;
@@ -6108,19 +5844,20 @@ var ConvertConditionsToMetric = function (Condition)
 							case 'LOWER':
 								TempC += 1;
 								break;
+							default:
 							}
 							TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-							Words[Index + 7] = Words[Index + 7].replaceAll(TempF.toString() + 'S', TempC.toString());
-							Words[Index + 6] = 'NEAR';
+							words[idx + 7] = words[idx + 7].replaceAll(TempF.toString() + 'S', TempC.toString());
+							words[idx + 6] = 'NEAR';
 						}
 					}
-					else if (Words[Index + 3] === 'NEAR') {
-						if (Words[Index + 4] === 'MID' || Words[Index + 4] === 'UPPER' || Words[Index + 4] === 'LOWER') {
-							var TempF = parseInt(Words[Index + 5]);
-							var TempC = TempF;
+					else if (words[idx + 3] === 'NEAR') {
+						if (words[idx + 4] === 'MID' || words[idx + 4] === 'UPPER' || words[idx + 4] === 'LOWER') {
+							const TempF = parseInt(words[idx + 5]);
+							let TempC = TempF;
 
-							switch (Words[Index + 4]) {
+							switch (words[idx + 4]) {
 							case 'MID':
 								TempC += 5;
 								break;
@@ -6130,74 +5867,75 @@ var ConvertConditionsToMetric = function (Condition)
 							case 'LOWER':
 								TempC += 1;
 								break;
+							default:
 							}
 							TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-							Words[Index + 5] = Words[Index + 5].replaceAll(TempF.toString() + 'S', TempC.toString());
-							Words[Index + 4] = '?';
+							words[idx + 5] = words[idx + 5].replaceAll(TempF.toString() + 'S', TempC.toString());
+							words[idx + 4] = '?';
 
 						}
 					}
 					else {
-						var TempF = parseInt(Words[Index + 3]);
-						var TempC = TempF;
+						const TempF = parseInt(words[idx + 3]);
+						let TempC = TempF;
 						TempC += 5;
 						TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-						Words[Index + 3] = 'NEAR ' + Words[Index + 3].replaceAll(TempF.toString() + 'S', TempC.toString());
+						words[idx + 3] = 'NEAR ' + words[idx + 3].replaceAll(TempF.toString() + 'S', TempC.toString());
 					}
 				}
-				else if (Words[Index + 1] === 'NEAR' || Words[Index + 1] === 'AROUND') {
-					var TempF = parseInt(Words[Index + 2]);
-					var TempC = TempF;
-					if (Words[Index + 3].indexOf('BELOW') === 0) {
+				else if (words[idx + 1] === 'NEAR' || words[idx + 1] === 'AROUND') {
+					const TempF = parseInt(words[idx + 2]);
+					let TempC = TempF;
+					if (words[idx + 3].idxOf('BELOW') === 0) {
 						TempC *= -1;
 					}
 					TempC += 1;
 					TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-					Words[Index + 2] = Words[Index + 2].replaceAll(TempF.toString(), TempC.toString());
+					words[idx + 2] = words[idx + 2].replaceAll(TempF.toString(), TempC.toString());
 
-					Words[Index + 3] = Words[Index + 3].replaceAll('ABOVE', '?');
-					Words[Index + 3] = Words[Index + 3].replaceAll('BELOW', '?');
+					words[idx + 3] = words[idx + 3].replaceAll('ABOVE', '?');
+					words[idx + 3] = words[idx + 3].replaceAll('BELOW', '?');
 				}
 				else {
-					var TempF = parseInt(Words[Index + 1]);
-					var TempC = TempF;
+					const TempF = parseInt(words[idx + 1]);
+					let TempC = TempF;
 					TempC += 5;
 					TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-					Words[Index + 1] = Words[Index + 1].replaceAll(TempF.toString(), TempC.toString());
+					words[idx + 1] = words[idx + 1].replaceAll(TempF.toString(), TempC.toString());
 
-					if (Words[Index + 2] && Words[Index + 2] === 'TO') {
-						var TempF = parseInt(Words[Index + 3]);
-						var TempC = TempF;
+					if (words[idx + 2] && words[idx + 2] === 'TO') {
+						const TempF = parseInt(words[idx + 3]);
+						let TempC = TempF;
 						TempC += 5;
 						TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-						Words[Index + 3] = Words[Index + 3].replaceAll(TempF.toString(), TempC.toString());
+						words[idx + 3] = words[idx + 3].replaceAll(TempF.toString(), TempC.toString());
 					}
 				}
 			}
-			else if (Words[Index] === 'LOW' || Words[Index] === 'HIGH' || Words[Index + 1] === 'AS') {
-				var TempF = parseInt(Words[Index + 2]);
-				var TempC = TempF;
-				if (Words[Index + 3].indexOf('BELOW') === 0) {
+			else if (words[idx] === 'LOW' || words[idx] === 'HIGH' || words[idx + 1] === 'AS') {
+				const TempF = parseInt(words[idx + 2]);
+				let TempC = TempF;
+				if (words[idx + 3].idxOf('BELOW') === 0) {
 					TempC *= -1;
 				}
 				TempC += 1;
 				TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-				Words[Index + 2] = Words[Index + 2].replaceAll(TempF.toString(), TempC.toString());
+				words[idx + 2] = words[idx + 2].replaceAll(TempF.toString(), TempC.toString());
 
-				Words[Index + 3] = Words[Index + 3].replaceAll('ABOVE', '?');
-				Words[Index + 3] = Words[Index + 3].replaceAll('BELOW', '?');
+				words[idx + 3] = words[idx + 3].replaceAll('ABOVE', '?');
+				words[idx + 3] = words[idx + 3].replaceAll('BELOW', '?');
 			}
-			else if (Word === 'MID' || Word === 'UPPER' || Word === 'LOWER') {
-				var TempF = parseInt(Words[Index + 1]);
-				var TempC = TempF;
+			else if (word === 'MID' || word === 'UPPER' || word === 'LOWER') {
+				const TempF = parseInt(words[idx + 1]);
+				let TempC = TempF;
 
-				switch (Word) {
+				switch (word) {
 				case 'MID':
 					TempC += 5;
 					break;
@@ -6207,83 +5945,81 @@ var ConvertConditionsToMetric = function (Condition)
 				case 'LOWER':
 					TempC += 1;
 					break;
+				default:
 				}
 				TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-				Words[Index + 1] = Words[Index + 1].replaceAll(TempF.toString() + 'S', TempC.toString());
-				Words[Index + 1] = Words[Index + 1].replaceAll(TempF.toString(), TempC.toString());
-				Words[Index] = 'NEAR';
+				words[idx + 1] = words[idx + 1].replaceAll(TempF.toString() + 'S', TempC.toString());
+				words[idx + 1] = words[idx + 1].replaceAll(TempF.toString(), TempC.toString());
+				words[idx] = 'NEAR';
 			}
-			else if (Word === 'AROUND') {
-				if (Words[Index - 1] === 'TEMPERATURES') {
-					var TempF = parseInt(Words[Index + 1]);
-					var TempC = TempF;
-					if (Words[Index + 3].indexOf('BELOW') === 0) {
+			else if (word === 'AROUND') {
+				if (words[idx - 1] === 'TEMPERATURES') {
+					const TempF = parseInt(words[idx + 1]);
+					let TempC = TempF;
+					if (words[idx + 3].idxOf('BELOW') === 0) {
 						TempC *= -1;
 					}
 					TempC += 1;
 					TempC = Math.round(ConvertFahrenheitToCelsius(TempC));
 
-					Words[Index + 1] = Words[Index + 1].replaceAll(TempF.toString(), TempC.toString());
+					words[idx + 1] = words[idx + 1].replaceAll(TempF.toString(), TempC.toString());
 
-					Words[Index + 2] = Words[Index + 2].replaceAll('ABOVE', '?');
-					Words[Index + 2] = Words[Index + 2].replaceAll('BELOW', '?');
+					words[idx + 2] = words[idx + 2].replaceAll('ABOVE', '?');
+					words[idx + 2] = words[idx + 2].replaceAll('BELOW', '?');
 				}
 			}
 
-			else if (Word.startsWith('-20S')) {
-				Words[Index] = Word.replace('-20S', 'NEAR -25');
+			else if (word.startsWith('-20S')) {
+				words[idx] = word.replace('-20S', 'NEAR -25');
 			}
-			else if (Word.startsWith('-10S')) {
-				Words[Index] = Word.replace('-10S', 'NEAR -20');
+			else if (word.startsWith('-10S')) {
+				words[idx] = word.replace('-10S', 'NEAR -20');
 			}
-			else if (Word.startsWith('0S')) {
-				Words[Index] = Word.replace('0S', 'NEAR -15');
+			else if (word.startsWith('0S')) {
+				words[idx] = word.replace('0S', 'NEAR -15');
 			}
-			else if (Word.startsWith('10S')) {
-				Words[Index] = Word.replace('10S', 'NEAR -10');
+			else if (word.startsWith('10S')) {
+				words[idx] = word.replace('10S', 'NEAR -10');
 			}
-			else if (Word.startsWith('20S')) {
-				Words[Index] = Word.replace('20S', 'NEAR -5');
+			else if (word.startsWith('20S')) {
+				words[idx] = word.replace('20S', 'NEAR -5');
 			}
-			else if (Word.startsWith('30S')) {
-				Words[Index] = Word.replace('30S', 'NEAR 0');
+			else if (word.startsWith('30S')) {
+				words[idx] = word.replace('30S', 'NEAR 0');
 			}
-			else if (Word.startsWith('40S')) {
-				Words[Index] = Word.replace('40S', 'NEAR 5');
+			else if (word.startsWith('40S')) {
+				words[idx] = word.replace('40S', 'NEAR 5');
 			}
-			else if (Word.startsWith('50S')) {
-				Words[Index] = Word.replace('50S', 'NEAR 12');
+			else if (word.startsWith('50S')) {
+				words[idx] = word.replace('50S', 'NEAR 12');
 			}
-			else if (Word.startsWith('60S')) {
-				Words[Index] = Word.replace('60S', 'NEAR 17');
+			else if (word.startsWith('60S')) {
+				words[idx] = word.replace('60S', 'NEAR 17');
 			}
-			else if (Word.startsWith('70S')) {
-				Words[Index] = Word.replace('70S', 'NEAR 25');
+			else if (word.startsWith('70S')) {
+				words[idx] = word.replace('70S', 'NEAR 25');
 			}
-			else if (Word.startsWith('80S')) {
-				Words[Index] = Word.replace('80S', 'NEAR 30');
+			else if (word.startsWith('80S')) {
+				words[idx] = word.replace('80S', 'NEAR 30');
 			}
-			else if (Word.startsWith('90S')) {
-				Words[Index] = Word.replace('90S', 'NEAR 35');
+			else if (word.startsWith('90S')) {
+				words[idx] = word.replace('90S', 'NEAR 35');
 			}
-			else if (Word.startsWith('100S')) {
-				Words[Index] = Word.replace('100S', 'NEAR 40');
+			else if (word.startsWith('100S')) {
+				words[idx] = word.replace('100S', 'NEAR 40');
 			}
-			else if (Word.startsWith('110S')) {
-				Words[Index] = Word.replace('110S', 'NEAR 45');
+			else if (word.startsWith('110S')) {
+				words[idx] = word.replace('110S', 'NEAR 45');
 			}
-			else if (Word.startsWith('120S')) {
-				Words[Index] = Word.replace('120S', 'NEAR 50');
+			else if (word.startsWith('120S')) {
+				words[idx] = word.replace('120S', 'NEAR 50');
 			}
 		}
 		catch (ex) { }
-	}
+	});
 	
-	Metric = Words.join(' ');
-	Metric = Metric.replaceAll(' ?', '');
-
-	return Metric;
+	return words.join(' ').replaceAll(' ?', '');
 };
 
 if (!String.prototype.startsWith)
@@ -6309,30 +6045,26 @@ if (!String.prototype.endsWith)
 	};
 }
 
-var PopulateLocalForecast = function (WeatherParameters)
-{
-	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.WordedForecast !== LoadStatuses.Loaded))
-	{
-		return;
-	}
-	
-	var WeatherLocalForecast = WeatherParameters.WeatherLocalForecast;
+const PopulateLocalForecast = (WeatherParameters) => {
+	// skip if not needed
+	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.WordedForecast !== LoadStatuses.Loaded)) return;
 
-	var DontLoadGifs = _DontLoadGifs;
+	const forecast = WeatherParameters.WeatherLocalForecast;
 
-	$('#divLocalForecastAlerts').html(WeatherLocalForecast.Alerts.replaceAll('...', ''));
-	$(WeatherLocalForecast.Conditions).each(function (Index, Condition)
-	{
-		$('#divLocalForecast' + (Index + 1)).html(Condition.DayName.toUpperCase() + '...' + Condition.Text.toUpperCase());
+	const DontLoadGifs = _DontLoadGifs;
+
+	// TODO alerts needs a cleanup
+	if (forecast.alerts) $('#divLocalForecastAlerts').html(forecast.Alerts.replaceAll('...', ''));
+	forecast.forEach((condition, idx) => {
+		$(`#divLocalForecast${idx + 1}`).html(`${condition.DayName.toUpperCase()}...${condition.Text.toUpperCase()}`);
 	});
 
 	// Draw canvas
-	var canvas = canvasLocalForecast[0];
-	var context = canvas.getContext('2d');
+	const canvas = canvasLocalForecast[0];
+	const context = canvas.getContext('2d');
 
-	var BackGroundImage = new Image();
-	BackGroundImage.onload = function ()
-	{
+	const BackGroundImage = new Image();
+	BackGroundImage.onload = () => {
 		context.drawImage(BackGroundImage, 0, 0);
 		DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
 		DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
@@ -6341,75 +6073,60 @@ var PopulateLocalForecast = function (WeatherParameters)
 
 		DrawTitleText(context, 'Local ', 'Forecast');
 
-		// Max: 7 rows, 32 columns
+		const MaxRows = 7;
+		const MaxCols = 32;
+		const LocalForecastScreenTexts = [];
 
-		var MaxRows = 7;
-		var MaxCols = 32;
-		var LocalForecastScreenTexts = [];
-
-		//var AlertText = WeatherLocalForecast.Alerts.replaceAll("...", "");
-		var AlertText = '';
-		if (_Units === Units.English)
+		let AlertText = '';
+		if (_Units === Units.English && forecast.alerts)
 		{
-			AlertText = WeatherLocalForecast.Alerts;
+			AlertText = forecast.alerts;
 		}
-		else if (_Units === Units.Metric)
+		else if (_Units === Units.Metric && forecast.alerts)
 		{
-			AlertText = WeatherLocalForecast.AlertsC;
+			AlertText = forecast.alertsC;
 		}
 		AlertText = AlertText.replaceAll('...', '');
 
-		var PrependAlert = false;
-		if (AlertText !== '')
-		{
-			var NumberOfRevChars = 5;
-			var Text = AlertText.wordWrap(MaxCols - NumberOfRevChars, '\n');
-			var Lines = Text.split('\n');
-			var LineCount = Lines.length;
-			var ScreenText = '';
+		let PrependAlert = false;
+		if (AlertText !== '') {
+			const NumberOfRevChars = 5;
+			const Text = AlertText.wordWrap(MaxCols - NumberOfRevChars, '\n');
+			const Lines = Text.split('\n');
+			const LineCount = Lines.length;
+			let ScreenText = '';
 
-			for (var Index = 0; Index <= LineCount - 1; Index++)
+			for (let i = 0; i <= LineCount - 1; i++)
 			{
-				if (Index > 0 && Index % MaxRows === 0)
+				if (i > 0 && i % MaxRows === 0)
 				{
 					LocalForecastScreenTexts.push(ScreenText);
 					ScreenText = '';
 				}
-				//var Line = Lines[Index].trim();
-				//var Line = Lines[Index].centerText((MaxCols - 4));
-				var Line = Lines[Index].centerText((MaxCols - NumberOfRevChars));
+				const line = Lines[i].centerText((MaxCols - NumberOfRevChars));
 
 
-				ScreenText += '*  ' + Line + ' *\n';
+				ScreenText += '*  ' + line + ' *\n';
 			}
 			ScreenText += '\n';
 			LocalForecastScreenTexts.push(ScreenText);
 			PrependAlert = true;
 		}
 
-		$(WeatherLocalForecast.Conditions).each(function ()
-		{
-			var Condition = this;
-
-			//var Text = Condition.DayName.toUpperCase() + "..." + Condition.Text.toUpperCase().replaceAll("...", " ");
-			var Text = Condition.DayName.toUpperCase() + '...';
-			var ConditionText = '';
-			if (_Units === Units.English)
-			{
-				ConditionText = Condition.Text;
+		forecast.forEach((condition) => {
+			let text = condition.DayName.toUpperCase() + '...';
+			let conditionText = condition.Text;
+			if (_Units === Units.Metric) {
+				conditionText = condition.TextC;
 			}
-			else if (_Units === Units.Metric)
-			{
-				ConditionText = Condition.TextC;
-			}
-			Text += ConditionText.toUpperCase().replaceAll('...', ' ');
+			text += conditionText.toUpperCase().replaceAll('...', ' ');
 
-			Text = Text.wordWrap(MaxCols, '\n');
-			var Lines = Text.split('\n');
-			var LineCount = Lines.length;
-			var ScreenText = '';
-			var MaxRowCount = MaxRows;
-			var RowCount = 0;
+			text = text.wordWrap(MaxCols, '\n');
+			const Lines = text.split('\n');
+			const LineCount = Lines.length;
+			let ScreenText = '';
+			const MaxRowCount = MaxRows;
+			let RowCount = 0;
 
 			if (PrependAlert)
 			{
@@ -6419,12 +6136,9 @@ var PopulateLocalForecast = function (WeatherParameters)
 				//PrependAlert = false;
 			}
 
-			for (var Index = 0; Index <= LineCount - 1; Index++)
+			for (let i = 0; i <= LineCount - 1; i++)
 			{
-				if (Lines[Index] === '')
-				{
-					continue;
-				}
+				if (Lines[i] === '') continue;
 
 				if (RowCount > MaxRowCount - 1)
 				{
@@ -6432,62 +6146,46 @@ var PopulateLocalForecast = function (WeatherParameters)
 					{
 						LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
 						PrependAlert = false;
-					}
-					else
-					{
+					} else {
 						LocalForecastScreenTexts.push(ScreenText);
 					}
 					ScreenText = '';
 					RowCount = 0;
 				}
 
-				ScreenText += Lines[Index] + '\n';
+				ScreenText += Lines[i] + '\n';
 				RowCount++;
 			}
-			if (PrependAlert)
-			{
+			if (PrependAlert) {
 				LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
 				PrependAlert = false;
-			}
-			else
-			{
+			} else {
 				LocalForecastScreenTexts.push(ScreenText);
 			}
 		});
 
-		if (DontLoadGifs === false)
-		{
-			_UpdateLocalForecastIndex = 0;
-			_UpdateLocalForecastCounterMs = 0;
-		}
+		if (!DontLoadGifs) _UpdateLocalForecastIndex = 0;
 
 		WeatherParameters.LocalForecastScreenTexts = LocalForecastScreenTexts;
 		WeatherParameters.Progress.WordedForecast = LoadStatuses.Loaded;
 
-		if (DontLoadGifs)
-		{
-			UpdateLocalForecast();
-		}
+		if (DontLoadGifs) UpdateLocalForecast();
 
 		UpdateWeatherCanvas(WeatherParameters, canvasLocalForecast);
 	};
 	BackGroundImage.src = 'images/BackGround1_1.png';
-	//BackGroundImage.src = "images/BackGround1_" + _Themes.toString() + ".png";
 
 };
 
-var UpdateLocalForecast = function (Offset)
-{
-	if (_WeatherParameters === null || (_DontLoadGifs && _WeatherParameters.Progress.WordedForecast !== LoadStatuses.Loaded))
-	{
-		return;
-	}
+const UpdateLocalForecast = (offset) => {
+	// return if not needed
+	if (_WeatherParameters === null || (_DontLoadGifs && _WeatherParameters.Progress.WordedForecast !== LoadStatuses.Loaded)) return;
 
-	var canvas = canvasLocalForecast[0];
-	var context = canvas.getContext('2d');
-	var LocalForecastScreenTexts = _WeatherParameters.LocalForecastScreenTexts;
+	const canvas = canvasLocalForecast[0];
+	const context = canvas.getContext('2d');
+	const LocalForecastScreenTexts = _WeatherParameters.LocalForecastScreenTexts;
 
-	switch (Offset)
+	switch (offset)
 	{
 	case undefined:
 		break;
@@ -6498,7 +6196,7 @@ var UpdateLocalForecast = function (Offset)
 		_UpdateLocalForecastIndex = LocalForecastScreenTexts.length - 1;
 		break;
 	default:
-		_UpdateLocalForecastIndex += Offset;
+		_UpdateLocalForecastIndex += offset;
 		if (_UpdateLocalForecastIndex > LocalForecastScreenTexts.length - 1)
 		{
 			_UpdateLocalForecastIndex = 0;
@@ -6514,12 +6212,9 @@ var UpdateLocalForecast = function (Offset)
 	DrawBox(context, 'rgb(33, 40, 90)', 65, 105, 505, 280);
 
 	// Draw the text.
-	var y = 140;
-	$(LocalForecastScreenTexts[_UpdateLocalForecastIndex].split('\n')).each(function ()
-	{
-		var Text = this.toString();
-
-		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 75, y, Text, 2);
+	let y = 140;
+	LocalForecastScreenTexts[_UpdateLocalForecastIndex].split('\n').forEach((text) => {
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 75, y, text, 2);
 		y += 40;
 	});
 };
@@ -7881,8 +7576,8 @@ const PopulateTravelCities = (WeatherParameters) => {
 				let {low, high} = city;
 
 				if (_Units = Units.English) {
-					low = ftoC(low);
-					high = ftoC(high);
+					low = ConvertFahrenheitToCelsius(low);
+					high = ConvertFahrenheitToCelsius(high);
 				}
 
 				// convert to strings with no decimal
@@ -10426,8 +10121,7 @@ var UpdateWeatherCanvases = function (WeatherParameters)
 	}
 };
 
-var UpdateWeatherCanvas = function (WeatherParameters, Canvas)
-{
+const UpdateWeatherCanvas = (WeatherParameters, Canvas) => {
 	var OkToDrawCurrentConditions = true;
 	var OkToDrawNoaaImage = true;
 	var OkToDrawCurrentDateTime = true;
@@ -10435,139 +10129,67 @@ var UpdateWeatherCanvas = function (WeatherParameters, Canvas)
 	var OkToDrawCustomScrollText = false;
 	var bottom = undefined;
 
-	var context = Canvas[0].getContext('2d');
+	const context = Canvas[0].getContext('2d');
 	
-	if (_ScrollText !== '')
-	{
-		OkToDrawCustomScrollText = true;
-	}
-
-	if (Canvas[0] === canvasProgress[0])
-	{
-		//OkToDrawCurrentConditions = false;
-	}
-
-	if (Canvas[0] === canvasAlmanac[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-
-	if (Canvas[0] === canvasAlmanacTides[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-
-	if (Canvas[0] === canvasOutlook[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-
-	if (Canvas[0] === canvasMarineForecast[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-
-	if (Canvas[0] === canvasAirQuality[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-
-	if (Canvas[0] === canvasTravelForecast[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-
-	if (Canvas[0] === canvasRegionalForecast1[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-	if (Canvas[0] === canvasRegionalForecast2[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-	if (Canvas[0] === canvasRegionalObservations[0])
-	{
-		OkToDrawNoaaImage = false;
-	}
-
-	if (Canvas[0] === canvasLocalRadar[0])
-	{
+	// visibility tests
+	if (_ScrollText !== '') OkToDrawCustomScrollText = true;
+	if (Canvas[0] === canvasAlmanac[0]) OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasAlmanacTides[0]) OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasOutlook[0]) OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasMarineForecast[0])OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasAirQuality[0]) OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasTravelForecast[0]) OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasRegionalForecast1[0])OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasRegionalForecast2[0]) OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasRegionalObservations[0]) OkToDrawNoaaImage = false;
+	if (Canvas[0] === canvasLocalRadar[0]) {
 		OkToDrawCurrentConditions = false;
 		OkToDrawCurrentDateTime = false;
 		OkToDrawNoaaImage = false;
 		OkToDrawCustomScrollText = false;
 	}
-
-	if (Canvas[0] === canvasHazards[0])
-	{
+	if (Canvas[0] === canvasHazards[0]) {
 		OkToDrawNoaaImage = false;
 		bottom = true;
 		OkToDrawLogoImage = false;
 	}
-
-	if (OkToDrawCurrentDateTime)
-	{
-		DrawCurrentDateTime(context, bottom);
-	}
-
-	if (OkToDrawLogoImage)
-	{
-		DrawLogoImage(context);
-	}
-
-	if (OkToDrawNoaaImage)
-	{
-		DrawNoaaImage(context);
-	}
-
-	if (OkToDrawCurrentConditions)
-	{
-		DrawCurrentConditions(WeatherParameters, context);
-	}
-
-	if (OkToDrawCustomScrollText)
-	{
-		DrawCustomScrollText(WeatherParameters, context);
-	}
-
+	// draw functions
+	if (OkToDrawCurrentDateTime) DrawCurrentDateTime(context, bottom);
+	if (OkToDrawLogoImage) DrawLogoImage(context);
+	if (OkToDrawNoaaImage) DrawNoaaImage(context);
+	if (OkToDrawCurrentConditions) DrawCurrentConditions(WeatherParameters, context);
+	if (OkToDrawCustomScrollText) DrawCustomScrollText(WeatherParameters, context);
 };
 
 var DrawCurrentDateTime = function (context, bottom)
 {
-	if (_WeatherParameters === null || _WeatherParameters.TimeZone === undefined)
-	{
-		return;
-	}
+	// test if needed
+	if (_WeatherParameters === null || _WeatherParameters.TimeZone === undefined) return;
 
-	var font, size, color, x, y, shadow;
-	var now, time, h, m, s, date, M, W, D;
-
-	font = 'Star4000 Small';
-	size = '24pt';
-	color = '#ffffff';
-	shadow = 2;
-	//x = 410;
-	//y = 65;
+	const font = 'Star4000 Small';
+	const size = '24pt';
+	const color = '#ffffff';
+	const shadow = 2;
 	
 	// Clear the date and time area.
-	if (bottom)
-	{
+	if (bottom) {
 		DrawBox(context, 'rgb(25, 50, 112)', 0, 389, 640, 16);
-	}
-	else
-	{
+	} else {
 		context.drawImage(canvasBackGroundDateTime[0], 0, 0, 175, 60, 410, 30, 175, 60);
 	}
 
 	// Get the current date and time.
-	now = new Date();
+	let now = new Date();
 	now = ConvertDateToTimeZone(now, _WeatherParameters.TimeZone);
 
 	//time = "11:35:08 PM";
-	h = now.getHours();
-	m = now.getMinutes();
-	s = now.getSeconds();
-	time = '';
+	let h = now.getHours();
+	let m = now.getMinutes();
+	let s = now.getSeconds();
+	let time = '';
+	let x;
+	let y;
+	let date;
 
 	if (_Units === Units.English)
 	{
@@ -12530,6 +12152,3 @@ const GetTravelCitiesDayName = (cities) =>
 		return dayName;
 	}, '');
 };
-
-// convert °F to °C
-const ftoC = f => (f-32)/1.8; 
