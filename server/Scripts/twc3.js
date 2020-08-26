@@ -1,4 +1,4 @@
-/* globals _StationInfo, luxon, _RegionalCities, SuperGif, _TravelCities */
+/* globals _StationInfo, luxon, _RegionalCities, SuperGif, _TravelCities, loadImg */
 
 const _DayShortNames = { 'Sunday': 'Sun', 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat' };
 const _DayLongNameArray = Object.keys(_DayShortNames);
@@ -5134,7 +5134,7 @@ if (!String.prototype.endsWith)
 	};
 }
 
-const PopulateLocalForecast = (WeatherParameters) => {
+const PopulateLocalForecast = async (WeatherParameters) => {
 	// skip if not needed
 	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.WordedForecast !== LoadStatuses.Loaded)) return;
 
@@ -5152,117 +5152,116 @@ const PopulateLocalForecast = (WeatherParameters) => {
 	const canvas = canvasLocalForecast[0];
 	const context = canvas.getContext('2d');
 
-	const BackGroundImage = new Image();
-	BackGroundImage.onload = () => {
-		context.drawImage(BackGroundImage, 0, 0);
-		DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-		DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-		DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
-		DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
+	const BackGroundImage = await loadImg('images/BackGround1_1.png');
 
-		DrawTitleText(context, 'Local ', 'Forecast');
+	context.drawImage(BackGroundImage, 0, 0);
+	DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+	DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+	DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
+	DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
 
-		const MaxRows = 7;
-		const MaxCols = 32;
-		const LocalForecastScreenTexts = [];
+	DrawTitleText(context, 'Local ', 'Forecast');
 
-		let AlertText = '';
-		if (_Units === Units.English && forecast.alerts)
+	const MaxRows = 7;
+	const MaxCols = 32;
+	const LocalForecastScreenTexts = [];
+
+	let AlertText = '';
+	if (_Units === Units.English && forecast.alerts)
+	{
+		AlertText = forecast.alerts;
+	}
+	else if (_Units === Units.Metric && forecast.alerts)
+	{
+		AlertText = forecast.alertsC;
+	}
+	AlertText = AlertText.replaceAll('...', '');
+
+	let PrependAlert = false;
+	if (AlertText !== '') {
+		const NumberOfRevChars = 5;
+		const Text = AlertText.wordWrap(MaxCols - NumberOfRevChars, '\n');
+		const Lines = Text.split('\n');
+		const LineCount = Lines.length;
+		let ScreenText = '';
+
+		for (let i = 0; i <= LineCount - 1; i++)
 		{
-			AlertText = forecast.alerts;
-		}
-		else if (_Units === Units.Metric && forecast.alerts)
-		{
-			AlertText = forecast.alertsC;
-		}
-		AlertText = AlertText.replaceAll('...', '');
-
-		let PrependAlert = false;
-		if (AlertText !== '') {
-			const NumberOfRevChars = 5;
-			const Text = AlertText.wordWrap(MaxCols - NumberOfRevChars, '\n');
-			const Lines = Text.split('\n');
-			const LineCount = Lines.length;
-			let ScreenText = '';
-
-			for (let i = 0; i <= LineCount - 1; i++)
+			if (i > 0 && i % MaxRows === 0)
 			{
-				if (i > 0 && i % MaxRows === 0)
-				{
-					LocalForecastScreenTexts.push(ScreenText);
-					ScreenText = '';
-				}
-				const line = Lines[i].centerText((MaxCols - NumberOfRevChars));
-
-
-				ScreenText += '*  ' + line + ' *\n';
-			}
-			ScreenText += '\n';
-			LocalForecastScreenTexts.push(ScreenText);
-			PrependAlert = true;
-		}
-
-		forecast.forEach((condition) => {
-			let text = condition.DayName.toUpperCase() + '...';
-			let conditionText = condition.Text;
-			if (_Units === Units.Metric) {
-				conditionText = condition.TextC;
-			}
-			text += conditionText.toUpperCase().replaceAll('...', ' ');
-
-			text = text.wordWrap(MaxCols, '\n');
-			const Lines = text.split('\n');
-			const LineCount = Lines.length;
-			let ScreenText = '';
-			const MaxRowCount = MaxRows;
-			let RowCount = 0;
-
-			if (PrependAlert)
-			{
-				ScreenText = LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1];
-				//MaxRowCount = MaxRows - ScreenText.split("\n").length;
-				RowCount = ScreenText.split('\n').length - 1;
-				//PrependAlert = false;
-			}
-
-			for (let i = 0; i <= LineCount - 1; i++)
-			{
-				if (Lines[i] === '') continue;
-
-				if (RowCount > MaxRowCount - 1)
-				{
-					if (PrependAlert)
-					{
-						LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
-						PrependAlert = false;
-					} else {
-						LocalForecastScreenTexts.push(ScreenText);
-					}
-					ScreenText = '';
-					RowCount = 0;
-				}
-
-				ScreenText += Lines[i] + '\n';
-				RowCount++;
-			}
-			if (PrependAlert) {
-				LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
-				PrependAlert = false;
-			} else {
 				LocalForecastScreenTexts.push(ScreenText);
+				ScreenText = '';
 			}
-		});
+			const line = Lines[i].centerText((MaxCols - NumberOfRevChars));
 
-		if (!DontLoadGifs) _UpdateLocalForecastIndex = 0;
 
-		WeatherParameters.LocalForecastScreenTexts = LocalForecastScreenTexts;
-		WeatherParameters.Progress.WordedForecast = LoadStatuses.Loaded;
+			ScreenText += '*  ' + line + ' *\n';
+		}
+		ScreenText += '\n';
+		LocalForecastScreenTexts.push(ScreenText);
+		PrependAlert = true;
+	}
 
-		if (DontLoadGifs) UpdateLocalForecast();
+	forecast.forEach((condition) => {
+		let text = condition.DayName.toUpperCase() + '...';
+		let conditionText = condition.Text;
+		if (_Units === Units.Metric) {
+			conditionText = condition.TextC;
+		}
+		text += conditionText.toUpperCase().replaceAll('...', ' ');
 
-		UpdateWeatherCanvas(WeatherParameters, canvasLocalForecast);
-	};
-	BackGroundImage.src = 'images/BackGround1_1.png';
+		text = text.wordWrap(MaxCols, '\n');
+		const Lines = text.split('\n');
+		const LineCount = Lines.length;
+		let ScreenText = '';
+		const MaxRowCount = MaxRows;
+		let RowCount = 0;
+
+		if (PrependAlert)
+		{
+			ScreenText = LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1];
+			//MaxRowCount = MaxRows - ScreenText.split("\n").length;
+			RowCount = ScreenText.split('\n').length - 1;
+			//PrependAlert = false;
+		}
+
+		for (let i = 0; i <= LineCount - 1; i++)
+		{
+			if (Lines[i] === '') continue;
+
+			if (RowCount > MaxRowCount - 1)
+			{
+				if (PrependAlert)
+				{
+					LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
+					PrependAlert = false;
+				} else {
+					LocalForecastScreenTexts.push(ScreenText);
+				}
+				ScreenText = '';
+				RowCount = 0;
+			}
+
+			ScreenText += Lines[i] + '\n';
+			RowCount++;
+		}
+		if (PrependAlert) {
+			LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
+			PrependAlert = false;
+		} else {
+			LocalForecastScreenTexts.push(ScreenText);
+		}
+	});
+
+	if (!DontLoadGifs) _UpdateLocalForecastIndex = 0;
+
+	WeatherParameters.LocalForecastScreenTexts = LocalForecastScreenTexts;
+	WeatherParameters.Progress.WordedForecast = LoadStatuses.Loaded;
+
+	if (DontLoadGifs) UpdateLocalForecast();
+
+	UpdateWeatherCanvas(WeatherParameters, canvasLocalForecast);
+
 
 };
 
@@ -6148,6 +6147,7 @@ var PopulateAlmanacInfo = function (WeatherParameters)
 					case 'First':
 						context.drawImage(FirstMoonImage, x - 45, 270);
 						break;
+					default:
 					}
 
 					x += 130;
@@ -6373,33 +6373,30 @@ const PopulateTravelCities = (WeatherParameters) => {
 	// add the html
 	$tbodyTravelCities.append(citiesHtml.join(''));
 
-	const DrawTravelCities = ($cnvTravelCitiesScroll) => {
+	const DrawTravelCities = async ($cnvTravelCitiesScroll) => {
 		// Draw canvas
 		const canvas = canvasTravelForecast[0];
 		const context = canvas.getContext('2d');
 
-		const BackGroundImage = new Image();
-		BackGroundImage.onload = () => {
-			context.drawImage(BackGroundImage, 0, 0);
-			DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-			DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+		const BackGroundImage = await loadImg('images/BackGround6_1.png');
+		context.drawImage(BackGroundImage, 0, 0);
+		DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+		DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
 
-			DrawTitleText(context, 'Travel Forecast', 'For ' + GetTravelCitiesDayName(cities));
+		DrawTitleText(context, 'Travel Forecast', 'For ' + GetTravelCitiesDayName(cities));
 
-			DrawText(context, 'Star4000 Small', '24pt', '#FFFF00', 455, 105, 'LOW', 2);
-			DrawText(context, 'Star4000 Small', '24pt', '#FFFF00', 510, 105, 'HIGH', 2);
+		DrawText(context, 'Star4000 Small', '24pt', '#FFFF00', 455, 105, 'LOW', 2);
+		DrawText(context, 'Star4000 Small', '24pt', '#FFFF00', 510, 105, 'HIGH', 2);
 
-			window.setInterval(() => {
-				const elm = document.elementFromPoint(0, 100);
-				if (elm !== canvas) return;
-				context.drawImage($cnvTravelCitiesScroll[0], 0, _UpdateTravelCitiesY, 640, 289, 0, 110, 640, 289);
-			}, 100);
+		window.setInterval(() => {
+			const elm = document.elementFromPoint(0, 100);
+			if (elm !== canvas) return;
+			context.drawImage($cnvTravelCitiesScroll[0], 0, _UpdateTravelCitiesY, 640, 289, 0, 110, 640, 289);
+		}, 100);
 
-			WeatherParameters.Progress.TravelForecast = LoadStatuses.Loaded;
+		WeatherParameters.Progress.TravelForecast = LoadStatuses.Loaded;
 
-			UpdateWeatherCanvas(WeatherParameters, canvasTravelForecast);
-		};
-		BackGroundImage.src = 'images/BackGround6_1.png';
+		UpdateWeatherCanvas(WeatherParameters, canvasTravelForecast);
 	};
 
 	const ShowTravelCitiesScroll = () => {
@@ -6896,7 +6893,7 @@ var PopulateRegionalObservations = function (WeatherParameters)
 
 };
 
-const ShowRegionalMap = (WeatherParameters, TomorrowForecast1, TomorrowForecast2) => {
+const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowForecast2) => {
 	if (TomorrowForecast1) {
 		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.TomorrowsRegionalMap !== LoadStatuses.Loaded)) {
 			return;
@@ -7000,281 +6997,275 @@ const ShowRegionalMap = (WeatherParameters, TomorrowForecast1, TomorrowForecast2
 	const Tomorrow = Today.addDays(addDays);
 	const DayName = Tomorrow.getDayName();
 
-	const PopulateRegionalMap = () => {
+	const PopulateRegionalMap = async () => {
 		if (TomorrowForecast1 || TomorrowForecast2) {
 
 			// Draw canvas
-			const BackGroundImage = new Image();
-			BackGroundImage.onload = () => {
-				const canvas = canvasRegionalMap[0];
-				const context = canvas.getContext('2d');
-				context.drawImage(BackGroundImage, 0, 0);
-				DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-				DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+			const BackGroundImage = await loadImg('images/BackGround5_1.png');
+			const canvas = canvasRegionalMap[0];
+			const context = canvas.getContext('2d');
+			context.drawImage(BackGroundImage, 0, 0);
+			DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+			DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
 
-				if (IsNightTime) {
-					DrawTitleText(context, 'Forecast for', DayName + ' Night');
-				} else {
-					DrawTitleText(context, 'Forecast for', DayName);
-				}
-
-
-				RegionalForecastCities.forEach(city => {
-					if (!DontLoadGifs) {
-						// Conditions Icon
-						const Gif = new SuperGif({
-							src: city.icon,
-							max_width: 42,
-							loop_delay: 100,
-							auto_play: true,
-							canvas: cnvRegionalMap[0],
-							x: city.x,
-							y: city.y - 15,
-						});
-						Gif.load();
-						Gifs.push(Gif);
-					}
-
-					// City Name
-					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000', '20px', '#ffffff', city.x - 40, city.y - 15, city.name, 2);
-
-					// Temperature
-					if (IsNightTime) {
-						let MinimumTemperature = city.low.toString();
-						if (_Units === Units.Metric) MinimumTemperature = Math.round(ConvertFahrenheitToCelsius(city.low)).toString();
-						DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (MinimumTemperature.length * 15), city.y + 20, MinimumTemperature, 2);
-					} else {
-						let MaximumTemperature = city.high.toString();
-						if (_Units === Units.Metric) MaximumTemperature = Math.round(ConvertFahrenheitToCelsius(city.high)).toString();
-						DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (MaximumTemperature.length * 15), city.y + 20, MaximumTemperature, 2);
-					}
-
-				});
+			if (IsNightTime) {
+				DrawTitleText(context, 'Forecast for', DayName + ' Night');
+			} else {
+				DrawTitleText(context, 'Forecast for', DayName);
+			}
 
 
+			RegionalForecastCities.forEach(city => {
 				if (!DontLoadGifs) {
-					window.setInterval(() => {
-						if (!FirstTime && !_RefreshGifs) {
-							const elm = document.elementFromPoint(0, 100);
-							if (elm !== canvas) return;
-						} else {
-							FirstTime = false;
-							Gifs.forEach(gif => gif.setFirstTime());
-						}
-
-						context.drawImage(cnvRegionalMap[0], 0, 0, 640, 309, 0, 90, 640, 309);
-						UpdateWeatherCanvas(WeatherParameters, canvasRegionalMap);
-					}, 100);
+					// Conditions Icon
+					const Gif = new SuperGif({
+						src: city.icon,
+						max_width: 42,
+						loop_delay: 100,
+						auto_play: true,
+						canvas: cnvRegionalMap[0],
+						x: city.x,
+						y: city.y - 15,
+					});
+					Gif.load();
+					Gifs.push(Gif);
 				}
 
-				WeatherParameters.Progress.TomorrowsRegionalMap = LoadStatuses.Loaded;
+				// City Name
+				DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000', '20px', '#ffffff', city.x - 40, city.y - 15, city.name, 2);
 
-				UpdateWeatherCanvas(WeatherParameters, canvasRegionalMap);
-			};
-			BackGroundImage.src = 'images/BackGround5_1.png';
+				// Temperature
+				if (IsNightTime) {
+					let MinimumTemperature = city.low.toString();
+					if (_Units === Units.Metric) MinimumTemperature = Math.round(ConvertFahrenheitToCelsius(city.low)).toString();
+					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (MinimumTemperature.length * 15), city.y + 20, MinimumTemperature, 2);
+				} else {
+					let MaximumTemperature = city.high.toString();
+					if (_Units === Units.Metric) MaximumTemperature = Math.round(ConvertFahrenheitToCelsius(city.high)).toString();
+					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (MaximumTemperature.length * 15), city.y + 20, MaximumTemperature, 2);
+				}
+
+			});
+
+
+			if (!DontLoadGifs) {
+				window.setInterval(() => {
+					if (!FirstTime && !_RefreshGifs) {
+						const elm = document.elementFromPoint(0, 100);
+						if (elm !== canvas) return;
+					} else {
+						FirstTime = false;
+						Gifs.forEach(gif => gif.setFirstTime());
+					}
+
+					context.drawImage(cnvRegionalMap[0], 0, 0, 640, 309, 0, 90, 640, 309);
+					UpdateWeatherCanvas(WeatherParameters, canvasRegionalMap);
+				}, 100);
+			}
+
+			WeatherParameters.Progress.TomorrowsRegionalMap = LoadStatuses.Loaded;
+
+			UpdateWeatherCanvas(WeatherParameters, canvasRegionalMap);
+
+
 		} else {
 			// Draw canvas
-			const BackGroundImage = new Image();
-			BackGroundImage.onload = () => {
-				const canvas = canvasRegionalObservations[0];
-				const context = canvas.getContext('2d');
-				context.drawImage(BackGroundImage, 0, 0);
-				DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-				DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+			const BackGroundImage = await loadImg('images/BackGround5_1.png');
+			const canvas = canvasRegionalObservations[0];
+			const context = canvas.getContext('2d');
+			context.drawImage(BackGroundImage, 0, 0);
+			DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+			DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
 
-				DrawTitleText(context, 'Regional', 'Observations');
+			DrawTitleText(context, 'Regional', 'Observations');
 			
-				WeatherParameters.RegionalObservationsCities.forEach(city => {
-					if (!DontLoadGifs) {
-						// Conditions Icon
-						const Gif = new SuperGif({
-							src: city.icon,
-							max_width: 42,
-							loop_delay: 100,
-							auto_play: true,
-							canvas: cnvRegionalMap[0],
-							x: city.x,
-							y: city.y - 15,
-						});
-						Gif.load();
-						Gifs.push(Gif);
-					}
-
-					// City Name
-					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000', '20px', '#ffffff', city.x - 40, city.y - 15, city.name, 2);
-
-					// Temperature
-					let temperature = city.temperature.toString();
-					if (_Units === Units.Metric) temperature = Math.round(ConvertFahrenheitToCelsius(city.temperature)).toString();
-					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (temperature.length * 15), city.y + 20, temperature, 2);
-				});
-
+			WeatherParameters.RegionalObservationsCities.forEach(city => {
 				if (!DontLoadGifs) {
-					window.setInterval(() => {
-						if (FirstTime === false && _RefreshGifs === false) {
-							const elm = document.elementFromPoint(0, 100);
-							if (elm !== canvas) return;
-						} else {
-							FirstTime = false;
-							Gifs.forEach(gif => gif.setFirstTime());
-						}
-						context.drawImage(cnvRegionalMap[0], 0, 0, 640, 309, 0, 90, 640, 309);
-						UpdateWeatherCanvas(WeatherParameters, canvasRegionalObservations);
-					}, 100);
+					// Conditions Icon
+					const Gif = new SuperGif({
+						src: city.icon,
+						max_width: 42,
+						loop_delay: 100,
+						auto_play: true,
+						canvas: cnvRegionalMap[0],
+						x: city.x,
+						y: city.y - 15,
+					});
+					Gif.load();
+					Gifs.push(Gif);
 				}
 
-				WeatherParameters.Progress.CurrentRegionalMap = LoadStatuses.Loaded;
+				// City Name
+				DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000', '20px', '#ffffff', city.x - 40, city.y - 15, city.name, 2);
 
-				UpdateWeatherCanvas(WeatherParameters, canvasRegionalObservations);
-			};
-			BackGroundImage.src = 'images/BackGround5_1.png';
-		}
-	};
+				// Temperature
+				let temperature = city.temperature.toString();
+				if (_Units === Units.Metric) temperature = Math.round(ConvertFahrenheitToCelsius(city.temperature)).toString();
+				DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (temperature.length * 15), city.y + 20, temperature, 2);
+			});
 
-	const RegionalMapOnLoad = async () => {
-		let MinMaxLatLon;
-		if (!RegionalMapLoaded) {
-			RegionalMapLoaded = true;
-			console.log('Regional Map Loaded');
-			
 			if (!DontLoadGifs) {
-				divRegionalMap.html(`<canvas id='${cnvRegionalMapId}'/>`);
-				cnvRegionalMap = $(`#${cnvRegionalMapId}`);
-				cnvRegionalMap.attr('width', '640'); // For Chrome.
-				cnvRegionalMap.attr('height', '312'); // For Chrome.
-				cnvRegionalMap[0].RelatedCanvas = canvasRegionalMap[0];
-			}
-			cnvRegionalMap = $(`#${cnvRegionalMapId}`);
-			context = cnvRegionalMap[0].getContext('2d');
-			
-			OffsetX = 240;
-			OffsetY = 117;
-			let SourceXY;
-			if (WeatherParameters.State === 'HI') {
-				SourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-			}
-			else if (WeatherParameters.State === 'AK')
-			{
-				SourceXY = GetXYFromLatitudeLongitudeAK(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-			}
-			else
-			{
-				SourceXY = GetXYFromLatitudeLongitude(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-			}
-			
-			context.drawImage(img, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 312);
-			
-			if (WeatherParameters.State === 'HI') {
-				MinMaxLatLon = GetMinMaxLatitudeLongitudeHI(SourceXY.x, SourceXY.y, OffsetX, OffsetY);
-			} else if (WeatherParameters.State === 'AK') {
-				MinMaxLatLon = GetMinMaxLatitudeLongitudeAK(SourceXY.x, SourceXY.y, OffsetX, OffsetY);
-			} else {
-				MinMaxLatLon = GetMinMaxLatitudeLongitude(SourceXY.x, SourceXY.y, OffsetX, OffsetY);
+				window.setInterval(() => {
+					if (FirstTime === false && _RefreshGifs === false) {
+						const elm = document.elementFromPoint(0, 100);
+						if (elm !== canvas) return;
+					} else {
+						FirstTime = false;
+						Gifs.forEach(gif => gif.setFirstTime());
+					}
+					context.drawImage(cnvRegionalMap[0], 0, 0, 640, 309, 0, 90, 640, 309);
+					UpdateWeatherCanvas(WeatherParameters, canvasRegionalObservations);
+				}, 100);
 			}
 
-			if (DontLoadGifs) {
-				PopulateRegionalMap();
-				return;
-			}
+			WeatherParameters.Progress.CurrentRegionalMap = LoadStatuses.Loaded;
+
+			UpdateWeatherCanvas(WeatherParameters, canvasRegionalObservations);
+
+		}
+	};
+
+	let src = 'images/basemap2.png';
+	if (WeatherParameters.State === 'HI') {
+		src = 'images/HawaiiRadarMap4.png';
+	} else if (WeatherParameters.State === 'AK') {
+		src = 'images/AlaskaRadarMap6.png';
+	}
+	const regionalMapImg = await loadImg(src);
+	let MinMaxLatLon;
+	if (!RegionalMapLoaded) {
+		RegionalMapLoaded = true;
+		console.log('Regional Map Loaded');
+			
+		if (!DontLoadGifs) {
+			divRegionalMap.html(`<canvas id='${cnvRegionalMapId}'/>`);
+			cnvRegionalMap = $(`#${cnvRegionalMapId}`);
+			cnvRegionalMap.attr('width', '640'); // For Chrome.
+			cnvRegionalMap.attr('height', '312'); // For Chrome.
+			cnvRegionalMap[0].RelatedCanvas = canvasRegionalMap[0];
+		}
+		cnvRegionalMap = $(`#${cnvRegionalMapId}`);
+		context = cnvRegionalMap[0].getContext('2d');
+			
+		OffsetX = 240;
+		OffsetY = 117;
+		let SourceXY;
+		if (WeatherParameters.State === 'HI') {
+			SourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+		}
+		else if (WeatherParameters.State === 'AK')
+		{
+			SourceXY = GetXYFromLatitudeLongitudeAK(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+		}
+		else
+		{
+			SourceXY = GetXYFromLatitudeLongitude(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+		}
+			
+		context.drawImage(regionalMapImg, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 312);
+			
+		if (WeatherParameters.State === 'HI') {
+			MinMaxLatLon = GetMinMaxLatitudeLongitudeHI(SourceXY.x, SourceXY.y, OffsetX, OffsetY);
+		} else if (WeatherParameters.State === 'AK') {
+			MinMaxLatLon = GetMinMaxLatitudeLongitudeAK(SourceXY.x, SourceXY.y, OffsetX, OffsetY);
+		} else {
+			MinMaxLatLon = GetMinMaxLatitudeLongitude(SourceXY.x, SourceXY.y, OffsetX, OffsetY);
 		}
 
-		// get a target distance
-		let targetDistance = 2.5;
-		if (WeatherParameters.State === 'HI') targetDistance = 1;
-		
-		// make station info into an array
-		const StationInfoArray = Object.keys(_StationInfo).map(key => Object.assign({}, _StationInfo[key], {Name: _StationInfo[key].City, targetDistance}));
-		// combine removed cities with station info for additional stations
-		const combinedCities = [..._RegionalCities, ...StationInfoArray];
-		
-		// Determine which cities are within the max/min latitude/longitude.
-		const RegionalCities = [];
-		combinedCities.forEach(city => {
-			if (city.Latitude > MinMaxLatLon.minLat && city.Latitude < MinMaxLatLon.maxLat &&
-				city.Longitude > MinMaxLatLon.minLon && city.Longitude < MinMaxLatLon.maxLon - 1) {
-				// default to 1 for cities loaded from _RegionalCities, use value calculate above for remaining stations
-				const targetDistance = city.targetDistance || 1;
-				// Only add the city as long as it isn't within set distance degree of any other city already in the array.
-				const okToAddCity = RegionalCities.reduce((acc, testCity) => {
-					const distance = GetDistance(city.Longitude, city.Latitude, testCity.Longitude, testCity.Latitude);
-					return acc && distance >= targetDistance;
-				}, true);
-				if (okToAddCity) RegionalCities.push(city);
-			}
-		});
-
-		// get regional forecasts and observations (the two are intertwined due to the design of api.weather.gov)
-		const RegionalObservations = [];
-		const RegionalForecastPromises = RegionalCities.map(async city => {
-			try {
-				// get the point then the forecast
-				const point = await getPoint(city.Latitude, city.Longitude);
-
-				// start off the observation task
-				const observationPromise = getRegionalObservation(point, city);
-
-				const forecast = await $.ajax({
-					url: point.properties.forecast,
-					dataType: 'json',
-					crossDomain: true,
-				});
-				
-				// get XY on map for city
-				let CityXY;
-				if (WeatherParameters.State === 'HI') {
-					CityXY = GetXYForCityHI(city, MinMaxLatLon.maxLat, MinMaxLatLon.minLon);
-				} else if (WeatherParameters.State === 'AK') {
-					CityXY = GetXYForCityAK(city, MinMaxLatLon.maxLat, MinMaxLatLon.minLon);
-				} else {
-					CityXY = GetXYForCity(city, MinMaxLatLon.maxLat, MinMaxLatLon.minLon);
-				}
-
-				// wait for the regional observation if it's not done yet
-				const observation = await observationPromise;
-				RegionalObservations.push({
-					name: city.Name,
-					temperature: ConvertCelsiusToFahrenheit(observation.temperature.value),
-					icon: GetWeatherRegionalIconFromIconLink(observation.icon),
-					x: CityXY.x,
-					y: CityXY.y,
-				});
-				
-				// determine today or tomorrow (shift periods by 1 if tomorrow)
-				const todayShift = forecast.properties.periods[0].isDaytime? 0:1;
-				// return a pared-down forecast
-				return {
-					today: todayShift === 0,
-					high: forecast.properties.periods[todayShift].temperature||0,
-					low: forecast.properties.periods[todayShift+1].temperature||0,
-					name: city.Name,
-					icon: GetWeatherRegionalIconFromIconLink(forecast.properties.periods[todayShift].icon),
-					x: CityXY.x,
-					y: CityXY.y,
-				};
-			}
-			catch (e) {
-				console.log(`No regional forecast data for '${city.Name}'`);
-				console.error(e);
-				return false;
-			}
-		});
-
-		// wait for the forecasts
-		const RegionalForecasts = await Promise.all(RegionalForecastPromises);
-		// move data to final locations
-		RegionalForecastCities = RegionalForecasts;
-		WeatherParameters.RegionalObservationsCities = RegionalObservations;
-
-		PopulateRegionalMap();
-	};
-	img.onload = RegionalMapOnLoad;
-	if (WeatherParameters.State === 'HI') {
-		img.src = 'images/HawaiiRadarMap4.png';
-	} else if (WeatherParameters.State === 'AK') {
-		img.src = 'images/AlaskaRadarMap6.png';
-	} else {
-		img.src = 'images/basemap2.png';
+		if (DontLoadGifs) {
+			PopulateRegionalMap();
+			return;
+		}
 	}
+
+	// get a target distance
+	let targetDistance = 2.5;
+	if (WeatherParameters.State === 'HI') targetDistance = 1;
+		
+	// make station info into an array
+	const StationInfoArray = Object.keys(_StationInfo).map(key => Object.assign({}, _StationInfo[key], {Name: _StationInfo[key].City, targetDistance}));
+	// combine removed cities with station info for additional stations
+	const combinedCities = [..._RegionalCities, ...StationInfoArray];
+		
+	// Determine which cities are within the max/min latitude/longitude.
+	const RegionalCities = [];
+	combinedCities.forEach(city => {
+		if (city.Latitude > MinMaxLatLon.minLat && city.Latitude < MinMaxLatLon.maxLat &&
+				city.Longitude > MinMaxLatLon.minLon && city.Longitude < MinMaxLatLon.maxLon - 1) {
+			// default to 1 for cities loaded from _RegionalCities, use value calculate above for remaining stations
+			const targetDistance = city.targetDistance || 1;
+			// Only add the city as long as it isn't within set distance degree of any other city already in the array.
+			const okToAddCity = RegionalCities.reduce((acc, testCity) => {
+				const distance = GetDistance(city.Longitude, city.Latitude, testCity.Longitude, testCity.Latitude);
+				return acc && distance >= targetDistance;
+			}, true);
+			if (okToAddCity) RegionalCities.push(city);
+		}
+	});
+
+	// get regional forecasts and observations (the two are intertwined due to the design of api.weather.gov)
+	const RegionalObservations = [];
+	const RegionalForecastPromises = RegionalCities.map(async city => {
+		try {
+			// get the point then the forecast
+			const point = await getPoint(city.Latitude, city.Longitude);
+
+			// start off the observation task
+			const observationPromise = getRegionalObservation(point, city);
+
+			const forecast = await $.ajax({
+				url: point.properties.forecast,
+				dataType: 'json',
+				crossDomain: true,
+			});
+				
+			// get XY on map for city
+			let CityXY;
+			if (WeatherParameters.State === 'HI') {
+				CityXY = GetXYForCityHI(city, MinMaxLatLon.maxLat, MinMaxLatLon.minLon);
+			} else if (WeatherParameters.State === 'AK') {
+				CityXY = GetXYForCityAK(city, MinMaxLatLon.maxLat, MinMaxLatLon.minLon);
+			} else {
+				CityXY = GetXYForCity(city, MinMaxLatLon.maxLat, MinMaxLatLon.minLon);
+			}
+
+			// wait for the regional observation if it's not done yet
+			const observation = await observationPromise;
+			RegionalObservations.push({
+				name: city.Name,
+				temperature: ConvertCelsiusToFahrenheit(observation.temperature.value),
+				icon: GetWeatherRegionalIconFromIconLink(observation.icon),
+				x: CityXY.x,
+				y: CityXY.y,
+			});
+				
+			// determine today or tomorrow (shift periods by 1 if tomorrow)
+			const todayShift = forecast.properties.periods[0].isDaytime? 0:1;
+			// return a pared-down forecast
+			return {
+				today: todayShift === 0,
+				high: forecast.properties.periods[todayShift].temperature||0,
+				low: forecast.properties.periods[todayShift+1].temperature||0,
+				name: city.Name,
+				icon: GetWeatherRegionalIconFromIconLink(forecast.properties.periods[todayShift].icon),
+				x: CityXY.x,
+				y: CityXY.y,
+			};
+		}
+		catch (e) {
+			console.log(`No regional forecast data for '${city.Name}'`);
+			console.error(e);
+			return false;
+		}
+	});
+
+	// wait for the forecasts
+	const RegionalForecasts = await Promise.all(RegionalForecastPromises);
+	// move data to final locations
+	RegionalForecastCities = RegionalForecasts;
+	WeatherParameters.RegionalObservationsCities = RegionalObservations;
+
+	PopulateRegionalMap();
 };
 
 const getRegionalObservation = async (point, city) => {
@@ -7521,7 +7512,7 @@ const GetXYForCityHI = (City, MaxLatitude, MinLongitude) => {
 	return { x, y };
 };
 
-const ShowDopplerMap = (WeatherParameters) => {
+const ShowDopplerMap = async (WeatherParameters) => {
 
 	// ALASKA ISN'T SUPPORTED!
 	if (WeatherParameters.State === 'AK')
@@ -7530,7 +7521,6 @@ const ShowDopplerMap = (WeatherParameters) => {
 		return;
 	}
 
-	const img = new Image();
 	let OffsetY;
 	let OffsetX;
 	let SourceXY;
@@ -7547,198 +7537,196 @@ const ShowDopplerMap = (WeatherParameters) => {
 		_DopplerRadarInterval = null;
 	}
 
-	img.onload = async () => {
-		console.log('Doppler Image Loaded');
+	let src = 'images/4000RadarMap2.jpg';
+	if (WeatherParameters.State === 'HI') src = 'images/HawaiiRadarMap2.png';
+	const img = await loadImg(src);
+	console.log('Doppler Image Loaded');
 
-		divDopplerRadarMap.html(`<canvas id='${cnvDopplerMapId}'/><canvas id='${cnvRadarWorkerId}'/>`);
-		const $cnvDopplerMap = $(`#${cnvDopplerMapId}`);
-		$cnvDopplerMap.attr('width', '640'); // For Chrome.
-		$cnvDopplerMap.attr('height', '367'); // For Chrome.
-		const context = $cnvDopplerMap[0].getContext('2d');
+	divDopplerRadarMap.html(`<canvas id='${cnvDopplerMapId}'/><canvas id='${cnvRadarWorkerId}'/>`);
+	const $cnvDopplerMap = $(`#${cnvDopplerMapId}`);
+	$cnvDopplerMap.attr('width', '640'); // For Chrome.
+	$cnvDopplerMap.attr('height', '367'); // For Chrome.
+	const context = $cnvDopplerMap[0].getContext('2d');
 
-		const $cnvRadarWorker = $(`#${cnvRadarWorkerId}`);
-		OffsetX = 120;
-		OffsetY = 69;
-		if (WeatherParameters.State === 'HI') {
-			$cnvRadarWorker.attr('width', '600'); // For Chrome.
-			$cnvRadarWorker.attr('height', '571'); // For Chrome.
-			SourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-		} else {
-			$cnvRadarWorker.attr('width', '2550'); // For Chrome.
-			$cnvRadarWorker.attr('height', '1600'); // For Chrome.
-			OffsetX *= 2;
-			OffsetY *= 2;
-			SourceXY = GetXYFromLatitudeLongitudeDoppler(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-		}
-		$cnvRadarWorker.css('display', 'none');
-		contextWorker = $cnvRadarWorker[0].getContext('2d');
+	const $cnvRadarWorker = $(`#${cnvRadarWorkerId}`);
+	OffsetX = 120;
+	OffsetY = 69;
+	if (WeatherParameters.State === 'HI') {
+		$cnvRadarWorker.attr('width', '600'); // For Chrome.
+		$cnvRadarWorker.attr('height', '571'); // For Chrome.
+		SourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+	} else {
+		$cnvRadarWorker.attr('width', '2550'); // For Chrome.
+		$cnvRadarWorker.attr('height', '1600'); // For Chrome.
+		OffsetX *= 2;
+		OffsetY *= 2;
+		SourceXY = GetXYFromLatitudeLongitudeDoppler(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+	}
+	$cnvRadarWorker.css('display', 'none');
+	contextWorker = $cnvRadarWorker[0].getContext('2d');
 
-		// Draw them onto the map.
-		context.drawImage(img, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
+	// Draw them onto the map.
+	context.drawImage(img, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
 
-		const baseUrl = 'https://radar.weather.gov/Conus/RadarImg/';
+	const baseUrl = 'https://radar.weather.gov/Conus/RadarImg/';
 
-		const RadarContexts = [];
+	const RadarContexts = [];
 
-		try {
+	try {
 		// get a list of available radars
-			const radarHtml = await $.ajaxCORS({
+		const radarHtml = await $.ajaxCORS({
+			type: 'GET',
+			url: baseUrl,
+			dataType: 'text',
+			crossDomain: true,
+		});
+
+		// convert to an array of gif urls
+		const $list = $(radarHtml);
+		const gifs = $list.find('a[href]').map((i,elem) => elem.innerHTML).get();
+
+		// filter for selected urls
+		let filter = /^Conus_\d/;
+		if (WeatherParameters.State === 'HI') filter = /hawaii_\d/;
+
+		// get the last few images
+		const urlsFull = gifs.filter(gif => gif.match(filter));
+		const urls = urlsFull.slice(-_DopplerRadarImageMax);
+
+		// Load the most recent doppler radar images.
+		const RadarImages = await Promise.all(urls.map(async (url, idx) => {
+			// create destination context
+			const id = 'cnvRadar' + idx.toString();
+			let RadarContext = $(`#${id}`);
+			if (!RadarContext[idx]) {
+				$('body').append(`<canvas id='${id}'/>`);
+				RadarContext = $(`#${id}`);
+				RadarContext.attr('width', '640'); // For Chrome.
+				RadarContext.attr('height', '367'); // For Chrome.
+				RadarContext.css('display', 'none');
+			}
+			RadarContexts.push(RadarContext);
+
+			// get the image
+			const blob = await $.ajaxCORS({
 				type: 'GET',
-				url: baseUrl,
-				dataType: 'text',
+				url: baseUrl + url,
+				xhrFields: {
+					responseType: 'blob',
+				},
 				crossDomain: true,
 			});
 
-			// convert to an array of gif urls
-			const $list = $(radarHtml);
-			const gifs = $list.find('a[href]').map((i,elem) => elem.innerHTML).get();
+			// assign to an html image element
+			return await loadImg(blob);
+		}));
 
-			// filter for selected urls
-			let filter = /^Conus_\d/;
-			if (WeatherParameters.State === 'HI') filter = /hawaii_\d/;
+		RadarImages.forEach((radarImg, idx) => {
 
-			// get the last few images
-			const urlsFull = gifs.filter(gif => gif.match(filter));
-			const urls = urlsFull.slice(-_DopplerRadarImageMax);
-
-			// Load the most recent doppler radar images.
-			const RadarImages = await Promise.all(urls.map(async (url, idx) => {
-				// create destination context
-				const id = 'cnvRadar' + idx.toString();
-				let RadarContext = $(`#${id}`);
-				if (!RadarContext[idx]) {
-					$('body').append(`<canvas id='${id}'/>`);
-					RadarContext = $(`#${id}`);
-					RadarContext.attr('width', '640'); // For Chrome.
-					RadarContext.attr('height', '367'); // For Chrome.
-					RadarContext.css('display', 'none');
-				}
-				RadarContexts.push(RadarContext);
-
-				// get the image
-				const blob = await $.ajaxCORS({
-					type: 'GET',
-					url: baseUrl + url,
-					xhrFields: {
-						responseType: 'blob',
-					},
-					crossDomain: true,
-				});
-
-				// assign to an html image element
-				return await blobToImg(blob);
-			}));
-
-			RadarImages.forEach((radarImg, idx) => {
-
-				const RadarContext = RadarContexts[idx][0].getContext('2d');
-				contextWorker.clearRect(0, 0, contextWorker.canvas.width, contextWorker.canvas.height);
+			const RadarContext = RadarContexts[idx][0].getContext('2d');
+			contextWorker.clearRect(0, 0, contextWorker.canvas.width, contextWorker.canvas.height);
 			
-				SmoothingEnabled(contextWorker, false);
+			SmoothingEnabled(contextWorker, false);
 
-				if (WeatherParameters.State === 'HI') {
-					contextWorker.drawImage(radarImg, 0, 0, 571, 600);
-				} else {
-					contextWorker.drawImage(radarImg, 0, 0, 2550, 1600);
-				}
+			if (WeatherParameters.State === 'HI') {
+				contextWorker.drawImage(radarImg, 0, 0, 571, 600);
+			} else {
+				contextWorker.drawImage(radarImg, 0, 0, 2550, 1600);
+			}
 					
-				let RadarOffsetX;
-				let RadarOffsetY;
-				let RadarSourceXY;
-				let RadarSourceX;
-				let RadarSourceY;
-				if (WeatherParameters.State === 'HI') {
-					RadarOffsetX = 120;
-					RadarOffsetY = 69;
-					RadarSourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-					RadarSourceX = RadarSourceXY.x;
-					RadarSourceY = RadarSourceXY.y;
-				} else {
-					RadarOffsetX = 117;
-					RadarOffsetY = 60;
-					RadarSourceXY = GetXYFromLatitudeLongitudeDoppler(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-					RadarSourceX = RadarSourceXY.x / 2;
-					RadarSourceY = RadarSourceXY.y / 2;
-				}
+			let RadarOffsetX;
+			let RadarOffsetY;
+			let RadarSourceXY;
+			let RadarSourceX;
+			let RadarSourceY;
+			if (WeatherParameters.State === 'HI') {
+				RadarOffsetX = 120;
+				RadarOffsetY = 69;
+				RadarSourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+				RadarSourceX = RadarSourceXY.x;
+				RadarSourceY = RadarSourceXY.y;
+			} else {
+				RadarOffsetX = 117;
+				RadarOffsetY = 60;
+				RadarSourceXY = GetXYFromLatitudeLongitudeDoppler(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+				RadarSourceX = RadarSourceXY.x / 2;
+				RadarSourceY = RadarSourceXY.y / 2;
+			}
 			
-				// Draw them onto the map.
-				RadarContext.clearRect(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
+			// Draw them onto the map.
+			RadarContext.clearRect(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
 			
-				SmoothingEnabled(RadarContext, false);
+			SmoothingEnabled(RadarContext, false);
 			
-				RadarContext.drawImage(contextWorker.canvas, RadarSourceX, RadarSourceY, (RadarOffsetX * 2), (RadarOffsetY * 2.33), 0, 0, 640, 367);
-				RemoveDopplerRadarImageNoise(RadarContext);
-			});
+			RadarContext.drawImage(contextWorker.canvas, RadarSourceX, RadarSourceY, (RadarOffsetX * 2), (RadarOffsetY * 2.33), 0, 0, 640, 367);
+			RemoveDopplerRadarImageNoise(RadarContext);
+		});
 
-			console.log('Doppler Radar Images Loaded');
+		console.log('Doppler Radar Images Loaded');
 			
-			WeatherParameters.DopplerRadarInfo = {
-				RadarContexts: RadarContexts,
-				RadarImage: img,
-				RadarMapContext: context,
-				RadarSourceX: SourceXY.x,
-				RadarSourceY: SourceXY.y,
-				OffsetY: OffsetY,
-				OffsetX: OffsetX,
-			};
+		WeatherParameters.DopplerRadarInfo = {
+			RadarContexts: RadarContexts,
+			RadarImage: img,
+			RadarMapContext: context,
+			RadarSourceX: SourceXY.x,
+			RadarSourceY: SourceXY.y,
+			OffsetY: OffsetY,
+			OffsetX: OffsetX,
+		};
 			
-			// draw the background image
-			const RadarContext = RadarContexts[0][0].getContext('2d');
-			context.drawImage(img, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
-			MergeDopplerRadarImage(context, RadarContext);
+		// draw the background image
+		const RadarContext = RadarContexts[0][0].getContext('2d');
+		context.drawImage(img, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
+		MergeDopplerRadarImage(context, RadarContext);
 
 			
-			// Draw canvas
-			const BackGroundImage = new Image();
-			BackGroundImage.onload = () => {
-				const canvas = canvasLocalRadar[0];
-				const context = canvas.getContext('2d');
-				context.drawImage(BackGroundImage, 0, 0);
+		// Draw canvas
+		{
+			const BackGroundImage = await loadImg('images/BackGround4_1.png');
+
+			const canvas = canvasLocalRadar[0];
+			const context = canvas.getContext('2d');
+			context.drawImage(BackGroundImage, 0, 0);
 				
-				// Title
-				DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 65, 'Local', 2);
-				DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 100, 'Radar', 2);
+			// Title
+			DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 65, 'Local', 2);
+			DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 100, 'Radar', 2);
 				
-				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 390, 49, 'PRECIP', 2);
-				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 298, 73, 'Light', 2);
-				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 517, 73, 'Heavy', 2);
+			DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 390, 49, 'PRECIP', 2);
+			DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 298, 73, 'Light', 2);
+			DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 517, 73, 'Heavy', 2);
 				
-				let x = 362;
-				const y = 52;
-				DrawBox(context, '#000000', x - 2, y - 2, 154, 28);
-				DrawBox(context, 'rgb(49, 210, 22)', x, y, 17, 24); x += 19;
-				DrawBox(context, 'rgb(28, 138, 18)', x, y, 17, 24); x += 19;
-				DrawBox(context, 'rgb(20, 90, 15)', x, y, 17, 24); x += 19;
-				DrawBox(context, 'rgb(10, 40, 10)', x, y, 17, 24); x += 19;
-				DrawBox(context, 'rgb(196, 179, 70)', x, y, 17, 24); x += 19;
-				DrawBox(context, 'rgb(190, 72, 19)', x, y, 17, 24); x += 19;
-				DrawBox(context, 'rgb(171, 14, 14)', x, y, 17, 24); x += 19;
-				DrawBox(context, 'rgb(115, 31, 4)', x, y, 17, 24); x += 19;
+			let x = 362;
+			const y = 52;
+			DrawBox(context, '#000000', x - 2, y - 2, 154, 28);
+			DrawBox(context, 'rgb(49, 210, 22)', x, y, 17, 24); x += 19;
+			DrawBox(context, 'rgb(28, 138, 18)', x, y, 17, 24); x += 19;
+			DrawBox(context, 'rgb(20, 90, 15)', x, y, 17, 24); x += 19;
+			DrawBox(context, 'rgb(10, 40, 10)', x, y, 17, 24); x += 19;
+			DrawBox(context, 'rgb(196, 179, 70)', x, y, 17, 24); x += 19;
+			DrawBox(context, 'rgb(190, 72, 19)', x, y, 17, 24); x += 19;
+			DrawBox(context, 'rgb(171, 14, 14)', x, y, 17, 24); x += 19;
+			DrawBox(context, 'rgb(115, 31, 4)', x, y, 17, 24); x += 19;
 
-				DrawBox(context, 'rgb(143, 73, 95)', 318, 83, 32, 24);
-				DrawBox(context, 'rgb(250, 122, 232)', 320, 85, 28, 20);
-				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 355, 105, '= Incomplete Data', 2);
+			DrawBox(context, 'rgb(143, 73, 95)', 318, 83, 32, 24);
+			DrawBox(context, 'rgb(250, 122, 232)', 320, 85, 28, 20);
+			DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 355, 105, '= Incomplete Data', 2);
 
-				window.setInterval(() => {
-					context.drawImage($cnvDopplerMap[0], 0, 0, 640, 367, 0, 113, 640, 367);
-					UpdateWeatherCanvas(WeatherParameters, canvasLocalRadar);
-				}, 100);
-				WeatherParameters.Progress.DopplerRadar = LoadStatuses.Loaded;
-			};
-			BackGroundImage.src = 'images/BackGround4_1.png';
-
+			window.setInterval(() => {
+				context.drawImage($cnvDopplerMap[0], 0, 0, 640, 367, 0, 113, 640, 367);
+				UpdateWeatherCanvas(WeatherParameters, canvasLocalRadar);
+			}, 100);
+			WeatherParameters.Progress.DopplerRadar = LoadStatuses.Loaded;
 		}
-		catch (e) {
-			console.error('Unable to load radar');
-			console.error(e);
-			WeatherParameters.Progress.DopplerRadar = LoadStatuses.Failed;
-		}
-	};
-	if (WeatherParameters.State === 'HI') {
-		img.src = 'images/HawaiiRadarMap2.png';
-	} else {
-		img.src = 'images/4000RadarMap2.jpg';
+
 	}
+	catch (e) {
+		console.error('Unable to load radar');
+		console.error(e);
+		WeatherParameters.Progress.DopplerRadar = LoadStatuses.Failed;
+	}
+
+
 };
 
 

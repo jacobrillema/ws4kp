@@ -5,7 +5,7 @@
 
 // ****************************** load images *********************************
 // load an image from a blob or url
-const blobToImg = (imgData) => {
+const loadImg = (imgData) => {
 	return new Promise(resolve => {
 		const img = new Image();
 		img.onload = (e) => {
