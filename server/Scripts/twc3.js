@@ -4173,180 +4173,6 @@ var DwmlDataParametersHazardsHazardConditions = function (hazards_conditions)
 	this.headline = hazards_conditions.find('hazard').attr('headline');
 	this.hazardTextURL = hazards_conditions.find('hazard').find('hazardTextURL').text();
 };
-//</parameters>
-
-Math.round2 = function(value, decimals)
-{
-	return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
-};
-
-var ConvertKnotsToMph = function (Knots)
-{
-	return Math.round(parseFloat(Knots) * 1.15078);
-};
-var ConvertKontsToKph = function (Knots)
-{
-	return Math.round(parseFloat(Knots) * 1.852);
-};
-var ConvertMphToKph = function (Mph)
-{
-	return Math.round(parseFloat(Mph) * 1.60934);
-};
-
-var ConvertCelsiusToFahrenheit = function (Celsius)
-{
-	return Math.round(parseFloat(Celsius) * 9 / 5 + 32);
-};
-var ConvertFahrenheitToCelsius = function (Fahrenheit)
-{
-	return  Math.round2(((parseFloat(Fahrenheit) - 32) * 5) / 9, 1);
-};
-
-var ConvertMilesToKilometers = function (Miles)
-{
-	return Math.round(parseFloat(Miles) * 1.60934);
-};
-var ConvertFeetToMeters = function (Feet)
-{
-	return Math.round(parseFloat(Feet) * 0.3048);
-};
-
-var ConvertInchesToMillibars = function (Inches)
-{
-	return Math.round2(parseFloat(Inches) / 0.0295301, 1);
-};
-
-var ConvertInchesToCentimeters = function (Inches)
-{
-	return Math.round2(parseFloat(Inches) * 2.54, 2);
-};
-
-var ConvertDirectionToNSEW = function (Direction)
-{
-	var val = Math.floor((Direction / 22.5) + 0.5);
-	var arr = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-	return arr[(val % 16)];
-};
-
-var GetStationIdFromUrl = function (Url)
-{
-	var txt = Url;
-
-	var re1 = '.*?';	// Non-greedy match on filler
-	var re2 = '(?:[a-z][a-z]+)';	// Uninteresting: word
-	var re3 = '.*?';	// Non-greedy match on filler
-	var re4 = '(?:[a-z][a-z]+)';	// Uninteresting: word
-	var re5 = '.*?';	// Non-greedy match on filler
-	var re6 = '(?:[a-z][a-z]+)';	// Uninteresting: word
-	var re7 = '.*?';	// Non-greedy match on filler
-	var re8 = '(?:[a-z][a-z]+)';	// Uninteresting: word
-	var re9 = '.*?';	// Non-greedy match on filler
-	var re10 = '(?:[a-z][a-z]+)';	// Uninteresting: word
-	var re11 = '.*?';	// Non-greedy match on filler
-	var re12 = '(?:[a-z][a-z]+)';	// Uninteresting: word
-	var re13 = '.*?';	// Non-greedy match on filler
-	var re14 = '(?:[a-z][a-z]+)';	// Uninteresting: word
-	var re15 = '.*?';	// Non-greedy match on filler
-	var re16 = '((?:[a-z][a-z]+))';	// Word 1
-
-	var p = new RegExp(re1 + re2 + re3 + re4 + re5 + re6 + re7 + re8 + re9 + re10 + re11 + re12 + re13 + re14 + re15 + re16, ['i']);
-	var m = p.exec(txt);
-	if (m !== null)
-	{
-		var word1 = m[1];
-		return word1.replace(/</, '&lt;');
-	}
-};
-
-var ConvertXmlDateToJsDate = function (XmlDate)
-{
-	var bits = XmlDate.split(/[-T:+]/g);
-
-	if (bits[5] === undefined)
-	{
-		console.log('bit[5] is undefined');
-	}
-
-	bits[5] = bits[5].replace('Z', '');
-	var d = new Date(bits[0], bits[1] - 1, bits[2]);
-	d.setHours(bits[3], bits[4], bits[5]);
-
-	// Case for when no time zone offset if specified
-	if (bits.length < 8)
-	{
-		bits.push('00');
-		bits.push('00');
-	}
-
-	// Get supplied time zone offset in minutes
-	var offsetMinutes = bits[6] * 60 + Number(bits[7]);
-	var sign = /\d\d-\d\d:\d\d$/.test(XmlDate) ? '-' : '+';
-
-	// Apply the sign
-	offsetMinutes = 0 + (sign === '-' ? -1 * offsetMinutes : offsetMinutes);
-
-	// Apply offset and local timezone
-	d.setMinutes(d.getMinutes() - offsetMinutes - d.getTimezoneOffset());
-
-	// d is now a local time equivalent to the supplied time
-	return d;
-};
-
-var CalculateRelativeHumidity = function (Temperature, DewPoint)
-{
-	var T = parseFloat(Temperature);
-	var TD = parseFloat(DewPoint);
-
-	return Math.round(100 * (Math.exp((17.625 * TD) / (243.04 + TD)) / Math.exp((17.625 * T) / (243.04 + T))));
-};
-
-var CalculateHeatIndex = function (Temperature, RelativeHumidity)
-{
-	// See: http://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
-	var T = parseFloat(Temperature);
-	var RH = parseFloat(RelativeHumidity);
-	var HI = 0.5 * (T + 61.0 + ((T - 68.0) * 1.2) + (RH * 0.094));
-	var ADJUSTMENT;
-
-	if (T >= 80)
-	{
-		HI = -42.379 + 2.04901523 * T + 10.14333127 * RH - 0.22475541 * T * RH - 0.00683783 * T * T - 0.05481717 * RH * RH + 0.00122874 * T * T * RH + 0.00085282 * T * RH * RH - 0.00000199 * T * T * RH * RH;
-
-		if (RH < 13 && (T > 80 && T < 112))
-		{
-			ADJUSTMENT = ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
-			HI -= ADJUSTMENT;
-		}
-		else if (RH > 85 && (T > 80 && T < 87))
-		{
-			ADJUSTMENT = ((RH - 85) / 10) * ((87 - T) / 5);
-			HI += ADJUSTMENT;
-		}
-	}
-
-	if (HI < Temperature)
-	{
-		HI = Temperature;
-	}
-
-	return Math.round(HI);
-};
-
-var CalculateWindChill = function (Temperature, WindSpeed)
-{
-	// See: http://www.calculator.net/wind-chill-calculator.html
-
-	if (WindSpeed === '0' || WindSpeed === 'Calm' || WindSpeed === 'NA')
-	{
-		return '';
-	}
-
-	var T = parseFloat(Temperature);
-	var V = parseFloat(WindSpeed);
-	var WC = 35.74 + (0.6215 * T) - (35.75 * Math.pow(V, 0.16)) + (0.4275 * T * Math.pow(V, 0.16));
-
-	return Math.round(WC);
-};
 
 var PopulateCurrentConditions = function (WeatherParameters)
 {
@@ -4400,6 +4226,7 @@ var PopulateCurrentConditions = function (WeatherParameters)
 		WindChill = WeatherCurrentConditions.WindChillC;
 		WindGust = WeatherCurrentConditions.WindGustC;
 		Humidity = WeatherCurrentConditions.Humidity;
+		break;
 	default:
 	}
 
@@ -6357,214 +6184,6 @@ var PopulateAlmanacInfo = function (WeatherParameters)
 
 };
 
-var GetDateFromUTC = function (date, utc)
-{
-	var time = utc.split(':');
-	
-	//date.setUTCHours(time[0], time[1], 0, 0);
-	date = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), time[0], time[1], 0));
-
-	return date;
-};
-
-var GetTimeZoneOffsetFromUTC = function (timezone)
-{
-	var Offset = null;
-
-	switch (timezone)
-	{
-	case 'EST':
-		Offset = -5;
-		break;
-	case 'EDT':
-		Offset = -4;
-		break;
-	case 'CST':
-		Offset = -6;
-		break;
-	case 'CDT':
-		Offset = -5;
-		break;
-	case 'MST':
-		Offset = -7;
-		break;
-	case 'MDT':
-		Offset = -6;
-		break;
-	case 'PST':
-		Offset = -8;
-		break;
-	case 'PDT':
-		Offset = -7;
-		break;
-	case 'AST':
-	case 'AKST':
-		Offset = -9;
-		break;
-	case 'ADT':
-	case 'AKDT':
-		Offset = -8;
-		break;
-	case 'HST':
-		Offset = -10;
-		break;
-	case 'HDT':
-		Offset = -9;
-		break;
-	}
-
-	//if (Offset !== null)
-	//{
-	//    var dt = new Date();
-	//    if (dt.dst())
-	//    {
-	//        Offset++;
-	//    }
-	//}
-
-	return Offset;
-};
-
-Date.prototype.getTimeZone = function ()
-{
-	var tz = this.toLocaleTimeString('en-us', { timeZoneName: 'short' }).split(' ')[2];
-
-	if (tz === null)
-	{
-		switch (this.toTimeString().split(' ')[2])
-		{
-		case '(Eastern':
-			tz = 'EST';
-			break;
-		case '(Central':
-			tz = 'CST';
-			break;
-		case '(Mountain':
-			tz = 'MST';
-			break;
-		case '(Pacific':
-			tz = 'PST';
-			break;
-		case '(Alaskan':
-			tz = 'AST';
-			break;
-		case '(Hawaiian':
-			tz = 'HST';
-			break;
-		}
-	}
-	else if (tz.length === 4)
-	{
-		// Fix weird bug in Edge where it returns the timezone with a null character in the first position.
-		tz = tz.substr(1);
-	}
-
-	return tz;
-};
-
-var ConvertDateToTimeZone = function(date, timezone)
-{
-	var OldOffset = GetTimeZoneOffsetFromUTC(date.getTimeZone());
-	var NewOffset = GetTimeZoneOffsetFromUTC(timezone);
-
-	//var dt = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds()));
-	var dt = new Date(date);
-	dt = dt.addHours(OldOffset * -1);
-	dt = dt.addHours(NewOffset);
-	
-	return dt;
-};
-
-var GetDateFromTime = function (date, time, timezone)
-{
-	var Time = time.split(':');
-	var Offset = 0;
-
-	//date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), Time[0], Time[1], 0);
-
-	if (timezone)
-	{
-		//switch (timezone)
-		//{
-		//    case "EST":
-		//        Offset = 5;
-		//        break;
-		//    case "CST":
-		//        Offset = 6;
-		//        break;
-		//    case "MST":
-		//        Offset = 7;
-		//        break;
-		//    case "PST":
-		//        Offset = 8;
-		//        break;
-		//    case "AST":
-		//    case "AKST":
-		//        Offset = 9;
-		//        break;
-		//    case "HST":
-		//        Offset = 10;
-		//        break;
-		//}
-
-		//var dt = new Date();
-		//if (dt.dst())
-		//{
-		//    Offset--
-		//}
-
-		Offset = GetTimeZoneOffsetFromUTC(timezone) * -1;
-
-		date = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), Time[0], Time[1], 0));
-		date = date.addHours(Offset);
-	}
-	else
-	{
-		date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), Time[0], Time[1], 0);
-	}
-
-	return date;
-};
-
-Date.prototype.getFormattedTime = function ()
-{
-	var hours;
-	var minutes;
-	var ampm;
-	var formattedTime;
-
-	switch (_Units)
-	{
-	case Units.English:
-		hours = this.getHours() === 0 ? '12' : this.getHours() > 12 ? this.getHours() - 12 : this.getHours();
-		minutes = (this.getMinutes() < 10 ? '0' : '') + this.getMinutes();
-		ampm = this.getHours() < 12 ? 'am' : 'pm';
-		formattedTime = hours + ':' + minutes + ' ' + ampm;
-		break;
-
-	case Units.Metric:
-		hours = (this.getHours() < 10 ? ' ' : '') + this.getHours();
-		minutes = (this.getMinutes() < 10 ? '0' : '') + this.getMinutes();
-		formattedTime = hours + ':' + minutes;
-		break;
-	}
-
-	return formattedTime;
-};
-
-Date.prototype.toTimeAMPM = function ()
-{
-	var date = this;
-	var hours = date.getHours();
-	var minutes = date.getMinutes();
-	var ampm = hours >= 12 ? 'pm' : 'am';
-	hours = hours % 12;
-	hours = hours ? hours : 12; // the hour '0' should be '12'
-	minutes = minutes < 10 ? '0' + minutes : minutes;
-	var strTime = hours + ':' + minutes + ' ' + ampm;
-	return strTime;
-};
-
 const GetTravelWeather = async (WeatherParameters) => {
 	const TravelCities = WeatherParameters.TravelCities;
 
@@ -6650,21 +6269,6 @@ var WeatherTravelForecast = function (WeatherDwmlParser, ForceToday, ForceTonigh
 	var _LayoutKey;
 	var _PeriodIndex = [];
 
-	var _self = this;
-
-	//$(WeatherDwmlParser.data_forecast.time_layout).each(function ()
-	//{
-	//    _LayoutKey = this.layout_key;
-
-	//    $(this.start_valid_time).each(function (Index, Value)
-	//    {
-	//        if (this.period_name === DayName || this.period_name === DayName + " Night")
-	//        {
-	//            _PeriodIndex[_LayoutKey] = Index;
-	//            return false;
-	//        }
-	//    });
-	//});
 	$(WeatherDwmlParser.data_forecast.time_layout).each(function ()
 	{
 		_LayoutKey = this.layout_key;
@@ -7051,28 +6655,6 @@ var WeatherCurrentRegionalConditions = function ()
 	this.SkipStationIds.push('KFCM'); // "Mnpls"
 
 };
-//var WeatherCurrentRegionalCondition = function (MetarData)
-//{
-//    this.CityName = "";
-//    this.StationId = MetarData.station_id;
-//    this.Latitude = MetarData.latitude;
-//    this.Longitude = MetarData.longitude;
-
-//    this.Conditions = "";
-//    this.Icon = "";
-//    this.Temperature = ConvertCelsiusToFahrenheit(MetarData.temp_c);
-
-//    this.WindDirection = ConvertDirectionToNSEW(MetarData.wind_dir_degrees);
-//    this.WindSpeed = "Calm";
-//    if (MetarData.wind_speed_kt !== "" && MetarData.wind_speed_kt !== "0")
-//    {
-//        this.WindSpeed = ConvertKnotsToMph(MetarData.wind_speed_kt);
-//    }
-//    else
-//    {
-//        this.WindDirection = "";
-//    }
-//};
 
 var GetDwmlRegionalStations = function (WeatherParameters, Distance)
 {
@@ -8159,17 +7741,7 @@ const ShowDopplerMap = (WeatherParameters) => {
 	}
 };
 
-// turn a blob into an HTML image
-const blobToImg = (blob) => {
-	return new Promise(resolve => {
-		const img = new Image();
-		img.onload = (e) => {
-			resolve(e.target);
-		};
-		img.src = window.URL.createObjectURL(blob);
 
-	});
-};
 
 
 const UpdateDopplarRadarImage = (offset) => {
@@ -9830,7 +9402,7 @@ var GetNarrationText = function ()
 			Ceiling = WeatherCurrentConditions.Ceiling;
 			CeilingUnit = ' feet ';
 			break;
-		case Units.Metric:
+		default:
 			Temperature = WeatherCurrentConditions.TemperatureC.toString();
 			HeatIndex = WeatherCurrentConditions.HeatIndexC.toString();
 			WindChill = WeatherCurrentConditions.WindChillC.toString();
@@ -10469,7 +10041,7 @@ var GetNarrationText = function ()
 					MaximumTemperature = WeatherTravelForecast.MaximumTemperature.toString();
 					break;
 
-				case Units.Metric:
+				default:
 					MinimumTemperature = Math.round(WeatherTravelForecast.MinimumTemperatureC).toString();
 					MaximumTemperature = Math.round(WeatherTravelForecast.MaximumTemperatureC).toString();
 					break;
@@ -10496,7 +10068,7 @@ var GetNarrationText = function ()
 			Text = WeatherHazardConditions.HazardsText;
 			break;
 
-		case Units.Metric:
+		default:
 			Text = WeatherHazardConditions.HazardsTextC;
 			break;
 		}
@@ -10505,7 +10077,7 @@ var GetNarrationText = function ()
 		Text = Text.toLowerCase();
 
 		break;
-
+	default:
 	}
 
 	return Text;
