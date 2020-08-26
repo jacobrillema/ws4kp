@@ -19,16 +19,28 @@ const loadImg = (imgData) => {
 	});
 };
 
+// async version of SuperGif
+const SuperGifAsync = (e) => {
+	return new Promise(resolve => {
+		const gif = new SuperGif(e);
+		gif.load(() => resolve(gif));
+	});
+};
+
 // *********************************** unit conversions ***********************
 
 Math.round2 = (value, decimals) => Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
 
 const ConvertMphToKph = (Mph) => Math.round(parseFloat(Mph) * 1.60934);
+const ConvertKphToMph = (Kph) => Math.round(parseFloat(Kph) / 1.60934);
 const ConvertCelsiusToFahrenheit = (Celsius) => Math.round(parseFloat(Celsius) * 9 / 5 + 32);
 const ConvertFahrenheitToCelsius = (Fahrenheit) => Math.round2(((parseFloat(Fahrenheit) - 32) * 5) / 9, 1);
 const ConvertMilesToKilometers = (Miles) => Math.round(parseFloat(Miles) * 1.60934);
+const ConvertKilometersToMiles = (Kilometers) => Math.round(parseFloat(Kilometers) / 1.60934);
 const ConvertFeetToMeters = (Feet) => Math.round(parseFloat(Feet) * 0.3048);
+const ConvertMetersToFeet = (Meters) => Math.round(parseFloat(Meters) / 0.3048);
 const ConvertInchesToCentimeters = (Inches) => Math.round2(parseFloat(Inches) * 2.54, 2);
+const ConvertPascalToInHg = (Pascal) => Math.round2(parseFloat(Pascal)*0.0002953,2);
 
 const CalculateRelativeHumidity = (Temperature, DewPoint) => {
 	const T = parseFloat(Temperature);
@@ -75,6 +87,12 @@ const CalculateWindChill = (Temperature, WindSpeed) => {
 	return Math.round(35.74 + (0.6215 * T) - (35.75 * Math.pow(V, 0.16)) + (0.4275 * T * Math.pow(V, 0.16)));
 };
 
+// wind direction
+const ConvertDirectionToNSEW = (Direction) => {
+	const val = Math.floor((Direction / 22.5) + 0.5);
+	const arr = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+	return arr[(val % 16)];
+};
 
 // ********************************* date functions ***************************
 const GetDateFromUTC = (date, utc) => {

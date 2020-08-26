@@ -1,4 +1,4 @@
-/* globals _StationInfo, luxon, _RegionalCities, SuperGif, _TravelCities, loadImg */
+/* globals _StationInfo, luxon, _RegionalCities, SuperGif, SuperGifAsync, _TravelCities, loadImg */
 
 const _DayShortNames = { 'Sunday': 'Sun', 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat' };
 const _DayLongNameArray = Object.keys(_DayShortNames);
@@ -162,7 +162,7 @@ var _CurrentUtterance = false;
 var _CurrentUtteranceId = null;
 var _IsSpeaking = false;
 
-var OperatingSystems = {
+const OperatingSystems = {
 	Unknown: 0,
 	Windows: 1,
 	MacOS: 2,
@@ -173,7 +173,7 @@ var OperatingSystems = {
 	WindowsPhone: 7,
 };
 let _OperatingSystem = OperatingSystems.Unknown;
-var _UserAgent = window.navigator.userAgent;
+const _UserAgent = window.navigator.userAgent;
 if (_UserAgent.indexOf('Win') !== -1) _OperatingSystem = OperatingSystems.Windows;
 if (_UserAgent.indexOf('Mac') !== -1) _OperatingSystem = OperatingSystems.MacOS;
 if (_UserAgent.indexOf('X11') !== -1) _OperatingSystem = OperatingSystems.Unix;
@@ -184,175 +184,46 @@ if (_UserAgent.indexOf('iPod') !== -1) _OperatingSystem = OperatingSystems.iOS;
 if (_UserAgent.toLowerCase().indexOf('android') !== -1) _OperatingSystem = OperatingSystems.Andriod;
 if (_UserAgent.indexOf('Windows Phone') !== -1) _OperatingSystem = OperatingSystems.WindowsPhone;
 
-const GetCurrentWeather = (WeatherParameters) => {
-	var Url = 'https://forecast.weather.gov/MapClick.php?FcstType=dwml';
-	Url += '&lat=' + WeatherParameters.Latitude.toString();
-	Url += '&lon=' + WeatherParameters.Longitude.toString();
+const GetCurrentWeather = async (WeatherParameters) => {
 
-	var success = function (xml)
-	{
-		var $xml = $(xml);
-		console.log(xml);
-		//console.log($xml);
+	// Load the observations
+	try {
+		// station observations
+		const observationsPromise = $.ajaxCORS({
+			type: 'GET',
+			url: `https://api.weather.gov/stations/${WeatherParameters.StationId}/observations`,
+			data: {
+				limit: 2,
+			},
+			dataType: 'json',
+			crossDomain: true,
+		});
+		// station info
+		const stationPromise = $.ajax({
+			type: 'GET',
+			url: `https://api.weather.gov/stations/${WeatherParameters.StationId}`,
+			dataType: 'json',
+			crossDomain: true,
+		});
 
-		WeatherParameters.WeatherDwmlParser = new WeatherDwmlParser($xml);
-		console.log(WeatherParameters.WeatherDwmlParser);
+		// wait for the promises to resolve
+		const [observations, station] = await Promise.all([observationsPromise, stationPromise]);
 
-		if (WeatherParameters.WeatherDwmlParser.data_current_observations.parameters.conditions_icon.icon_link.length === 0
-			|| WeatherParameters.WeatherDwmlParser.data_current_observations.parameters.conditions_icon.icon_link[0] === 'NULL'
-			|| WeatherParameters.WeatherDwmlParser.data_current_observations.parameters.temperature_apparent.value[0] === 'NA')
-		{
-			console.error('No current conditions data for \'' + WeatherParameters.WeatherDwmlParser.data_current_observations.location.area_description + '\'');
-
-			GetClosestCurrentWeather(WeatherParameters);
-			return;
-		}
-
-		//WeatherParameters.WeatherCurrentConditions = new WeatherCurrentConditions(WeatherParameters.WeatherDwmlParser);
-		//console.log(wco);
-		//PopulateCurrentConditions(wco);
-
-		WeatherParameters.WeatherExtendedForecast = new WeatherExtendedForecast(WeatherParameters.WeatherDwmlParser);
-		console.log(WeatherParameters.WeatherExtendedForecast);
-		//PopulateExtendedForecast(WeatherParameters);
-		PopulateExtendedForecast(WeatherParameters, 1);
-		PopulateExtendedForecast(WeatherParameters, 2);
-
-		//WeatherParameters.Progress.FourDayForecast = LoadStatuses.Loaded;
-
-		//WeatherParameters.WeatherLocalForecast = new WeatherLocalForecast(WeatherParameters.WeatherDwmlParser);
-		//console.log(WeatherParameters.WeatherLocalForecast);
-		//PopulateLocalForecast(WeatherParameters.WeatherLocalForecast);
-
-		GetWeatherMetar(WeatherParameters);
-
-		//GetWeatherHazards(WeatherParameters);
-	};
-
-	// Load the xml file using ajax 
-	$.ajaxCORS({
-		type: 'GET',
-		url: Url,
-		dataType: 'xml',
-		crossDomain: true,
-		cache: false,
-		success: success,
-		error: function (xhr, error, errorThrown)
-		{
-			if (xhr.readyState === 4 && xhr.status === 200)
-			{
-				if (error === 'parsererror')
-				{
-					var source = xhr.responseText;
-					source = source.replaceAll(' & ', ' &amp; ');
-					var parser = new DOMParser();
-					var xml = parser.parseFromString(source, 'application/xml');
-					success(xml);
-					return;
-				}
-			}
-
-			console.error('GetCurrentWeather failed: ' + errorThrown);
-			WeatherParameters.Progress.FourDayForecast = LoadStatuses.Failed;
-		},
-	});
+		// TODO: add retry for further stations if observations are unavailable
+		WeatherParameters.WeatherCurrentConditions = Object.assign({}, observations, {station: station});
+		PopulateCurrentConditions(WeatherParameters);
+	}
+	catch (e) {
+		console.error('Unable to get current observations');
+		console.error(e);
+		return false;
+	}
 };
 
-var GetClosestCurrentWeather = function (WeatherParameters, Distance)
-{
-	var FoundClosetStation = false;
-
-	if (!Distance)
-	{
-		Distance = 5;
-	}
-
-	if (!WeatherParameters.SkipClosestWeatherStationIds)
-	{
-		WeatherParameters.SkipClosestWeatherStationIds = [];
-	}
-
-	// Get the current weather from the next closest station.
-	var Url = 'https://www.aviationweather.gov/adds/dataserver_current/httpparam?datasource=metars&requesttype=retrieve&format=xml&hoursBeforeNow=1';
-	Url += '&radialDistance=' + Distance.toString();
-	Url += ';' + WeatherParameters.Longitude;
-	Url += ',' + WeatherParameters.Latitude;
-
-	// Load the xml file using ajax 
-	$.ajaxCORS({
-		type: 'GET',
-		url: Url,
-		dataType: 'xml',
-		crossDomain: true,
-		cache: false,
-		success: function (xml)
-		{
-			var $xml = $(xml);
-			//console.log(xml);
-
-			if ($xml.find('response').find('errors').find('error').length !== 0)
-			{
-				console.error($xml.find('response').find('errors').text());
-				return;
-			}
-
-			//var WeatherRegionalMetarsParser = new WeatherRegionalMetarsParser($xml);
-			$xml.find('response').find('data').find('METAR').each(function ()
-			{
-				var data_METAR = $(this);
-				var StationId = data_METAR.find('station_id').text();
-				var Latitude = data_METAR.find('latitude').text();
-				var Longitude = data_METAR.find('longitude').text();
-				var raw_text = data_METAR.find('raw_text').text();
-				var temp_c = data_METAR.find('temp_c').text();
-
-				if (raw_text === '')
-				{
-					return true;
-				}
-
-				if (temp_c === '')
-				{
-					return true;
-				}
-
-				if (WeatherParameters.SkipClosestWeatherStationIds.indexOf(StationId) !== -1)
-				{
-					return true;
-				}
-
-
-				FoundClosetStation = true;
-				WeatherParameters.Latitude = Latitude;
-				WeatherParameters.Longitude = Longitude;
-				WeatherParameters.SkipClosestWeatherStationIds.push(StationId);
-
-				return false;
-			});
-
-			if (FoundClosetStation)
-			{
-				GetCurrentWeather(WeatherParameters);
-			}
-			else
-			{
-				// Stop if the distance is at 100 miles.
-				if (Distance === 100)
-				{
-					throw 'GetClosestCurrentWeather unable to find weather upto 100 miles';
-				}
-
-				// Increase distance by 5 miles.
-				GetClosestCurrentWeather(WeatherParameters, Distance + 5);
-			}
-
-		},
-		error: function (xhr, error, errorThrown)
-		{
-			console.error('GetCurrentWeather for closest failed: ' + errorThrown);
-		},
-	});
-
+const getExtendedForecast = async (WeatherParameters) => {
+	// TODO: extended forecast
+	PopulateExtendedForecast(WeatherParameters, 1);
+	PopulateExtendedForecast(WeatherParameters, 2);
 };
 
 const GetMonthPrecipitation = async (WeatherParameters) => {
@@ -392,156 +263,6 @@ const GetMonthPrecipitation = async (WeatherParameters) => {
 
 };
 
-var GetTideInfo = function (WeatherParameters)
-{
-	var Url = 'https://tidesandcurrents.noaa.gov/tide_predictions.html?type=Tide+Predictions&searchfor='; //[Latitude]%2C[Longitude]";
-	Url += WeatherParameters.Latitude + '%2C';
-	Url += WeatherParameters.Longitude;
-	
-	var MaxStationCount = 2;
-	var StationCount = 0;
-	var TideInfoCount = 0;
-
-	WeatherParameters.WeatherTides = null;
-
-	// Load the xml file using ajax 
-	$.ajaxCORS({
-		type: 'GET',
-		url: Url,
-		dataType: 'html',
-		crossDomain: true,
-		cache: false,
-		success: function (html)
-		{
-			var $html = $(html);
-			$html.find('[src]').attr('src', ''); // Prevents the browser from loading any images on this page.
-
-			var StationIds = $html.find('a[href*=\'Stationid=\']');
-
-			if (StationIds.length === 0)
-			{
-				// No tide stations available for this location.
-
-				PopulateAlmanacInfo(_WeatherParameters);
-				GetCurrentWeather(WeatherParameters);
-				
-				return;
-			}
-
-			StationIds.each(function ()
-			{
-				var Link = $(this);
-				var StationName = Link.text();
-				var Href = Link.attr('href');
-				var StationId = Href.substr(Href.indexOf('Stationid=') + 10);
-
-				
-				var Url = 'https://tidesandcurrents.noaa.gov/noaatidepredictions/NOAATidesFacade.jsp?Stationid=';
-				Url += StationId;
-				
-				if (WeatherParameters.WeatherTides === null)
-				{
-					WeatherParameters.WeatherTides = [];
-				}
-
-				var WeatherTide = {
-					StationId: StationId,
-				};
-				WeatherTide.StationName = StationName;
-				WeatherParameters.WeatherTides.push(WeatherTide);
-
-				// Load the xml file using ajax 
-				$.ajaxCORS({
-					type: 'GET',
-					url: Url,
-					dataType: 'html',
-					crossDomain: true,
-					cache: false,
-					success: function (html)
-					{
-						var $html = $(html);
-						$html.find('[src]').attr('src', ''); // Prevents the browser from loading any images on this page.
-
-						var TideTypes = [];
-						var TideTimes = [];
-						var TideDays = [];
-
-						$html.find('.hilow').find('tr').each(function (Index)
-						{
-							if (Index > 3)
-							{
-								return false;
-							}
-
-							var TideRow = $(this);
-							var TideHeight = $(TideRow.find('td')[3]).text().trim();
-
-							if (TideHeight.indexOf('H') !== -1)
-							{
-								TideTypes.push('high');
-							}
-							else
-							{
-								TideTypes.push('low');
-							}
-
-							TideTimes.push($(TideRow.find('td')[2]).text().trim());
-							TideDays.push($(TideRow.find('td')[1]).text());
-						});
-
-						$(TideTimes).each(function(Index)
-						{
-							var TideTime = this.toString();
-							TideTime = TideTime.replaceAll(' AM', 'am');
-							TideTime = TideTime.replaceAll(' PM', 'pm');
-
-							if (TideTime.startsWith('0'))
-							{
-								TideTime = TideTime.substr(1);
-							}
-
-							TideTimes[Index] = TideTime;
-						});
-
-						WeatherTide.TideTypes = TideTypes;
-						WeatherTide.TideTimes = TideTimes;
-						WeatherTide.TideDays = TideDays;
-
-						TideInfoCount++;
-						if (TideInfoCount >= MaxStationCount)
-						{
-							PopulateTideInfo(WeatherParameters);
-
-							PopulateAlmanacInfo(_WeatherParameters);
-							GetCurrentWeather(WeatherParameters);
-						}
-					},
-					error: function (xhr, error, errorThrown)
-					{
-						console.error('GetTideInfo failed: ' + errorThrown);
-					},
-				});
-
-				StationCount++;
-				if (StationCount >= MaxStationCount)
-				{
-					return false;
-				}
-			});
-
-			//WeatherParameters.WeatherTideParser = new WeatherTideParser($html);
-			//console.log(WeatherParameters.WeatherTideParser);
-
-			//PopulateTideInfo(WeatherParameters);
-
-		},
-		error: function (xhr, error, errorThrown)
-		{
-			console.error('GetTideInfo failed: ' + errorThrown);
-		},
-	});
-};
-
 var GetTideInfo2 = function (WeatherParameters) {
 	var Url = 'https://tidesandcurrents.noaa.gov/mdapi/latest/webapi/tidepredstations.json?'; //lat=40&lon=-73&radius=50";
 	Url += 'lat=' + WeatherParameters.Latitude + '&';
@@ -568,7 +289,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 				// No tide stations available for this location.
 
 				PopulateAlmanacInfo(_WeatherParameters);
-				GetCurrentWeather(WeatherParameters);
 
 				return;
 			}
@@ -672,7 +392,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 							PopulateTideInfo(WeatherParameters);
 
 							PopulateAlmanacInfo(_WeatherParameters);
-							GetCurrentWeather(WeatherParameters);
 
 						}
 					},
@@ -680,7 +399,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 						console.error('GetTideInfo failed: ' + errorThrown);
 
 						PopulateAlmanacInfo(_WeatherParameters);
-						GetCurrentWeather(WeatherParameters);
 
 					},
 				});
@@ -696,7 +414,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 			console.error('GetTideInfo failed: ' + errorThrown);
 
 			PopulateAlmanacInfo(_WeatherParameters);
-			GetCurrentWeather(WeatherParameters);
 		},
 	});
 };
@@ -2251,49 +1968,6 @@ var GetWeatherHazards3 = function (WeatherParameters)
 	});
 };
 
-var GetWeatherMetar = function (WeatherParameters)
-{
-	var Url = 'https://www.aviationweather.gov/adds/dataserver_current/httpparam?datasource=metars&requesttype=retrieve&format=xml&hoursBeforeNow=3';
-	Url += '&stationString=' + WeatherParameters.StationId;
-
-	// Load the xml file using ajax 
-	$.ajaxCORS({
-		type: 'GET',
-		url: Url,
-		dataType: 'xml',
-		crossDomain: true,
-		//cache: false,
-		success: function (xml)
-		{
-			var $xml = $(xml);
-			console.log(xml);
-			//console.log($xml);
-
-			WeatherParameters.WeatherMetarsParser = new WeatherMetarsParser($xml);
-			console.log(WeatherParameters.WeatherMetarsParser);
-
-			WeatherParameters.WeatherCurrentConditions = new WeatherCurrentConditions(WeatherParameters.WeatherDwmlParser, WeatherParameters.WeatherMetarsParser);
-			console.log(WeatherParameters.WeatherCurrentConditions);
-
-			//if (WeatherParameters.WeatherCurrentConditions.Conditions === "")
-			//{
-			//    console.error("No current conditions data for '" + WeatherParameters.WeatherCurrentConditions.StationName + "'");
-			//}
-
-			PopulateCurrentConditions(WeatherParameters);
-			//WeatherParameters.Progress.CurrentConditions = LoadStatuses.Loaded;
-
-			//GetWeatherForecast(WeatherParameters);
-			GetRegionalStations(_WeatherParameters);
-		},
-		error: function (xhr, error, errorThrown)
-		{
-			console.error('GetWeatherMetar failed: ' + errorThrown);
-			WeatherParameters.Progress.CurrentConditions = LoadStatuses.Failed;
-		},
-	});
-};
-
 const GetWeatherForecast = async (WeatherParameters) => {
 	try {
 		const forecast = await $.ajax({
@@ -2456,6 +2130,7 @@ $(() => {
 		_WeatherParameters.TimeZone = point.properties.relativeLocation.properties.timeZone;
 		_WeatherParameters.Forecast = point.properties.forecast;
 
+		GetCurrentWeather(_WeatherParameters);
 		GetMonthPrecipitation(_WeatherParameters);
 		GetTravelWeather(_WeatherParameters);
 		GetAirQuality3(_WeatherParameters);
@@ -2464,6 +2139,7 @@ $(() => {
 		ShowRegionalMap(_WeatherParameters, false, true);
 		ShowDopplerMap(_WeatherParameters);
 		GetWeatherHazards3(_WeatherParameters);
+		getExtendedForecast(_WeatherParameters);
 
 		if (_UpdateWeatherCanvasInterval)
 		{
@@ -4174,202 +3850,77 @@ var DwmlDataParametersHazardsHazardConditions = function (hazards_conditions)
 	this.hazardTextURL = hazards_conditions.find('hazard').find('hazardTextURL').text();
 };
 
-var PopulateCurrentConditions = function (WeatherParameters)
+const PopulateCurrentConditions = async (WeatherParameters) =>
 {
-	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.CurrentConditions !== LoadStatuses.Loaded))
-	{
-		return;
-	}
+	// test if needed
+	if (!WeatherParameters.WeatherCurrentConditions || (_DontLoadGifs && WeatherParameters.Progress.CurrentConditions !== LoadStatuses.Loaded)) return;
+	
+	const observations = WeatherParameters.WeatherCurrentConditions.features[0].properties;
 
-	var WeatherCurrentConditions = WeatherParameters.WeatherCurrentConditions;
+	// values from api are provided in metric
+	let Temperature = Math.round(observations.temperature.value);
+	let DewPoint = Math.round(observations.dewpoint.value);
+	let Ceiling = Math.round(observations.cloudLayers[0].base.value);
+	let CeilingUnit = 'm.';
+	let Visibility = Math.round(observations.visibility.value/1000);
+	let VisibilityUnit = ' km.';
+	let WindSpeed = Math.round(observations.windSpeed.value);
+	let WindDirection = ConvertDirectionToNSEW(observations.windDirection.value);
+	let Pressure = Math.round(observations.barometricPressure.value);
+	let HeatIndex = Math.round(observations.heatIndex.value);
+	let WindChill = Math.round(observations.windChill.value);
+	let WindGust = Math.round(observations.windGust.value);
+	let Humidity = Math.round(observations.relativeHumidity.value);
+	let Icon = GetWeatherRegionalIconFromIconLink(observations.icon);
+	let StationName = WeatherParameters.WeatherCurrentConditions.station.properties.name;
+	let PressureDirection = '';
+	// difference since last measurement (pascals, looking for difference of more than 150)
+	const pressureDiff = (observations.barometricPressure.value - WeatherParameters.WeatherCurrentConditions.features[1].properties.barometricPressure.value);
+	if (pressureDiff > 150) PressureDirection = 'R';
+	if (pressureDiff < -150) PressureDirection = 'F';
 
-	var Temperature;
-	var DewPoint;
-	var Ceiling;
-	var CeilingUnit;
-	var WindSpeed;
-	var Pressure;
-	var Visibility;
-	var VisibilityUnit;
-	var HeatIndex;
-	var WindChill;
-	var WindGust;
-	var Humidity;
-
-	switch (_Units)
-	{
-	case Units.English:
-		Temperature = WeatherCurrentConditions.Temperature;
-		DewPoint = WeatherCurrentConditions.DewPoint;
-		Ceiling = WeatherCurrentConditions.Ceiling;
+	if (_Units === Units.English) {
+		Temperature = ConvertCelsiusToFahrenheit(Temperature);
+		DewPoint = ConvertCelsiusToFahrenheit(DewPoint);
+		Ceiling = Math.round(ConvertMetersToFeet(Ceiling)/100)*100;
 		CeilingUnit = 'ft.';
-		Visibility = WeatherCurrentConditions.Visibility;
+		Visibility = ConvertKilometersToMiles(observations.visibility.value/1000);
 		VisibilityUnit = ' mi.';
-		WindSpeed = WeatherCurrentConditions.WindSpeed;
-		Pressure = WeatherCurrentConditions.Pressure;
-		HeatIndex = WeatherCurrentConditions.HeatIndex;
-		WindChill = WeatherCurrentConditions.WindChill;
-		WindGust = WeatherCurrentConditions.WindGust;
-		Humidity = WeatherCurrentConditions.Humidity;
-		break;
-
-	case Units.Metric:
-		Temperature = WeatherCurrentConditions.TemperatureC;
-		DewPoint = WeatherCurrentConditions.DewPointC;
-		Ceiling = WeatherCurrentConditions.CeilingC;
-		CeilingUnit = 'm.';
-		Visibility = WeatherCurrentConditions.VisibilityC;
-		VisibilityUnit = ' km.';
-		WindSpeed = WeatherCurrentConditions.WindSpeedC;
-		Pressure = WeatherCurrentConditions.PressureC;
-		HeatIndex = WeatherCurrentConditions.HeatIndexC;
-		WindChill = WeatherCurrentConditions.WindChillC;
-		WindGust = WeatherCurrentConditions.WindGustC;
-		Humidity = WeatherCurrentConditions.Humidity;
-		break;
-	default:
+		WindSpeed = ConvertKphToMph(WindSpeed);
+		Pressure = ConvertPascalToInHg(Pressure);
+		HeatIndex = ConvertCelsiusToFahrenheit(HeatIndex);
+		WindChill = ConvertCelsiusToFahrenheit(WindChill);
+		WindGust = ConvertKphToMph(WindGust);
 	}
 
-	divTemperature.html(WeatherCurrentConditions.Temperature + '&deg;');
-	divStation.html(WeatherCurrentConditions.StationName);
-	divConditions.html(WeatherCurrentConditions.Conditions);
-	divHumidity.html('Humidity: ' + WeatherCurrentConditions.Humidity + '%');
-	divDewpoint.html('Dewpoint: ' + WeatherCurrentConditions.DewPoint + '&deg;');
-	divCeiling.html('Ceiling: ' + (WeatherCurrentConditions.Ceiling === '' ? 'Unlimited' : WeatherCurrentConditions.Ceiling + ' ft.'));
-	divVisibility.html('Visibility: ' + parseInt(WeatherCurrentConditions.Visibility) + ' mi.');
-	divWind.html('Wind: ' + WeatherCurrentConditions.WindDirection + ' ' + WeatherCurrentConditions.WindSpeed);
-	divPressure.html('Pressure: ' + WeatherCurrentConditions.Pressure + ' ' + WeatherCurrentConditions.PressureDirection);// + " " + WeatherCurrentConditions.PressureDirection);
+	divTemperature.html(Temperature + '&deg;');
+	divStation.html(StationName);
+	divConditions.html(observations.textDescription);
+	divHumidity.html('Humidity: ' + Humidity + '%');
+	divDewpoint.html('Dewpoint: ' + DewPoint + '&deg;');
+	divCeiling.html('Ceiling: ' + (!observations.Ceiling ? 'Unlimited' : observations.Ceiling + ' ' + CeilingUnit));
+	divVisibility.html('Visibility: ' + Visibility + ' ' + VisibilityUnit);
+	divWind.html('Wind: ' + observations.windDirection.value + ' ' + WindSpeed);
+	divPressure.html('Pressure: ' + Pressure + PressureDirection);
 	
 	divHeatIndex.empty();
-	if (WeatherCurrentConditions.HeatIndex !== WeatherCurrentConditions.Temperature)
-	{
-		divHeatIndex.html('Heat Index: ' + WeatherCurrentConditions.HeatIndex + '&deg;');
-	}
+	if (HeatIndex !== Temperature) divHeatIndex.html('Heat Index: ' + HeatIndex + '&deg;');
 
 	divGust.empty();
-	if (WeatherCurrentConditions.WindGust !== '')
-	{
-		divGust.html('Gust to ' + WeatherCurrentConditions.WindGust);
-	}
+	if (WindGust !== '') divGust.html('Gust to ' + WindGust);
 
-	divIcon.html('<img src=\'' + WeatherCurrentConditions.Icon + '\' />');
+	divIcon.html('<img src=\'' + Icon + '\' />');
 
 	// Draw canvas
-	var canvas = canvasCurrentWeather[0];
-	var context = canvas.getContext('2d');
-
-	var DrawCurrentConditions = function ()
-	{
-		var BackGroundImage = new Image();
-		BackGroundImage.onload = function ()
-		{
-			context.drawImage(BackGroundImage, 0, 0);
-			DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-			DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-			DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
-			DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
-
-			DrawTitleText(context, 'Current', 'Conditions');
-
-			DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', 170, 135, Temperature + String.fromCharCode(176), 2);
-
-			var Conditions = WeatherCurrentConditions.Conditions;
-			if (Conditions.length > 15)
-			{
-				Conditions = WeatherCurrentConditions.ShortConditions;
-			}
-			//DrawText(context, "Star4000 Extended", "24pt", "#FFFFFF", 190, 170, WeatherCurrentConditions.Conditions, 2, "center");
-			//DrawText(context, "Star4000 Extended", "24pt", "#FFFFFF", 190, 170, WeatherCurrentConditions.ShortConditions, 2, "center");
-			//Conditions = "12345679012345";
-			DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 195, 170, Conditions, 2, 'center');
-
-			//gifIcon.get_canvas().width = gifIcon.get_canvas().width * 0.75;
-
-			DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 80, 330, 'Wind:', 2);
-			//DrawText(context, "Star4000 Extended", "24pt", "#FFFFFF", 205, 330, WeatherCurrentConditions.WindDirection, 2, "center");
-			DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 300, 330, WeatherCurrentConditions.WindDirection + ' ' + WindSpeed, 2, 'right');
-
-			//WeatherCurrentConditions.WindGust = 10;
-			if (WindGust !== '')
-			{
-				DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 80, 375, 'Gusts to ' + WindGust, 2);
-			}
-
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFF00', 315, 120, WeatherCurrentConditions.StationName.substr(0, 20), 2);
-
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 165, 'Humidity:', 2);
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 165, Humidity + '%', 2, 'right');
-
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 205, 'Dewpoint:', 2);
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 205, DewPoint + String.fromCharCode(176), 2, 'right');
-
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 245, 'Ceiling:', 2);
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 245, (Ceiling === '' ? 'Unlimited' : Ceiling + CeilingUnit), 2, 'right');
-
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 285, 'Visibility:', 2);
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 285, parseInt(Visibility) + VisibilityUnit, 2, 'right');
-
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 325, 'Pressure:', 2);
-			DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 535, 325, Pressure, 2, 'right');
-			//WeatherCurrentConditions.PressureDirection = "R";
-			switch (WeatherCurrentConditions.PressureDirection)
-			{
-			case 'R':
-				// Shadow
-				DrawTriangle(context, '#000000', 552, 302, 542, 312, 562, 312);
-				DrawBox(context, '#000000', 549, 312, 6, 15);
-
-				// Border
-				DrawTriangle(context, '#000000', 550, 300, 540, 310, 560, 310);
-				DrawBox(context, '#000000', 547, 310, 6, 15);
-
-				// Fill
-				DrawTriangle(context, '#FFFF00', 550, 301, 541, 309, 559, 309);
-				DrawBox(context, '#FFFF00', 548, 309, 4, 15);
-				break;
-			case 'F':
-				// Shadow
-				DrawTriangle(context, '#000000', 552, 327, 542, 317, 562, 317);
-				DrawBox(context, '#000000', 549, 302, 6, 15);
-
-				// Border
-				DrawTriangle(context, '#000000', 550, 325, 540, 315, 560, 315);
-				DrawBox(context, '#000000', 547, 300, 6, 15);
-
-				// Fill
-				DrawTriangle(context, '#FFFF00', 550, 324, 541, 314, 559, 314);
-				DrawBox(context, '#FFFF00', 548, 301, 4, 15);
-			default:
-			}
-
-			//WeatherCurrentConditions.HeatIndex = "100";
-			if (HeatIndex !== Temperature)
-			{
-				DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 365, 'Heat Index:', 2);
-				DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 365, HeatIndex + String.fromCharCode(176), 2, 'right');
-			}
-			else if (WindChill !== '' && WindChill < Temperature)
-			{
-				DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 365, 'Wind Chill:', 2);
-				DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 365, WindChill + String.fromCharCode(176), 2, 'right');
-			}
-
-			WeatherParameters.Progress.CurrentConditions = LoadStatuses.Loaded;
-
-			UpdateWeatherCanvas(WeatherParameters, canvasCurrentWeather);
-		};
-		BackGroundImage.src = 'images/BackGround1_1.png';
-		//BackGroundImage.src = "images/BackGround1_" + _Themes.toString() + ".png";
-	};
+	const canvas = canvasCurrentWeather[0];
+	const context = canvas.getContext('2d');
 
 	if (_DontLoadGifs)
 	{
 		DrawCurrentConditions();
-	}
-	else
-	{
-		var gifIcon = new SuperGif({
-			src: WeatherCurrentConditions.Icon,
+	} else {
+		await SuperGifAsync({
+			src: Icon,
 			loop_delay: 100,
 			auto_play: true,
 			canvas: canvas,
@@ -4377,10 +3928,90 @@ var PopulateCurrentConditions = function (WeatherParameters)
 			y: 175,
 			max_width: 126,
 		});
-		gifIcon.load(DrawCurrentConditions);
 	}
-};
 
+	context.drawImage(await loadImg('images/BackGround1_1.png'), 0, 0);
+	DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+	DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+	DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
+	DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
+
+	DrawTitleText(context, 'Current', 'Conditions');
+
+	DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', 170, 135, Temperature + String.fromCharCode(176), 2);
+
+	let Conditions = observations.textDescription;
+	if (Conditions.length > 15)
+	{
+		Conditions = observations.ShortConditions;
+	}
+	DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 195, 170, Conditions, 2, 'center');
+
+	DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 80, 330, 'Wind:', 2);
+	DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 300, 330, WindDirection + ' ' + WindSpeed, 2, 'right');
+
+	if (WindGust)  DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 80, 375, 'Gusts to ' + WindGust, 2);
+
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFF00', 315, 120, WeatherParameters.WeatherCurrentConditions.station.properties.name.substr(0, 20), 2);
+
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 165, 'Humidity:', 2);
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 165, Humidity + '%', 2, 'right');
+
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 205, 'Dewpoint:', 2);
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 205, DewPoint + String.fromCharCode(176), 2, 'right');
+
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 245, 'Ceiling:', 2);
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 245, (Ceiling === '' ? 'Unlimited' : Ceiling + CeilingUnit), 2, 'right');
+
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 285, 'Visibility:', 2);
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 285, parseInt(Visibility) + VisibilityUnit, 2, 'right');
+
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 325, 'Pressure:', 2);
+	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 535, 325, Pressure, 2, 'right');
+
+	switch (PressureDirection)
+	{
+	case 'R':
+		// Shadow
+		DrawTriangle(context, '#000000', 552, 302, 542, 312, 562, 312);
+		DrawBox(context, '#000000', 549, 312, 6, 15);
+
+		// Border
+		DrawTriangle(context, '#000000', 550, 300, 540, 310, 560, 310);
+		DrawBox(context, '#000000', 547, 310, 6, 15);
+
+		// Fill
+		DrawTriangle(context, '#FFFF00', 550, 301, 541, 309, 559, 309);
+		DrawBox(context, '#FFFF00', 548, 309, 4, 15);
+		break;
+	case 'F':
+		// Shadow
+		DrawTriangle(context, '#000000', 552, 327, 542, 317, 562, 317);
+		DrawBox(context, '#000000', 549, 302, 6, 15);
+
+		// Border
+		DrawTriangle(context, '#000000', 550, 325, 540, 315, 560, 315);
+		DrawBox(context, '#000000', 547, 300, 6, 15);
+
+		// Fill
+		DrawTriangle(context, '#FFFF00', 550, 324, 541, 314, 559, 314);
+		DrawBox(context, '#FFFF00', 548, 301, 4, 15);
+		break;
+	default:
+	}
+
+	if (HeatIndex !== Temperature) {
+		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 365, 'Heat Index:', 2);
+		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 365, HeatIndex + String.fromCharCode(176), 2, 'right');
+	} else if (WindChill !== '' && WindChill < Temperature) {
+		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 365, 'Wind Chill:', 2);
+		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 365, WindChill + String.fromCharCode(176), 2, 'right');
+	}
+
+	WeatherParameters.Progress.CurrentConditions = LoadStatuses.Loaded;
+
+	UpdateWeatherCanvas(WeatherParameters, canvasCurrentWeather);
+};
 
 var WeatherExtendedForecast = function (WeatherParser)
 {
