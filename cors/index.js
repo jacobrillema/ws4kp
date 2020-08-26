@@ -28,9 +28,8 @@ module.exports = (req, res) => {
 	const headers = {};
 	if (url.hostname === 'api.weather.gov') {
 		headers['user-agent'] = '(WeatherStar 4000+, ws4000@netbymatt.com)';
-		headers['Accept'] = 'application/vnd.noaa.dwml+xml';
 	} else {
-		headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36';
+		headers['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.135 Safari/537.36';
 	}
 
 	// get the page

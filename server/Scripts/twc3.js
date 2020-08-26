@@ -277,7 +277,6 @@ var GetClosestCurrentWeather = function (WeatherParameters, Distance)
 	Url += '&radialDistance=' + Distance.toString();
 	Url += ';' + WeatherParameters.Longitude;
 	Url += ',' + WeatherParameters.Latitude;
-	//Url = "cors/?u=" + encodeURIComponent(Url);
 
 	// Load the xml file using ajax 
 	$.ajaxCORS({
@@ -361,23 +360,22 @@ const GetMonthPrecipitation = async (WeatherParameters) => {
 	const today = DateTime.local().startOf('day').toISO().replace('.000','');
 
 	try {
-		const cliProducts = await $.ajax({
+		const cliProducts = await $.ajaxCORS({
 			type: 'GET',
-			url: '/cors/',
+			url: 'https://api.weather.gov/products',
 			data: {
-				u: `https://api.weather.gov/products?location=${WeatherParameters.WeatherOffice}&type=CLI&start=${today}`,
+				location: WeatherParameters.WeatherOffice,
+				type: 'CLI',
+				start: today,
 			},
 			dataType: 'json',
 			crossDomain: true,
 		});
 		
 		// get the first url from the list
-		const cli = await $.ajax({
+		const cli = await $.ajaxCORS({
 			type: 'GET',
-			url: '/cors/',
-			data: {
-				u: cliProducts['@graph'][0]['@id'],
-			},
+			url: cliProducts['@graph'][0]['@id'],
 			dataType: 'json',
 			crossDomain: true,
 		});
@@ -399,8 +397,7 @@ var GetTideInfo = function (WeatherParameters)
 	var Url = 'https://tidesandcurrents.noaa.gov/tide_predictions.html?type=Tide+Predictions&searchfor='; //[Latitude]%2C[Longitude]";
 	Url += WeatherParameters.Latitude + '%2C';
 	Url += WeatherParameters.Longitude;
-	//Url = "cors/?u=" + encodeURIComponent(Url);
-
+	
 	var MaxStationCount = 2;
 	var StationCount = 0;
 	var TideInfoCount = 0;
@@ -438,11 +435,10 @@ var GetTideInfo = function (WeatherParameters)
 				var Href = Link.attr('href');
 				var StationId = Href.substr(Href.indexOf('Stationid=') + 10);
 
-				//var Url = "https://tidesandcurrents.noaa.gov/stationhome.html?id="
+				
 				var Url = 'https://tidesandcurrents.noaa.gov/noaatidepredictions/NOAATidesFacade.jsp?Stationid=';
 				Url += StationId;
-				//Url = "cors/?u=" + encodeURIComponent(Url);
-
+				
 				if (WeatherParameters.WeatherTides === null)
 				{
 					WeatherParameters.WeatherTides = [];
@@ -550,7 +546,7 @@ var GetTideInfo2 = function (WeatherParameters) {
 	var Url = 'https://tidesandcurrents.noaa.gov/mdapi/latest/webapi/tidepredstations.json?'; //lat=40&lon=-73&radius=50";
 	Url += 'lat=' + WeatherParameters.Latitude + '&';
 	Url += 'lon=' + WeatherParameters.Longitude + '&radius=50';
-	//Url = "cors/?u=" + encodeURIComponent(Url);
+	
 
 	var MaxStationCount = 2;
 	var StationCount = 0;
@@ -701,7 +697,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 
 			PopulateAlmanacInfo(_WeatherParameters);
 			GetCurrentWeather(WeatherParameters);
-			ShowRegionalMap(_WeatherParameters);
 		},
 	});
 };
@@ -2023,7 +2018,6 @@ var GetMoonPhases = function (WeatherParameters)
 	Url += Now.getDate().pad(2) + '/';
 	Url += Now.getFullYear().pad();
 	Url += '&tz=' + tz.toString();
-	//Url = "cors/?u=" + encodeURIComponent(Url);
 
 	// Load the xml file using ajax 
 	$.ajax({
@@ -2076,7 +2070,6 @@ var GetSunRiseSets = function (WeatherParameters, Tomorrow)
 	Url += Now.getDate().pad(2) + '/';
 	Url += Now.getFullYear().pad();
 	Url += '&tz=' + tz.toString();
-	//Url = "cors/?u=" + encodeURIComponent(Url);
 
 	// Load the xml file using ajax 
 	$.ajax({
@@ -2140,7 +2133,6 @@ var GetWeatherHazards3 = function (WeatherParameters)
 	};
 
 	var Url = 'https://alerts.weather.gov/cap/wwaatmget.php?x=' + ZoneId + '&y=0';
-	//Url = "cors/?u=" + encodeURIComponent(Url);
 
 	// Load the xml file using ajax 
 	$.ajaxCORS({
@@ -2219,7 +2211,6 @@ var GetWeatherHazards3 = function (WeatherParameters)
 			$(HazardUrls).each(function ()
 			{
 				var Url = this.toString();
-				//Url = "cors/?u=" + encodeURIComponent(Url);
 
 				$.ajaxCORS({
 					type: 'GET',
@@ -6964,8 +6955,6 @@ var GetRegionalStations = function (WeatherParameters, Distance)
 	Url += '&radialDistance=' + Distance.toString();
 	Url += ';' + WeatherParameters.Longitude;
 	Url += ',' + WeatherParameters.Latitude;
-	//Url += "," + (new Date().getTime()); // Prevents caching
-	//Url = "cors/?u=" + encodeURIComponent(Url);
 
 	var Total = _MaximumRegionalStations;
 	var Count = 0;
@@ -7114,7 +7103,6 @@ var GetDwmlRegionalStations = function (WeatherParameters, Distance)
 		var Url = 'https://forecast.weather.gov/MapClick.php?FcstType=dwml';
 		Url += '&lat=' + _WeatherMetarsParser.data_METAR.latitude.toString();
 		Url += '&lon=' + _WeatherMetarsParser.data_METAR.longitude.toString();
-		//Url = "cors/?u=" + encodeURIComponent(Url);
 
 		// Load the xml file using ajax 
 		$.ajaxCORS({
@@ -7471,7 +7459,7 @@ const ShowRegionalMap = (WeatherParameters, TomorrowForecast1, TomorrowForecast2
 					// Temperature
 					if (IsNightTime) {
 						let MinimumTemperature = city.low.toString();
-						if (_Units === Units.Metric) MinimumTemperature = Math.round(ConvertFahrenheitToCelsius(low)).toString();
+						if (_Units === Units.Metric) MinimumTemperature = Math.round(ConvertFahrenheitToCelsius(city.low)).toString();
 						DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (MinimumTemperature.length * 15), city.y + 20, MinimumTemperature, 2);
 					} else {
 						let MaximumTemperature = city.high.toString();
@@ -7535,7 +7523,7 @@ const ShowRegionalMap = (WeatherParameters, TomorrowForecast1, TomorrowForecast2
 
 					// Temperature
 					let temperature = city.temperature.toString();
-					if (_Units === Units.Metric) temperature = Math.round(ConvertFahrenheitToCelsius(city.temperatureC)).toString();
+					if (_Units === Units.Metric) temperature = Math.round(ConvertFahrenheitToCelsius(city.temperature)).toString();
 					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (temperature.length * 15), city.y + 20, temperature, 2);
 				});
 
@@ -7674,8 +7662,8 @@ const ShowRegionalMap = (WeatherParameters, TomorrowForecast1, TomorrowForecast2
 				// return a pared-down forecast
 				return {
 					today: todayShift === 0,
-					high: forecast.properties.periods[todayShift].temperature,
-					low: forecast.properties.periods[todayShift+1].temperature,
+					high: forecast.properties.periods[todayShift].temperature||0,
+					low: forecast.properties.periods[todayShift+1].temperature||0,
 					name: city.Name,
 					icon: GetWeatherRegionalIconFromIconLink(forecast.properties.periods[todayShift].icon),
 					x: CityXY.x,
@@ -7790,42 +7778,33 @@ const GetXYFromLatitudeLongitude = (Latitude, Longitude, OffsetX, OffsetY) => {
 	return { x, y };
 };
 
-var GetXYFromLatitudeLongitudeDoppler = function (Latitude, Longitude, OffsetX, OffsetY)
-{
-	var SourceY = 0;
-	var SourceX = 0;
-	//var ImgHeight = 1600;
-	//var ImgWidth = 2550;
-	var ImgHeight = 3200;
-	var ImgWidth = 5100;
+const GetXYFromLatitudeLongitudeDoppler = (Latitude, Longitude, OffsetX, OffsetY) => {
+	let y = 0;
+	let x = 0;
+	const ImgHeight = 3200;
+	const ImgWidth = 5100;
 
-	//SourceY = (50.5 - Latitude) * 55.2;
-	SourceY = (51.75 - Latitude) * 55.2;
-	SourceY -= OffsetY; // Centers map.
+	y = (51.75 - Latitude) * 55.2;
+	y -= OffsetY; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (SourceY > (ImgHeight - (OffsetY * 2))) // The OffsetY * 2
+	if (y > (ImgHeight - (OffsetY * 2))) // The OffsetY * 2
 	{
-		SourceY = ImgHeight - (OffsetY * 2);
-	}
-	else if (SourceY < 0)
-	{
-		SourceY = 0;
+		y = ImgHeight - (OffsetY * 2);
+	} else if (y < 0) {
+		y = 0;
 	}
 
-	//SourceX = ((-127.5 - Longitude) * 41.775) * -1;
-	SourceX = ((-130.37 - Longitude) * 41.775) * -1;
-	SourceX -= OffsetX; // Centers map.
+	x = ((-130.37 - Longitude) * 41.775) * -1;
+	x -= OffsetX; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (SourceX > (ImgWidth - (OffsetX * 2))) // The OffsetX * 2
+	if (x > (ImgWidth - (OffsetX * 2))) // The OffsetX * 2
 	{
-		SourceX = ImgWidth - (OffsetX * 2);
-	}
-	else if (SourceX < 0)
-	{
-		SourceX = 0;
+		x = ImgWidth - (OffsetX * 2);
+	} else if (x < 0) {
+		x = 0;
 	}
 
-	return { X: SourceX * 2, Y: SourceY * 2 };
+	return { x: x * 2, y: y * 2 };
 };
 
 const GetMinMaxLatitudeLongitude = function (X, Y, OffsetX, OffsetY)
@@ -7970,266 +7949,231 @@ const ShowDopplerMap = (WeatherParameters) => {
 	}
 
 	const img = new Image();
-	var cnvDopplerMap;
-	var cnvDopplerMapId;
-	var divDopplerMap;
-	var context;
-	var SourceX;
-	var SourceY;
-	var OffsetY;
-	var OffsetX;
-	var cnvRadarWorkerId;
-	var cnvRadarWorker;
-	var contextWorker;
-
-	divDopplerMap = divDopplerRadarMap;
-	cnvDopplerMapId = 'cnvDopplerRadarMap';
-	cnvRadarWorkerId = 'cnvRadarWorker';
+	let OffsetY;
+	let OffsetX;
+	let SourceXY;
+	let contextWorker;
+	
+	const cnvDopplerMapId = 'cnvDopplerRadarMap';
+	const cnvRadarWorkerId = 'cnvRadarWorker';
 
 	// Clear the current image.
-	divDopplerMap.empty();
+	divDopplerRadarMap.empty();
 
 	if (_DopplerRadarInterval !== null) {
 		window.clearTimeout(_DopplerRadarInterval);
 		_DopplerRadarInterval = null;
 	}
 
-	img.onload = function () {
+	img.onload = async () => {
 		console.log('Doppler Image Loaded');
 
-		divDopplerMap.html('<canvas id=\'' + cnvDopplerMapId + '\' /><canvas id=\'' + cnvRadarWorkerId + '\' />');
-		cnvDopplerMap = $('#' + cnvDopplerMapId);
-		cnvDopplerMap.attr('width', '640'); // For Chrome.
-		cnvDopplerMap.attr('height', '367'); // For Chrome.
-		context = cnvDopplerMap[0].getContext('2d');
+		divDopplerRadarMap.html(`<canvas id='${cnvDopplerMapId}'/><canvas id='${cnvRadarWorkerId}'/>`);
+		const $cnvDopplerMap = $(`#${cnvDopplerMapId}`);
+		$cnvDopplerMap.attr('width', '640'); // For Chrome.
+		$cnvDopplerMap.attr('height', '367'); // For Chrome.
+		const context = $cnvDopplerMap[0].getContext('2d');
 
-		cnvRadarWorker = $('#' + cnvRadarWorkerId);
+		const $cnvRadarWorker = $(`#${cnvRadarWorkerId}`);
 		OffsetX = 120;
 		OffsetY = 69;
-		let SourceXY;
 		if (WeatherParameters.State === 'HI') {
-			cnvRadarWorker.attr('width', '600'); // For Chrome.
-			cnvRadarWorker.attr('height', '571'); // For Chrome.
-
+			$cnvRadarWorker.attr('width', '600'); // For Chrome.
+			$cnvRadarWorker.attr('height', '571'); // For Chrome.
 			SourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
 		} else {
-			cnvRadarWorker.attr('width', '2550'); // For Chrome.
-			cnvRadarWorker.attr('height', '1600'); // For Chrome.
-			//cnvRadarWorker.attr("width", "5100"); // For Chrome.
-			//cnvRadarWorker.attr("height", "3200"); // For Chrome.
-
-			//cnvDopplerMap.attr("width", "1280"); // For Chrome.
-			//cnvDopplerMap.attr("height", "734"); // For Chrome.
+			$cnvRadarWorker.attr('width', '2550'); // For Chrome.
+			$cnvRadarWorker.attr('height', '1600'); // For Chrome.
 			OffsetX *= 2;
 			OffsetY *= 2;
-
 			SourceXY = GetXYFromLatitudeLongitudeDoppler(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
 		}
-		cnvRadarWorker.css('display', 'none');
-		contextWorker = cnvRadarWorker[0].getContext('2d');
+		$cnvRadarWorker.css('display', 'none');
+		contextWorker = $cnvRadarWorker[0].getContext('2d');
 
 		// Draw them onto the map.
 		context.drawImage(img, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
 
-		const Url = 'https://radar.weather.gov/Conus/RadarImg';
+		const baseUrl = 'https://radar.weather.gov/Conus/RadarImg/';
 
-
-		//var TimesMax = 6;
-		var TimesCount = 0;
-		const RadarUrls = [];
-		const RadarImages = [];
 		const RadarContexts = [];
 
-		// Load the xml file using ajax 
-		$.ajaxCORS({
-			type: 'GET',
-			url: Url,
-			dataType: 'text',
-			crossDomain: true,
-			cache: false,
-			success: function (text)
-			{
+		try {
+		// get a list of available radars
+			const radarHtml = await $.ajaxCORS({
+				type: 'GET',
+				url: baseUrl,
+				dataType: 'text',
+				crossDomain: true,
+			});
 
+			// convert to an array of gif urls
+			const $list = $(radarHtml);
+			const gifs = $list.find('a[href]').map((i,elem) => elem.innerHTML).get();
 
-				var $text = $(text);
-				$text.find('[src]').attr('src', '');
+			// filter for selected urls
+			let filter = /^Conus_\d/;
+			if (WeatherParameters.State === 'HI') filter = /hawaii_\d/;
 
-				let Urls;
-				let UrlsUnd;
-				if (WeatherParameters.State === 'HI')
-				{
-					Urls = $text.find('a[href*=\'hawaii_\']');
-					UrlsUnd = Urls.length - 3;
+			// get the last few images
+			const urlsFull = gifs.filter(gif => gif.match(filter));
+			const urls = urlsFull.slice(-_DopplerRadarImageMax);
+
+			// Load the most recent doppler radar images.
+			const RadarImages = await Promise.all(urls.map(async (url, idx) => {
+				// create destination context
+				const id = 'cnvRadar' + idx.toString();
+				let RadarContext = $(`#${id}`);
+				if (!RadarContext[idx]) {
+					$('body').append(`<canvas id='${id}'/>`);
+					RadarContext = $(`#${id}`);
+					RadarContext.attr('width', '640'); // For Chrome.
+					RadarContext.attr('height', '367'); // For Chrome.
+					RadarContext.css('display', 'none');
 				}
-				else
-				{
-					Urls = $text.find('a[href*=\'Conus_\']');
-					UrlsUnd = Urls.length - 1;
-				}
+				RadarContexts.push(RadarContext);
 
-				for (let i = UrlsUnd; i > UrlsUnd - _DopplerRadarImageMax; i--)
-				{
-					var Url = 'https://radar.weather.gov/Conus/RadarImg/';
-					Url += $(Urls[i]).attr('href');
-					Url = 'cors/?u=' + encodeURIComponent(Url);
-
-					RadarUrls.push(Url);
-				}
-
-				// Load the most recent doppler radar images.
-				$(RadarUrls).each(function (Index)
-				{
-					var Url = this.toString();
-					var RadarImage = new Image();
-
-					RadarImage.onload = function ()
-					{
-						TimesCount++;
-
-						if (TimesCount === _DopplerRadarImageMax)
-						{
-							$(RadarImages).each(function (Index)
-							{
-								var RadarImage = this;
-								var RadarContext = RadarContexts[Index][0].getContext('2d');
-
-								contextWorker.clearRect(0, 0, contextWorker.canvas.width, contextWorker.canvas.height);
-
-								SmoothingEnabled(contextWorker, false);
-
-								if (WeatherParameters.State === 'HI') {
-									contextWorker.drawImage(RadarImage, 0, 0, 571, 600);
-								} else {
-									contextWorker.drawImage(RadarImage, 0, 0, 2550, 1600);
-									//contextWorker.drawImage(RadarImage, 0, 0, 5100, 3200, 0, 0, 2550, 1600);
-								}
-								//context.drawImage(RadarImage, 0, 0);
-
-								let RadarOffsetX;
-								let RadarOffsetY;
-								let RadarSourceXY;
-								let RadarSourceX;
-								let RadarSourceY;
-								if (WeatherParameters.State === 'HI') {
-									RadarOffsetX = 120;
-									RadarOffsetY = 69;
-									RadarSourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-									RadarSourceX = RadarSourceXY.X;
-									RadarSourceY = RadarSourceXY.Y;
-								} else {
-									RadarOffsetX = 117;
-									RadarOffsetY = 60;
-									RadarSourceXY = GetXYFromLatitudeLongitudeDoppler(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
-									RadarSourceX = RadarSourceXY.X / 2;
-									RadarSourceY = RadarSourceXY.Y / 2;
-								}
-
-								// Draw them onto the map.
-								RadarContext.clearRect(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
-
-								SmoothingEnabled(RadarContext, false);
-
-								RadarContext.drawImage(contextWorker.canvas, RadarSourceX, RadarSourceY, (RadarOffsetX * 2), (RadarOffsetY * 2.33), 0, 0, 640, 367);
-								RemoveDopplerRadarImageNoise(RadarContext);
-
-							});
-
-							console.log('Doppler Radar Images Loaded');
-
-							WeatherParameters.DopplerRadarInfo = {
-								RadarContexts: RadarContexts,
-								RadarImage: img,
-								RadarMapContext: context,
-								RadarSourceX: SourceX,
-								RadarSourceY: SourceY,
-								OffsetY: OffsetY,
-								OffsetX: OffsetX,
-							};
-
-							const RadarContext = RadarContexts[0][0].getContext('2d');
-							context.drawImage(img, SourceX, SourceY, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
-							MergeDopplerRadarImage(context, RadarContext);
-
-							// Draw canvas
-							var BackGroundImage = new Image();
-							BackGroundImage.onload = () => {
-								const canvas = canvasLocalRadar[0];
-								const context = canvas.getContext('2d');
-								context.drawImage(BackGroundImage, 0, 0);
-
-								// Title
-								DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 65, 'Local', 2);
-								DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 100, 'Radar', 2);
-
-								DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 390, 49, 'PRECIP', 2);
-								DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 298, 73, 'Light', 2);
-								DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 517, 73, 'Heavy', 2);
-
-								let x = 362;
-								const y = 52;
-								DrawBox(context, '#000000', x - 2, y - 2, 154, 28);
-								DrawBox(context, 'rgb(49, 210, 22)', x, y, 17, 24); x += 19;
-								DrawBox(context, 'rgb(28, 138, 18)', x, y, 17, 24); x += 19;
-								DrawBox(context, 'rgb(20, 90, 15)', x, y, 17, 24); x += 19;
-								DrawBox(context, 'rgb(10, 40, 10)', x, y, 17, 24); x += 19;
-								DrawBox(context, 'rgb(196, 179, 70)', x, y, 17, 24); x += 19;
-								DrawBox(context, 'rgb(190, 72, 19)', x, y, 17, 24); x += 19;
-								DrawBox(context, 'rgb(171, 14, 14)', x, y, 17, 24); x += 19;
-								DrawBox(context, 'rgb(115, 31, 4)', x, y, 17, 24); x += 19;
-
-								DrawBox(context, 'rgb(143, 73, 95)', 318, 83, 32, 24);
-								DrawBox(context, 'rgb(250, 122, 232)', 320, 85, 28, 20);
-								DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 355, 105, '= Incomplete Data', 2);
-
-								window.setInterval(() => {
-									context.drawImage(cnvDopplerMap[0], 0, 0, 640, 367, 0, 113, 640, 367);
-									UpdateWeatherCanvas(WeatherParameters, canvasLocalRadar);
-								}, 100);
-
-								WeatherParameters.Progress.DopplerRadar = LoadStatuses.Loaded;
-							};
-							BackGroundImage.src = 'images/BackGround4_1.png';
-
-						}
-					};
-					RadarImage.src = Url;
-					RadarImages.push(RadarImage);
-
-					const id = 'cnvRadar' + Index.toString();
-					let RadarContext = $(`#${id}`);
-					if (RadarContext.length === 0)
-					{
-						$('body').append('<canvas id=\'' + id + '\' />');
-						RadarContext = $(`#${id}`);
-						RadarContext.attr('width', '640'); // For Chrome.
-						RadarContext.attr('height', '367'); // For Chrome.
-						RadarContext.css('display', 'none');
-					}
-					RadarContexts.push(RadarContext);
+				// get the image
+				const blob = await $.ajaxCORS({
+					type: 'GET',
+					url: baseUrl + url,
+					xhrFields: {
+						responseType: 'blob',
+					},
+					crossDomain: true,
 				});
 
-			},
-			error: function (xhr, error, errorThrown)
-			{
-				console.error('Get mosaic_times.txt failed: ' + errorThrown);
-				WeatherParameters.Progress.DopplerRadar = LoadStatuses.Failed;
-			},
-		});
+				// assign to an html image element
+				return await blobToImg(blob);
+			}));
 
+			RadarImages.forEach((radarImg, idx) => {
+
+				const RadarContext = RadarContexts[idx][0].getContext('2d');
+				contextWorker.clearRect(0, 0, contextWorker.canvas.width, contextWorker.canvas.height);
+			
+				SmoothingEnabled(contextWorker, false);
+
+				if (WeatherParameters.State === 'HI') {
+					contextWorker.drawImage(radarImg, 0, 0, 571, 600);
+				} else {
+					contextWorker.drawImage(radarImg, 0, 0, 2550, 1600);
+				}
+					
+				let RadarOffsetX;
+				let RadarOffsetY;
+				let RadarSourceXY;
+				let RadarSourceX;
+				let RadarSourceY;
+				if (WeatherParameters.State === 'HI') {
+					RadarOffsetX = 120;
+					RadarOffsetY = 69;
+					RadarSourceXY = GetXYFromLatitudeLongitudeHI(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+					RadarSourceX = RadarSourceXY.x;
+					RadarSourceY = RadarSourceXY.y;
+				} else {
+					RadarOffsetX = 117;
+					RadarOffsetY = 60;
+					RadarSourceXY = GetXYFromLatitudeLongitudeDoppler(WeatherParameters.Latitude, WeatherParameters.Longitude, OffsetX, OffsetY);
+					RadarSourceX = RadarSourceXY.x / 2;
+					RadarSourceY = RadarSourceXY.y / 2;
+				}
+			
+				// Draw them onto the map.
+				RadarContext.clearRect(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
+			
+				SmoothingEnabled(RadarContext, false);
+			
+				RadarContext.drawImage(contextWorker.canvas, RadarSourceX, RadarSourceY, (RadarOffsetX * 2), (RadarOffsetY * 2.33), 0, 0, 640, 367);
+				RemoveDopplerRadarImageNoise(RadarContext);
+			});
+
+			console.log('Doppler Radar Images Loaded');
+			
+			WeatherParameters.DopplerRadarInfo = {
+				RadarContexts: RadarContexts,
+				RadarImage: img,
+				RadarMapContext: context,
+				RadarSourceX: SourceXY.x,
+				RadarSourceY: SourceXY.y,
+				OffsetY: OffsetY,
+				OffsetX: OffsetX,
+			};
+			
+			// draw the background image
+			const RadarContext = RadarContexts[0][0].getContext('2d');
+			context.drawImage(img, SourceXY.x, SourceXY.y, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
+			MergeDopplerRadarImage(context, RadarContext);
+
+			
+			// Draw canvas
+			const BackGroundImage = new Image();
+			BackGroundImage.onload = () => {
+				const canvas = canvasLocalRadar[0];
+				const context = canvas.getContext('2d');
+				context.drawImage(BackGroundImage, 0, 0);
+				
+				// Title
+				DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 65, 'Local', 2);
+				DrawText(context, 'Arial', 'bold 28pt', '#ffffff', 175, 100, 'Radar', 2);
+				
+				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 390, 49, 'PRECIP', 2);
+				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 298, 73, 'Light', 2);
+				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 517, 73, 'Heavy', 2);
+				
+				let x = 362;
+				const y = 52;
+				DrawBox(context, '#000000', x - 2, y - 2, 154, 28);
+				DrawBox(context, 'rgb(49, 210, 22)', x, y, 17, 24); x += 19;
+				DrawBox(context, 'rgb(28, 138, 18)', x, y, 17, 24); x += 19;
+				DrawBox(context, 'rgb(20, 90, 15)', x, y, 17, 24); x += 19;
+				DrawBox(context, 'rgb(10, 40, 10)', x, y, 17, 24); x += 19;
+				DrawBox(context, 'rgb(196, 179, 70)', x, y, 17, 24); x += 19;
+				DrawBox(context, 'rgb(190, 72, 19)', x, y, 17, 24); x += 19;
+				DrawBox(context, 'rgb(171, 14, 14)', x, y, 17, 24); x += 19;
+				DrawBox(context, 'rgb(115, 31, 4)', x, y, 17, 24); x += 19;
+
+				DrawBox(context, 'rgb(143, 73, 95)', 318, 83, 32, 24);
+				DrawBox(context, 'rgb(250, 122, 232)', 320, 85, 28, 20);
+				DrawText(context, 'Arial', 'bold 18pt', '#ffffff', 355, 105, '= Incomplete Data', 2);
+
+				window.setInterval(() => {
+					context.drawImage($cnvDopplerMap[0], 0, 0, 640, 367, 0, 113, 640, 367);
+					UpdateWeatherCanvas(WeatherParameters, canvasLocalRadar);
+				}, 100);
+				WeatherParameters.Progress.DopplerRadar = LoadStatuses.Loaded;
+			};
+			BackGroundImage.src = 'images/BackGround4_1.png';
+
+		}
+		catch (e) {
+			console.error('Unable to load radar');
+			console.error(e);
+			WeatherParameters.Progress.DopplerRadar = LoadStatuses.Failed;
+		}
 	};
-	if (WeatherParameters.State === 'HI')
-	{
+	if (WeatherParameters.State === 'HI') {
 		img.src = 'images/HawaiiRadarMap2.png';
-	}
-	else
-	{
+	} else {
 		img.src = 'images/4000RadarMap2.jpg';
 	}
 };
 
-var UpdateDopplarRadarImage = function (Offset)
-{
-	switch (Offset)
+// turn a blob into an HTML image
+const blobToImg = (blob) => {
+	return new Promise(resolve => {
+		const img = new Image();
+		img.onload = (e) => {
+			resolve(e.target);
+		};
+		img.src = window.URL.createObjectURL(blob);
+
+	});
+};
+
+
+const UpdateDopplarRadarImage = (offset) => {
+	switch (offset)
 	{
 	case undefined:
 		break;
@@ -8240,120 +8184,91 @@ var UpdateDopplarRadarImage = function (Offset)
 		_DopplerRadarImageIndex = 0;
 		break;
 	default:
-		_DopplerRadarImageIndex -= Offset;
-		if (_DopplerRadarImageIndex > _DopplerRadarImageMax - 1)
-		{
-			_DopplerRadarImageIndex = 0;
-		}
-		else if (_DopplerRadarImageIndex < 0)
-		{
-			_DopplerRadarImageIndex = _DopplerRadarImageMax - 1;
-		}
+		_DopplerRadarImageIndex -= offset;
+		if (_DopplerRadarImageIndex > _DopplerRadarImageMax - 1) _DopplerRadarImageIndex = 0;
+		if (_DopplerRadarImageIndex < 0) _DopplerRadarImageIndex = _DopplerRadarImageMax - 1;
 		break;
 	}
 
-	var RadarContexts = _WeatherParameters.DopplerRadarInfo.RadarContexts;
-	var img = _WeatherParameters.DopplerRadarInfo.RadarImage;
-	var context = _WeatherParameters.DopplerRadarInfo.RadarMapContext;
-	var SourceX = _WeatherParameters.DopplerRadarInfo.RadarSourceX;
-	var SourceY = _WeatherParameters.DopplerRadarInfo.RadarSourceY;
-	var OffsetY = _WeatherParameters.DopplerRadarInfo.OffsetY;
-	var OffsetX = _WeatherParameters.DopplerRadarInfo.OffsetX;
+	const RadarContexts = _WeatherParameters.DopplerRadarInfo.RadarContexts;
+	const img = _WeatherParameters.DopplerRadarInfo.RadarImage;
+	const context = _WeatherParameters.DopplerRadarInfo.RadarMapContext;
+	const SourceX = _WeatherParameters.DopplerRadarInfo.RadarSourceX;
+	const SourceY = _WeatherParameters.DopplerRadarInfo.RadarSourceY;
+	const OffsetY = _WeatherParameters.DopplerRadarInfo.OffsetY;
+	const OffsetX = _WeatherParameters.DopplerRadarInfo.OffsetX;
 
-	var RadarContext = RadarContexts[_DopplerRadarImageIndex][0].getContext('2d');
+	const RadarContext = RadarContexts[_DopplerRadarImageIndex][0].getContext('2d');
 	context.drawImage(img, SourceX, SourceY, (OffsetX * 2), (OffsetY * 2), 0, 0, 640, 367);
 	MergeDopplerRadarImage(context, RadarContext);
 };
 
-var RemoveDopplerRadarImageNoise = function (RadarContext)
-{
-	var RadarImageData = RadarContext.getImageData(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
+const RemoveDopplerRadarImageNoise = (RadarContext) => {
+	const RadarImageData = RadarContext.getImageData(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
 
 	// examine every pixel, 
 	// change any old rgb to the new-rgb
-	for (var i = 0; i < RadarImageData.data.length; i += 4)
+	for (let i = 0; i < RadarImageData.data.length; i += 4)
 	{
 		// i + 0 = red
 		// i + 1 = green
 		// i + 2 = blue
 		// i + 3 = alpha (0 = transparent, 255 = opaque)
-		var R = RadarImageData.data[i];
-		var G = RadarImageData.data[i + 1];
-		var B = RadarImageData.data[i + 2];
-		var A = RadarImageData.data[i + 3];
+		let [R, G, B, A] = RadarImageData.data.slice(i,i+4);
 
 		// is this pixel the old rgb?
 		if ((R === 1 && G === 159 && B === 244)
 			|| (R >= 200 && G >= 200 && B >= 200)
 			|| (R === 4 && G === 233 && B === 231)
-			|| (R === 3 && G === 0 && B === 244))
-		{
-			// change to your new rgb
-
+			|| (R === 3 && G === 0 && B === 244)) {
 			// Transparent
 			R = 0;
 			G = 0;
 			B = 0;
 			A = 0;
-		}
-		else if (R === 2 && G === 253 && B === 2)
-		{
+		} else if (R === 2 && G === 253 && B === 2) {
 			// Light Green 1
 			R = 49;
 			G = 210;
 			B = 22;
 			A = 255;
-		}
-		else if (R === 1 && G === 197 && B === 1)
-		{
+		} else if (R === 1 && G === 197 && B === 1) {
 			// Light Green 2
 			R = 0;
 			G = 142;
 			B = 0;
 			A = 255;
-		}
-		else if (R === 0 && G === 142 && B === 0)
-		{
+		} else if (R === 0 && G === 142 && B === 0) {
 			// Dark Green 1
 			R = 20;
 			G = 90;
 			B = 15;
 			A = 255;
-		}
-		else if (R === 253 && G === 248 && B === 2)
-		{
+		} else if (R === 253 && G === 248 && B === 2) {
 			// Dark Green 2
 			R = 10;
 			G = 40;
 			B = 10;
 			A = 255;
-		}
-		else if (R === 229 && G === 188 && B === 0)
-		{
+		} else if (R === 229 && G === 188 && B === 0) {
 			// Yellow
 			R = 196;
 			G = 179;
 			B = 70;
 			A = 255;
-		}
-		else if (R === 253 && G === 139 && B === 0)
-		{
+		} else if (R === 253 && G === 139 && B === 0) {
 			// Orange
 			R = 190;
 			G = 72;
 			B = 19;
 			A = 255;
-		}
-		else if (R === 212 && G === 0 && B === 0)
-		{
+		} else if (R === 212 && G === 0 && B === 0) {
 			// Red
 			R = 171;
 			G = 14;
 			B = 14;
 			A = 255;
-		}
-		else if (R === 188 && G === 0 && B === 0)
-		{
+		} else if (R === 188 && G === 0 && B === 0) {
 			// Brown
 			R = 115;
 			G = 31;
@@ -8361,26 +8276,24 @@ var RemoveDopplerRadarImageNoise = function (RadarContext)
 			A = 255;
 		}
 
-
+		// store new values
 		RadarImageData.data[i] = R;
 		RadarImageData.data[i + 1] = G;
 		RadarImageData.data[i + 2] = B;
 		RadarImageData.data[i + 3] = A;
 	}
 
+	// rewrite the image
 	RadarContext.putImageData(RadarImageData, 0, 0);
-
-	//MapContext.drawImage(RadarContext.canvas, 0, 0);
 };
 
-var MergeDopplerRadarImage = function (MapContext, RadarContext)
-{
-	var MapImageData = MapContext.getImageData(0, 0, MapContext.canvas.width, MapContext.canvas.height);
-	var RadarImageData = RadarContext.getImageData(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
+const MergeDopplerRadarImage = (MapContext, RadarContext) => {
+	const MapImageData = MapContext.getImageData(0, 0, MapContext.canvas.width, MapContext.canvas.height);
+	const RadarImageData = RadarContext.getImageData(0, 0, RadarContext.canvas.width, RadarContext.canvas.height);
 
 	// examine every pixel, 
 	// change any old rgb to the new-rgb
-	for (var i = 0; i < RadarImageData.data.length; i += 4)
+	for (let i = 0; i < RadarImageData.data.length; i += 4)
 	{
 		// i + 0 = red
 		// i + 1 = green
@@ -8390,8 +8303,6 @@ var MergeDopplerRadarImage = function (MapContext, RadarContext)
 		// is this pixel the old rgb?
 		if ((MapImageData.data[i] < 116 && MapImageData.data[i + 1] < 116 && MapImageData.data[i + 2] < 116))
 		{
-			// change to your new rgb
-
 			// Transparent
 			RadarImageData.data[i] = 0;
 			RadarImageData.data[i + 1] = 0;
@@ -8401,7 +8312,6 @@ var MergeDopplerRadarImage = function (MapContext, RadarContext)
 	}
 
 	RadarContext.putImageData(RadarImageData, 0, 0);
-
 	MapContext.drawImage(RadarContext.canvas, 0, 0);
 };
 
@@ -9197,73 +9107,11 @@ var DrawCustomScrollText = function (WeatherParameters, context)
 
 $.ajaxCORS = function (e)
 {
-	var Type = e.type;
-	var DataType = e.dataType;
-	var CrossDomain = e.crossDomain;
-	var Cache = e.cache;
-	var Success = e.success;
-	var Error = e.error;
-	var Url = e.url;
+	// modify the URL
+	e.url = 'cors/?u=' + encodeURIComponent(e.url);
 
-	var Methods = [
-		//{
-		//    Url: "https://crossorigin.me/",
-		//    EncodeURIComponent: false,
-		//},
-		//{
-		//    Url: "http://anyorigin.com/go?url=",
-		//    EncodeURIComponent: false,
-		//},
-		//{
-		//    Url: "http://www.whateverorigin.org/get?url=",
-		//    EncodeURIComponent: true,
-		//},
-
-		// Make this one last
-		{
-			Url: 'cors/?u=',
-			EncodeURIComponent: true,
-		},
-	];
-	var MethodIndex = 0;
-
-	var DoAjax = function ()
-	{
-		var Method = Methods[MethodIndex];
-		Url = Method.Url;
-		
-		if (Method.EncodeURIComponent)
-		{
-			Url += encodeURIComponent(e.url);
-		}
-		else
-		{
-			Url += e.url;
-		}
-
-		$.ajax({
-			type: Type,
-			url: Url,
-			dataType: DataType,
-			crossDomain: CrossDomain,
-			cache: Cache,
-			success: Success,
-			error: function (xhr, error, errorThrown)
-			{
-				MethodIndex++;
-
-				if (MethodIndex > Methods.length - 1)
-				{
-					if (Error) Error(xhr, error, errorThrown);
-					return;
-				}
-
-				DoAjax();
-			},
-		});
-	};
-	DoAjax();
-
+	// call the ajax function
+	return $.ajax(e);
 };
 
 var _CallBack = null;
@@ -9273,22 +9121,22 @@ var SetCallBack = function (e)
 	_CallBack = e.CallBack;
 };
 
-var Units = {
+const Units = {
 	English: 0,
 	Metric: 1,
 };
 var _Units = Units.English;
 
-var Themes = {
+const Themes = {
 	ThemeA: 1, // Classic
 	ThemeB: 2, // Sea Foam
 	ThemeC: 3, // Comsic
 };
 var _Themes = Themes.ThemeA;
-var _TopColor1 = 'rgb(192, 91, 2)';
-var _TopColor2 = 'rgb(72, 34, 64)';
-var _SideColor1 = 'rgb(46, 18, 80)';
-var _SideColor2 = 'rgb(192, 91, 2)';
+let _TopColor1 = 'rgb(192, 91, 2)';
+let _TopColor2 = 'rgb(72, 34, 64)';
+let _SideColor1 = 'rgb(46, 18, 80)';
+let _SideColor2 = 'rgb(192, 91, 2)';
 
 var _ScrollText = '';
 
