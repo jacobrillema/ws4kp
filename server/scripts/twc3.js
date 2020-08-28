@@ -85,9 +85,7 @@ var LoadStatuses = {
 	NoData: 3,
 };
 
-var _NoaaImage = null;
 var _UpdateWeatherCanvasInterval = null;
-//var _UpdateWeatherUpdateMs = 500;
 var _UpdateWeatherUpdateMs = 50;
 var canvasBackGroundDateTime = null;
 var canvasBackGroundCurrentConditions = null;
@@ -184,7 +182,6 @@ if (_UserAgent.toLowerCase().indexOf('android') !== -1) _OperatingSystem = Opera
 if (_UserAgent.indexOf('Windows Phone') !== -1) _OperatingSystem = OperatingSystems.WindowsPhone;
 
 const GetCurrentWeather = async (WeatherParameters) => {
-
 	// Load the observations
 	try {
 		// station observations
@@ -347,8 +344,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 							if (date.getTime() < Now.getTime()) {
 								return true;
 							}
-
-							var TideHeight = this.v;
 
 							switch (this.type) {
 							case 'H':
@@ -1898,6 +1893,7 @@ $(() => {
 		GetMonthPrecipitation(_WeatherParameters);
 		GetTravelWeather(_WeatherParameters);
 		GetAirQuality3(_WeatherParameters);
+		GetRegionalStations(_WeatherParameters);
 		ShowRegionalMap(_WeatherParameters);
 		ShowRegionalMap(_WeatherParameters, true);
 		ShowRegionalMap(_WeatherParameters, false, true);
@@ -3734,7 +3730,7 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 					MinimumTemperature = Day.MinimumTemperature;
 					break;
 
-				case Units.Metric:
+				default:
 					MinimumTemperature = Math.round(Day.MinimumTemperatureC);
 					break;
 				}
@@ -4364,8 +4360,6 @@ var PopulateHazardConditions = function (WeatherParameters) {
 
 	var WeatherHazardConditions = WeatherParameters.WeatherHazardConditions;
 	var ZoneId = WeatherHazardConditions.ZoneId;
-	var StateId = WeatherHazardConditions.ZoneId.substr(0, 3);
-	var CountyId = WeatherHazardConditions.ZoneId.substr(0, 2) + 'C';
 	var Text;
 	var Line;
 	var SkipLine;
@@ -4745,6 +4739,7 @@ var MoonPhasesParser3 = function (json) {
 		case 'FULL_MOON':
 			Phase.phase = 'Full';
 			break;
+		default:
 		}
 
 		_self.Phases.push(Phase);
@@ -4880,6 +4875,7 @@ var SunRiseSetParser3 = function (json) {
 	case -10:
 		_self.TimeZone = 'HST';
 		break;
+	default:
 	}
 
 };
@@ -5416,201 +5412,57 @@ const UpdateTravelCities =  (offset) => {
 };
 
 
-var GetRegionalStations = function (WeatherParameters, Distance) {
-	if (!Distance) {
-		Distance = 20;
-		WeatherParameters.WeatherCurrentRegionalConditions = new WeatherCurrentRegionalConditions();
-	}
+const GetRegionalStations = async (WeatherParameters) => {
+	// calculate distance to each station
+	const stationsByDistance = Object.keys(_StationInfo).map(key => {
+		const station = _StationInfo[key];
+		const distance = GetDistance(parseFloat(station.Latitude), parseFloat(station.Longitude), WeatherParameters.Latitude, WeatherParameters.Longitude);
+		return Object.assign({}, station, {distance});
+	});
 
-	var Url = 'https://www.aviationweather.gov/adds/dataserver_current/httpparam?datasource=metars&requesttype=retrieve&format=xml&hoursBeforeNow=1';
-	Url += '&radialDistance=' + Distance.toString();
-	Url += ';' + WeatherParameters.Longitude;
-	Url += ',' + WeatherParameters.Latitude;
+	// sort the stations by distance
+	const sortedStations = stationsByDistance.sort((a,b) => a.distance - b.distance);
+	// try up to 30 regional stations
+	const regionalStations = sortedStations.slice(0,30);
 
-	var Total = _MaximumRegionalStations;
-	var Count = 0;
-
-	// Load the xml file using ajax
-	$.ajaxCORS({
-		type: 'GET',
-		url: Url,
-		dataType: 'xml',
-		crossDomain: true,
-		cache: false,
-		success: function (xml) {
-			var $xml = $(xml);
-			//console.log(xml);
-
-			if ($xml.find('response').find('errors').find('error').length !== 0) {
-				console.error($xml.find('response').find('errors').text());
-				return;
-			}
-
-			//var WeatherRegionalMetarsParser = new WeatherRegionalMetarsParser($xml);
-			$xml.find('response').find('data').find('METAR').each(function () {
-				var data_METAR = $(this);
-				var StationId = data_METAR.find('station_id').text();
-				var LatLons = data_METAR.find('latitude').text() + ',' + data_METAR.find('longitude').text();
-
-				if (StationId === WeatherParameters.StationId) {
-					return true;
-				} else if (WeatherParameters.WeatherCurrentRegionalConditions.SkipStationIds.indexOf(StationId) !== -1) {
-					return true;
-				}
-
-				if (WeatherParameters.WeatherCurrentRegionalConditions.LatLons.indexOf(LatLons) !== -1) {
-					return true;
-				}
-
-				if (WeatherParameters.WeatherCurrentRegionalConditions.StationIds.indexOf(StationId) === -1) {
-					WeatherParameters.WeatherCurrentRegionalConditions.StationIds.push(StationId);
-					WeatherParameters.WeatherCurrentRegionalConditions.LatLons.push(LatLons);
-					WeatherParameters.WeatherCurrentRegionalConditions.WeatherMetarsParser[StationId] = new WeatherMetarsParser($xml, StationId);
-				}
-
-				if (WeatherParameters.WeatherCurrentRegionalConditions.StationIds.length >= Total) {
-					return false;
-				}
+	// get data for regional stations
+	const allConditions = await Promise.all(regionalStations.map(async station => {
+		try {
+			const data = await $.ajax({
+				type: 'GET',
+				url: `https://api.weather.gov/stations/${station.StationId}/observations/latest`,
+				dataType: 'json',
+				crossDomain: true,
 			});
-
-			if (WeatherParameters.WeatherCurrentRegionalConditions.StationIds.length >= Total) {
-				//console.log(WeatherParameters.WeatherRegionalMetarsParser);
-				console.log(WeatherParameters.WeatherCurrentRegionalConditions);
-
-				GetDwmlRegionalStations(WeatherParameters, Distance);
-			} else {
-				// Increase distance by 10 miles.
-				GetRegionalStations(WeatherParameters, Distance + 10);
-			}
-
-		},
-		error: function (xhr, error, errorThrown) {
-			console.error('GetRegionalStations failed: ' + errorThrown);
-			WeatherParameters.Progress.NearbyConditions = LoadStatuses.Failed;
-		},
-	});
-
-};
-
-var WeatherCurrentRegionalConditions = function () {
-	this.StationIds = [];
-	this.WeatherMetarsParser = [];
-	this.WeatherDwmlParser = [];
-	this.WeatherCurrentConditions = [];
-	this.LatLons = [];
-	this.StationNames = [];
-	this.SkipStationIds = [];
-
-	// Always skip these stations.
-	this.SkipStationIds.push('KANE'); // "Minneapls"
-	this.SkipStationIds.push('KMIC'); // "Mnpls"
-	this.SkipStationIds.push('KLVN'); // "Mnpls"
-	this.SkipStationIds.push('KFCM'); // "Mnpls"
-
-};
-
-var GetDwmlRegionalStations = function (WeatherParameters, Distance) {
-	var Total = WeatherParameters.WeatherCurrentRegionalConditions.StationIds.length;
-	var Count = 0;
-	var NeedToGetRegionalStations = false;
-
-	$(WeatherParameters.WeatherCurrentRegionalConditions.StationIds).each(function () {
-		var StationId = this.toString();
-		var _WeatherMetarsParser = WeatherParameters.WeatherCurrentRegionalConditions.WeatherMetarsParser[StationId];
-
-		if (WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId]) {
-			var StationName = WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId].StationName;
-			WeatherParameters.WeatherCurrentRegionalConditions.StationNames.push(StationName);
-			Count++;
-			if (Count === Total) {
-				//console.log(WeatherParameters.WeatherCurrentRegionalConditions);
-				PopulateRegionalObservations(WeatherParameters);
-				//WeatherParameters.Progress.NearbyConditions = LoadStatuses.Loaded;
-				return false;
-			}
-			return true;
+			// format the return values
+			return Object.assign({}, data.properties, {
+				StationId: station.StationId,
+				City: station.City,
+			});
+		} catch (e) {
+			console.log(`Unable to get latest observations for ${station.StationId}`);
+			console.error(e);
+			return false;
 		}
+	}));
+	// remove and stations that did not return data
+	const actualConditions = allConditions.filter(condition => condition);
+	// cut down to the maximum of 7
+	const conditions = actualConditions.slice(0,_MaximumRegionalStations);
 
-		var Url = 'https://forecast.weather.gov/MapClick.php?FcstType=dwml';
-		Url += '&lat=' + _WeatherMetarsParser.data_METAR.latitude.toString();
-		Url += '&lon=' + _WeatherMetarsParser.data_METAR.longitude.toString();
+	WeatherParameters.WeatherCurrentRegionalConditions = conditions;
+	PopulateRegionalObservations(WeatherParameters);
 
-		// Load the xml file using ajax
-		$.ajaxCORS({
-			type: 'GET',
-			url: Url,
-			dataType: 'xml',
-			crossDomain: true,
-			cache: false,
-			success: function (xml) {
-				var $xml = $(xml);
-				//console.log(xml);
-
-				var _WeatherDwmlParser = new WeatherDwmlParser($xml);
-				WeatherParameters.WeatherCurrentRegionalConditions.WeatherDwmlParser[StationId] = _WeatherDwmlParser;
-				WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId] = new WeatherCurrentConditions(_WeatherDwmlParser, _WeatherMetarsParser);
-
-				var StationName = WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId].StationName;
-				if ((StationName === WeatherParameters.WeatherCurrentConditions.StationName) ||
-					(WeatherParameters.WeatherCurrentRegionalConditions.StationNames.indexOf(StationName) !== -1) ||
-					(WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId].Conditions === '') ||
-					(WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId].Conditions === 'NA') ||
-					(WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId].Conditions.trim() === 'Unknown Precip') ||
-					(WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId].Temperature === 'NA')) {
-					//WeatherParameters.WeatherCurrentRegionalConditions.StationNames = [];
-					WeatherParameters.WeatherCurrentRegionalConditions.SkipStationIds.push(StationId);
-					WeatherParameters.WeatherCurrentRegionalConditions.StationIds.splice(WeatherParameters.WeatherCurrentRegionalConditions.StationIds.indexOf(StationId), 1);
-					delete WeatherParameters.WeatherCurrentRegionalConditions.WeatherCurrentConditions[StationId];
-					delete WeatherParameters.WeatherCurrentRegionalConditions.WeatherDwmlParser[StationId];
-					//GetRegionalStations(WeatherParameters, Distance);
-					NeedToGetRegionalStations = true;
-				} else {
-					WeatherParameters.WeatherCurrentRegionalConditions.StationNames.push(StationName);
-				}
-
-				Count++;
-				if (Count === Total) {
-					if (NeedToGetRegionalStations) {
-						WeatherParameters.WeatherCurrentRegionalConditions.StationNames = [];
-						GetRegionalStations(WeatherParameters, Distance);
-					} else {
-						//console.log(WeatherParameters.WeatherCurrentRegionalConditions);
-						PopulateRegionalObservations(WeatherParameters);
-						//WeatherParameters.Progress.NearbyConditions = LoadStatuses.Loaded;
-					}
-				}
-			},
-			error: function (xhr, error, errorThrown) {
-				console.error('GetDwmlRegionalStations failed: ' + errorThrown);
-
-				//WeatherParameters.WeatherCurrentRegionalConditions.StationNames = [];
-				WeatherParameters.WeatherCurrentRegionalConditions.SkipStationIds.push(StationId);
-				WeatherParameters.WeatherCurrentRegionalConditions.StationIds.splice(WeatherParameters.WeatherCurrentRegionalConditions.StationIds.indexOf(StationId), 1);
-				NeedToGetRegionalStations = true;
-
-				Count++;
-				if (Count === Total) {
-					if (NeedToGetRegionalStations) {
-						WeatherParameters.WeatherCurrentRegionalConditions.StationNames = [];
-						GetRegionalStations(WeatherParameters, Distance);
-					}
-				}
-			},
-		});
-	});
 };
 
-var PopulateRegionalObservations = function (WeatherParameters) {
-	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.NearbyConditions !== LoadStatuses.Loaded)) {
-		return;
-	}
+const PopulateRegionalObservations = (WeatherParameters) => {
+	if (!WeatherParameters || (_DontLoadGifs && WeatherParameters.Progress.NearbyConditions !== LoadStatuses.Loaded))return;
 
-	var WeatherCurrentRegionalConditions = WeatherParameters.WeatherCurrentRegionalConditions;
-	console.log(WeatherCurrentRegionalConditions);
+	const WeatherCurrentRegionalConditions = WeatherParameters.WeatherCurrentRegionalConditions;
 
 	var Html = '';
 
-	var tbodyRegionalObservations = tblRegionalObservations.find('tbody');
+	const tbodyRegionalObservations = tblRegionalObservations.find('tbody');
 	tbodyRegionalObservations.empty();
 
 	Html = '<tr>';
