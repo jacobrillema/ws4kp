@@ -5772,7 +5772,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 		}
 	};
 
-	let src = 'images/basemap2.png';
+	let src = 'images/Basemap2.png';
 	if (WeatherParameters.State === 'HI') {
 		src = 'images/HawaiiRadarMap4.png';
 	} else if (WeatherParameters.State === 'AK') {
