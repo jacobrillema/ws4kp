@@ -1,7 +1,6 @@
 
 
-var GetWeatherIconFromSummary = function (WeatherParameters, WeatherSummary, OverrideIsDay)
-{
+var GetWeatherIconFromSummary = function (WeatherParameters, WeatherSummary, OverrideIsDay) {
 	var Now = new Date();
 	var Icon = '';
 
@@ -15,27 +14,21 @@ var GetWeatherIconFromSummary = function (WeatherParameters, WeatherSummary, Ove
 	//}
 
 	var IsDay = true;
-	if (WeatherParameters && WeatherParameters.AlmanacInfo)
-	{
+	if (WeatherParameters && WeatherParameters.AlmanacInfo) {
 		//alert(WeatherParameters.AlmanacInfo.TodaySunSetLocal + " " + WeatherParameters.AlmanacInfo.TodaySunRiseLocal)
 
-		if (Now.getTime() > WeatherParameters.AlmanacInfo.TodaySunSetLocal.getTime())
-		{
+		if (Now.getTime() > WeatherParameters.AlmanacInfo.TodaySunSetLocal.getTime()) {
 			IsDay = false;
-		}
-		else if (Now.getTime() < WeatherParameters.AlmanacInfo.TodaySunRiseLocal.getTime())
-		{
+		} else if (Now.getTime() < WeatherParameters.AlmanacInfo.TodaySunRiseLocal.getTime()) {
 			IsDay = false;
 		}
 	}
 
-	if (OverrideIsDay !== undefined)
-	{
+	if (OverrideIsDay !== undefined) {
 		IsDay = OverrideIsDay;
 	}
 
-	switch (WeatherSummary)
-	{
+	switch (WeatherSummary) {
 	case 'Sunny':
 	case 'Clear':
 	case 'Patchy Frost':
@@ -256,49 +249,39 @@ var GetWeatherIconFromSummary = function (WeatherParameters, WeatherSummary, Ove
 	return Icon;
 };
 
-var GetWeatherIconFromIconLink = function (WeatherIconLink, WeatherConditions, WeatherParameters, OverrideIsDay)
-{
+var GetWeatherIconFromIconLink = function (WeatherIconLink, WeatherConditions, WeatherParameters, OverrideIsDay) {
 	//http://forecast.weather.gov/newimages/medium/few.png
 	var Icon = '';
 	var SummaryIcon = '';
 
-	if (WeatherConditions)
-	{
+	if (WeatherConditions) {
 		SummaryIcon = GetWeatherIconFromSummary(WeatherParameters, WeatherConditions, OverrideIsDay);
-		if (SummaryIcon)
-		{
+		if (SummaryIcon) {
 			return SummaryIcon;
 		}
 	}
 
 	// mjb 10/02/19 Begin
-	if (WeatherParameters)
-	{
-		if (WeatherParameters.WeatherCurrentConditions)
-		{
+	if (WeatherParameters) {
+		if (WeatherParameters.WeatherCurrentConditions) {
 			SummaryIcon = GetWeatherIconFromSummary(WeatherParameters, WeatherParameters.WeatherCurrentConditions.Conditions, OverrideIsDay);
-			if (SummaryIcon)
-			{
+			if (SummaryIcon) {
 				return SummaryIcon;
 			}
 		}
 	}
 	// mjb 10/02/19 End
 
-	if (!WeatherIconLink)
-	{
+	if (!WeatherIconLink) {
 		return '';
-	}
-	else if (WeatherIconLink === 'images/')
-	{
+	} else if (WeatherIconLink === 'images/') {
 		return '';
 	}
 
 	var IconLinkName = GetFileNameFromUrl(WeatherIconLink.toLowerCase());
 
 	//DualImage.php?i=few&j=hi_tsra&jp=20
-	if (IconLinkName.indexOf('dualimage.php') !== -1)
-	{
+	if (IconLinkName.indexOf('dualimage.php') !== -1) {
 		var ImageParts = IconLinkName.split('&');
 		IconLinkName = ImageParts[1].split('=')[1];
 		//if (ImageParts.length == 3)
@@ -309,8 +292,7 @@ var GetWeatherIconFromIconLink = function (WeatherIconLink, WeatherConditions, W
 		IconLinkName += '.png';
 	}
 
-	switch (IconLinkName)
-	{
+	switch (IconLinkName) {
 
 	case 'hot.png':
 	case 'cold.png':
@@ -1138,12 +1120,10 @@ var GetWeatherIconFromIconLink = function (WeatherIconLink, WeatherConditions, W
 	return Icon;
 };
 
-var GetFileNameFromUrl = function (Url)
-{
+var GetFileNameFromUrl = function (Url) {
 	var UrlParts;
 
-	if (!Url)
-	{
+	if (!Url) {
 		return '';
 	}
 
@@ -1170,9 +1150,7 @@ const GetWeatherRegionalIconFromIconLink = (link, isNightTime) => {
 	const addPath = (icon) => `images/r/${icon}`;
 
 	// find the icon
-	let icon;
-	switch (conditionName + (isNightTime?'-n':''))
-	{
+	switch (conditionName + (isNightTime?'-n':'')) {
 	case 'skc':
 	case 'hot':
 		return addPath('Sunny.gif');
@@ -1253,6 +1231,7 @@ const GetWeatherRegionalIconFromIconLink = (link, isNightTime) => {
 		return addPath('Scattered-Tstorms-Night-1994-2.gif');
 
 	case 'tsra_hi':
+	case 'hurricane':
 		return addPath('Thunderstorm.gif');
 
 	case 'wind_few':
@@ -1260,7 +1239,7 @@ const GetWeatherRegionalIconFromIconLink = (link, isNightTime) => {
 	case 'wind_bkn':
 	case 'wind_ovc':
 		return addPath('Wind.gif');
-						
+
 	case 'wind_skc':
 		return addPath('Sunny-Wind-1994.gif');
 
@@ -1275,14 +1254,12 @@ const GetWeatherRegionalIconFromIconLink = (link, isNightTime) => {
 	}
 };
 
-var GetWeatherIcon2FromIconLink = function (WeatherIconLink, WeatherConditions, WeatherParameters, OverrideIsDay)
-{
+var GetWeatherIcon2FromIconLink = function (WeatherIconLink, WeatherConditions, WeatherParameters, OverrideIsDay) {
 	var WeatherIcon = GetWeatherIconFromIconLink(WeatherIconLink, WeatherConditions, WeatherParameters, OverrideIsDay);
 	WeatherIcon = WeatherIcon.replace('images/', '').toLowerCase();
 	let Icon;
-	
-	switch (WeatherIcon)
-	{
+
+	switch (WeatherIcon) {
 	case 'cc_clear1.gif':
 		Icon = 'Sunny.gif';
 		break;

@@ -35,15 +35,14 @@ module.exports = {
 		'comma-dangle': ['error', 'always-multiline'],
 		'block-scoped-var': ['error'],
 		'default-case': ['error'],
-		// 'default-case-last': ['error'],
 		'default-param-last': ['error'],
 		'dot-location': ['error', 'property'],
 		'eqeqeq': ['error'],
 		'no-eval': ['error'],
 		'no-eq-null': ['error'],
 		'no-floating-decimal': ['error'],
-		// 'no-trailing-spaces': ['error'],
-
+		'no-trailing-spaces': ['error'],
+		'brace-style': [2, '1tbs', { 'allowSingleLine': true }],
 	},
 	'ignorePatterns': [
 		'*.min.js'
