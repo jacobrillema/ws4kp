@@ -18,5 +18,8 @@
   "homepage": "https://github.com/netbymatt/ws4kp#readme",
   "devDependencies": {
     "express": "^4.17.1"
+  },
+  "dependencies": {
+    "eslint": "^7.7.0"
   }
 }

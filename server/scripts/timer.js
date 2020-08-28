@@ -3,7 +3,7 @@ if (window.Worker)
     var _TimerWorkCallBacks = [];
     var _TimerIds = 0;
 
-    var _TimerWorker = new window.Worker("Scripts/TimerWorker.js");
+    var _TimerWorker = new window.Worker("scripts/TimerWorker.js");
     _TimerWorker.onmessage = function (e)
     {
         var Message = e.data;

@@ -9,7 +9,7 @@
 			"request": "launch",
 			"type": "pwa-chrome",
 			"url": "http://localhost:3000",
-			"webRoot": "${workspaceFolder}\\server",
+			"webRoot": "${workspaceFolder}/server",
 			"skipFiles": [
 				"<node_internals>/**",
 				"**/*.min.js",

@@ -85,7 +85,6 @@ var LoadStatuses = {
 	NoData: 3,
 };
 
-var _LogoImage = null;
 var _NoaaImage = null;
 var _UpdateWeatherCanvasInterval = null;
 //var _UpdateWeatherUpdateMs = 500;
@@ -6686,28 +6685,22 @@ const Progress = function (e) {
 
 	this.Loaded = false;
 
-	var _self = this;
-	var _ProgressInterval;
+	const _self = this;
 
-	var canvas = canvasProgress[0];
+	const canvas = canvasProgress[0];
+	const context = canvas.getContext('2d');
+	let gifProgress;
 
-	_ProgressInterval = window.setInterval(() => {
-		if (_self.Loaded === false) {
-			return;
-		}
+	const _ProgressInterval = window.setInterval(() => {
+		if (!_self.Loaded) return;
+		if (!gifProgress) return;
 
-		if (!gifProgress) {
-			return;
-		}
+		const ProgressPercent = _self.GetTotalPercentage();
+		divProgress.html(ProgressPercent.toString());
 
-		var Progress = _self.GetTotalPercentage();
-		divProgress.html(Progress.toString());
+		gifProgress.get_canvas().width = (ProgressPercent / 100) * 530 + 1;
 
-		//context.drawImage(BackGroundImage, 0, 0);
-		//console.log(gifProgress.get_canvas());
-		gifProgress.get_canvas().width = (Progress / 100) * 530 + 1;
-
-		if (Progress > 0) {
+		if (ProgressPercent > 0) {
 			gifProgress.setX(53);
 			gifProgress.setY(430);
 		}
@@ -6715,34 +6708,29 @@ const Progress = function (e) {
 		_DisplayLoadingDetails();
 		AssignPlayMsOffsets(true);
 
-		if (Progress === 100) {
+		if (ProgressPercent >= 100) {
 			gifProgress.pause();
 			window.clearInterval(_ProgressInterval);
-			if (_CallBack) _CallBack({ Status: 'LOADED', LastUpdate: new Date() });
+			if (typeof _CallBack === 'function') _CallBack({ Status: 'LOADED', LastUpdate: new Date() });
 		}
 
 	}, 250);
 
-	var _DisplayLoadingDetails = function () {
-		//context.drawImage(BackGroundImage, 0, 0, 640, 400, 0, 0, 640, 400);
+	const _DisplayLoadingDetails = () => {
 		context.drawImage(BackGroundImage, 0, 100, 640, 300, 0, 100, 640, 300);
-		//DrawHorizontalGradientSingle(context, 0, 90, 52, 399, "rgb(46, 18, 81)", "rgb(115, 27, 201)");
-		//DrawHorizontalGradientSingle(context, 584, 90, 640, 399, "rgb(46, 18, 81)", "rgb(115, 27, 201)");
 		DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
 		DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
 
-		var OffsetY = 120;
-		var __DrawText = function (caption, status) {
-			var StatusText;
-			var StatusColor;
-			var Dots;
+		let OffsetY = 120;
+		const __DrawText = (caption, status) => {
+			let StatusText;
+			let StatusColor;
 
-			Dots = Array(120 - Math.floor(caption.length * 2.5)).join('.');
+			const Dots = Array(120 - Math.floor(caption.length * 2.5)).join('.');
 			DrawText(context, 'Star4000 Extended', '19pt', '#ffffff', 70, OffsetY, caption + Dots, 2);
 
 			// Erase any dots that spill into the status text.
 			context.drawImage(BackGroundImage, 475, OffsetY - 20, 165, 30, 475, OffsetY - 20, 165, 30);
-			//DrawHorizontalGradientSingle(context, 584, 90, 640, 399, "rgb(46, 18, 81)", "rgb(115, 27, 201)");
 			DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
 
 			switch (status) {
@@ -6759,7 +6747,6 @@ const Progress = function (e) {
 					StatusColor = '#ff0000';
 				}
 
-				//DrawBox(context, "rgb(33, 40, 90)", 440, OffsetY - 20, 75, 25);
 				context.drawImage(BackGroundImage, 440, OffsetY - 20, 75, 25, 440, OffsetY - 20, 75, 25);
 				break;
 			case LoadStatuses.Failed:
@@ -6773,10 +6760,8 @@ const Progress = function (e) {
 				break;
 			default:
 			}
-			//DrawText(context, "Star4000 Extended", "16pt", StatusColor, 500, OffsetY, StatusText, 2);
 			DrawText(context, 'Star4000 Extended', '19pt', StatusColor, 565, OffsetY, StatusText, 2, 'end');
 
-			//OffsetY += 25;
 			OffsetY += 29;
 		};
 
@@ -6796,89 +6781,64 @@ const Progress = function (e) {
 	};
 
 	this.GetTotalPercentage = function() {
-		var Percentage = 0;
-		var IncreaseAmount = 10;
+		let Percentage = 0;
+		let IncreaseAmount = 10;
 
-		if (this.CurrentConditions !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.WordedForecast !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.FourDayForecast !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.TravelForecast !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.NearbyConditions !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.CurrentRegionalMap !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.TomorrowsRegionalMap !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.Almanac !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.DopplerRadar !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
-		if (this.Hazards !== LoadStatuses.Loading) {
-			Percentage += IncreaseAmount;
-		}
+		if (this.CurrentConditions !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.WordedForecast !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.FourDayForecast !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.TravelForecast !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.NearbyConditions !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.CurrentRegionalMap !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.TomorrowsRegionalMap !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.Almanac !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.DopplerRadar !== LoadStatuses.Loading) Percentage += IncreaseAmount;
+		if (this.Hazards !== LoadStatuses.Loading) Percentage += IncreaseAmount;
 
 		return Percentage;
 	};
 
-	var BackGroundImage = new Image();
-	var context = canvas.getContext('2d');
-	var gifProgress;
+	let BackGroundImage;
 
-	this.DrawProgress = function () {
-		var DontLoadGifs = _DontLoadGifs;
+	this.DrawProgress = async () => {
+		const DontLoadGifs = _DontLoadGifs;
 
-		BackGroundImage.onload = function () {
-			_self.Loaded = false;
+		BackGroundImage = await utils.loadImg('images/BackGround1_1.png');
+		_self.Loaded = false;
 
-			if (!DontLoadGifs || !gifProgress) {
-				// Conditions Icon
-				gifProgress = new SuperGif({
-					src: 'images/Progress1.gif',
-					loop_delay: 100,
-					auto_play: true,
-					canvas: canvas,
-					x: 50,
-					y: 480,
-				}).load();
-			}
+		if (!DontLoadGifs || !gifProgress) {
+			// Conditions Icon
+			gifProgress = await utils.SuperGifAsync({
+				src: 'images/Progress1.gif',
+				loop_delay: 100,
+				auto_play: true,
+				canvas: canvas,
+				x: 50,
+				y: 480,
+			});
+		}
 
-			context.drawImage(BackGroundImage, 0, 0);
-			DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-			DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+		context.drawImage(BackGroundImage, 0, 0);
+		DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+		DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
 
-			canvasBackGroundDateTime[0].getContext('2d').drawImage(canvas, 410, 30, 175, 60, 0, 0, 175, 60);
-			canvasBackGroundCurrentConditions[0].getContext('2d').drawImage(canvas, 0, 405, 640, 75, 0, 0, 640, 75);
+		canvasBackGroundDateTime[0].getContext('2d').drawImage(canvas, 410, 30, 175, 60, 0, 0, 175, 60);
+		canvasBackGroundCurrentConditions[0].getContext('2d').drawImage(canvas, 0, 405, 640, 75, 0, 0, 640, 75);
 
-			DrawTitleText(context, 'WeatherStar', '4000+ 2.00');
+		DrawTitleText(context, 'WeatherStar', '4000+ 2.00');
 
-			// Draw a box for the progress.
-			DrawBox(context, '#000000', 51, 428, 534, 22);
-			DrawBox(context, '#ffffff', 53, 430, 530, 18);
+		// Draw a box for the progress.
+		DrawBox(context, '#000000', 51, 428, 534, 22);
+		DrawBox(context, '#ffffff', 53, 430, 530, 18);
 
-			_DisplayLoadingDetails();
+		_DisplayLoadingDetails();
 
-			UpdateWeatherCanvas(WeatherParameters, canvasProgress);
+		UpdateWeatherCanvas(WeatherParameters, canvasProgress);
 
-			_self.Loaded = true;
+		_self.Loaded = true;
 
-			if (DontLoadGifs === false) {
-				e.OnLoad();
-			}
-		};
-		BackGroundImage.src = 'images/BackGround1_1.png';
+		if (DontLoadGifs === false)e.OnLoad();
+
 	};
 	this.DrawProgress();
 };
@@ -7097,34 +7057,24 @@ const DrawCurrentDateTime = (context, bottom) => {
 	DrawText(context, font, size, color, x, y, date, shadow);
 };
 
-const DrawNoaaImage = (context) => {
-	if (!_NoaaImage) {
-		_NoaaImage = new Image();
-
-		_NoaaImage.onload = function () {
-			context.drawImage(_NoaaImage, 356, 39);
-		};
-		//_NoaaImage.src = "Images/noaa4.png";
-		_NoaaImage.src = 'Images/noaa5.gif';
-	} else {
-		context.drawImage(_NoaaImage, 356, 39);
+const DrawNoaaImage = async (context) => {
+	// load the image and store locally
+	if (!DrawNoaaImage.image) {
+		DrawNoaaImage.image = utils.loadImg('images/noaa5.gif');
 	}
+	// wait for the image to load completely
+	const img = await DrawNoaaImage.image;
+	context.drawImage(img, 356, 39);
 };
 
-var DrawLogoImage = function (context) {
-	if (!_LogoImage) {
-		_LogoImage = new Image();
-
-		_LogoImage.onload = function () {
-			//SmoothingEnabled(context, true);
-			context.drawImage(_LogoImage, 50, 30, 85, 67);
-		};
-		//LogoImage.src = "Images/Logo1.png";
-		//_LogoImage.src = "Images/Logo3.gif";
-		_LogoImage.src = 'Images/Logo3.png';
-	} else {
-		context.drawImage(_LogoImage, 50, 30, 85, 67);
+const DrawLogoImage = async (context) => {
+	// load the image and store locally
+	if (!DrawLogoImage.image) {
+		DrawLogoImage.image = utils.loadImg('images/Logo3.png');
 	}
+	// wait for the image load completely
+	const img = await DrawLogoImage.image;
+	context.drawImage(img, 50, 30, 85, 67);
 };
 
 var DrawCurrentConditions = function (WeatherParameters, context) {
