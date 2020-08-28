@@ -1,0 +1,22 @@
+{
+  "name": "ws4kp",
+  "version": "1.0.0",
+  "description": "Welcome to the WeatherStar 4000+ project page!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/netbymatt/ws4kp.git"
+  },
+  "author": "Matt Walsh",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/netbymatt/ws4kp/issues"
+  },
+  "homepage": "https://github.com/netbymatt/ws4kp#readme",
+  "devDependencies": {
+    "express": "^4.17.1"
+  }
+}
