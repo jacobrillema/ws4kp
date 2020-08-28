@@ -5455,15 +5455,15 @@ const GetRegionalStations = async (WeatherParameters) => {
 
 };
 
-const PopulateRegionalObservations = (WeatherParameters) => {
-	if (!WeatherParameters || (_DontLoadGifs && WeatherParameters.Progress.NearbyConditions !== LoadStatuses.Loaded))return;
+const PopulateRegionalObservations = async (WeatherParameters) => {
+	if (!WeatherParameters || (_DontLoadGifs && WeatherParameters.Progress.NearbyConditions !== LoadStatuses.Loaded)) return;
 
-	const WeatherCurrentRegionalConditions = WeatherParameters.WeatherCurrentRegionalConditions;
+	const conditions = WeatherParameters.WeatherCurrentRegionalConditions;
 
-	var Html = '';
+	let Html = '';
 
-	const tbodyRegionalObservations = tblRegionalObservations.find('tbody');
-	tbodyRegionalObservations.empty();
+	const $tbodyRegionalObservations = tblRegionalObservations.find('tbody');
+	$tbodyRegionalObservations.empty();
 
 	Html = '<tr>';
 	Html += '<td></td>';
@@ -5471,102 +5471,79 @@ const PopulateRegionalObservations = (WeatherParameters) => {
 	Html += '<td>WEATHER</td>';
 	Html += '<td>WIND</td>';
 	Html += '</tr>';
-	tbodyRegionalObservations.append(Html);
+	$tbodyRegionalObservations.append(Html);
 
-	var SortedArray = [];
-	$(WeatherCurrentRegionalConditions.StationIds).each(function () {
-		var WeatherCurrentCondition = WeatherCurrentRegionalConditions.WeatherCurrentConditions[this.toString()];
-		SortedArray.push(WeatherCurrentCondition);
-	});
-	SortedArray.sort(function (a, b) {
-		var aName = a.StationName.toLowerCase();
-		var bName = b.StationName.toLowerCase();
-		return ((aName < bName) ? -1 : ((aName > bName) ? 1 : 0));
-	});
+	// sort array by station name
+	const sortedConditions = conditions.sort((a,b) => ((a.Name < b.Name) ? -1 : ((a.Name > b.Name) ? 1 : 0)));
 
-	$(SortedArray).each(function () {
-		var WeatherCurrentCondition = this;
-
-		Html = '<tr>';
-		Html += '<td>' + WeatherCurrentCondition.StationName + '</td>';
-		Html += '<td>' + WeatherCurrentCondition.Temperature + '</td>';
-		Html += '<td>' + WeatherCurrentCondition.ShortConditions + '</td>';
-		Html += '<td>' + (WeatherCurrentCondition.WindSpeed === 0 ? 'Calm' : WeatherCurrentCondition.WindDirection + ' ' + WeatherCurrentCondition.WindSpeed) + '</td>';
+	const stationHtml = sortedConditions.map(condition => {
+		let Html = '<tr>';
+		Html += '<td>' + condition.Name + '</td>';
+		Html += '<td>' + condition.temperature.value + '</td>';
+		Html += '<td>' + condition.textDescription + '</td>';
+		Html += '<td>' + (condition.windSpeed.value === 0 ? 'Calm' : condition.windDirection.value + ' ' + condition.windSpeed.value) + '</td>';
 		Html += '</tr>';
-		tbodyRegionalObservations.append(Html);
+		return Html;
 	});
+	Html += stationHtml.join('');
+	$tbodyRegionalObservations.append(Html);
 
-	WeatherCurrentRegionalConditions.SortedArray = SortedArray;
+	conditions.SortedArray = sortedConditions;
 
 	// Draw canvas
-	var canvas = canvasLatestObservations[0];
-	var context = canvas.getContext('2d');
+	const canvas = canvasLatestObservations[0];
+	const context = canvas.getContext('2d');
 
-	var BackGroundImage = new Image();
-	BackGroundImage.onload = function () {
-		context.drawImage(BackGroundImage, 0, 0);
-		DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-		DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-		DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
-		DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
+	const BackGroundImage = await utils.loadImg('images/BackGround1_1.png');
 
-		DrawTitleText(context, 'Latest', 'Observations');
+	context.drawImage(BackGroundImage, 0, 0);
+	DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+	DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+	DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
+	DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
+
+	DrawTitleText(context, 'Latest', 'Observations');
+
+	if (_Units === Units.English) {
+		DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 295, 105, String.fromCharCode(176) + 'F', 2);
+	} else {
+		DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 295, 105, String.fromCharCode(176) + 'C', 2);
+	}
+	DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 345, 105, 'WEATHER', 2);
+	DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 495, 105, 'WIND', 2);
+
+	let y = 140;
+
+	sortedConditions.forEach((condition) => {
+		let Temperature = condition.temperature.value;
+		let WindSpeed = condition.windSpeed.value;
+		const windDirection = utils.calc.DirectionToNSEW(condition.windDirection.value);
 
 		if (_Units === Units.English) {
-			DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 295, 105, String.fromCharCode(176) + 'F', 2);
-		} else if (_Units === Units.Metric) {
-			DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 295, 105, String.fromCharCode(176) + 'C', 2);
+			Temperature = utils.units.CelsiusToFahrenheit(Temperature);
+			WindSpeed = utils.units.KphToMph(WindSpeed);
 		}
-		DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 345, 105, 'WEATHER', 2);
-		DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 495, 105, 'WIND', 2);
 
-		var y = 140;
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 65, y, condition.City.substr(0, 14), 2);
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 345, y, condition.textDescription.substr(0, 9), 2);
 
-		$(SortedArray).each(function () {
-			var WeatherCurrentCondition = this;
+		if (WindSpeed > 0) {
+			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, windDirection + (Array(6 - windDirection.length - WindSpeed.toString().length).join(' ')) + WindSpeed.toString(), 2);
+		} else if (WindSpeed === 'NA') {
+			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, 'NA', 2);
+		} else {
+			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, 'Calm', 2);
+		}
 
-			var Temperature;
-			var WindSpeed;
+		const x = (325 - (Temperature.toString().length * 15));
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, y, Temperature, 2);
 
-			switch (_Units) {
-			case Units.English:
-				Temperature = WeatherCurrentCondition.Temperature;
-				WindSpeed = WeatherCurrentCondition.WindSpeed;
-				break;
+		y += 40;
+	});
 
-			case Units.Metric:
-				Temperature = Math.round(WeatherCurrentCondition.TemperatureC);
-				WindSpeed = WeatherCurrentCondition.WindSpeedC;
-				break;
-			default:
-			}
+	WeatherParameters.Progress.NearbyConditions = LoadStatuses.Loaded;
 
-			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 65, y, WeatherCurrentCondition.StationName.substr(0, 14), 2);
-			//DrawText(context, "Star4000", "24pt", "#FFFFFF", 295, y, Temperature, 2);
-			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 345, y, WeatherCurrentCondition.ShortConditions.substr(0, 9), 2);
-
-			//DrawText(context, "Star4000", "24pt", "#FFFFFF", 495, y, (WeatherCurrentCondition.WindSpeed === 0 ? "Calm" : WeatherCurrentCondition.WindDirection + (Array(6 - WeatherCurrentCondition.WindDirection.length - WeatherCurrentCondition.WindSpeed.toString().length).join(" ")) + WeatherCurrentCondition.WindSpeed), 2);
-			//if (WeatherCurrentCondition.WindSpeed > 0)
-			if (WindSpeed > 0) {
-				DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, WeatherCurrentCondition.WindDirection + (Array(6 - WeatherCurrentCondition.WindDirection.length - WindSpeed.toString().length).join(' ')) + WindSpeed.toString(), 2);
-			} else if (WindSpeed === 'NA') {
-				DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, 'NA', 2);
-			} else {
-				DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, 'Calm', 2);
-			}
-
-			var x = (325 - (Temperature.toString().length * 15));
-			DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, y, Temperature, 2);
-
-			y += 40;
-		});
-
-		WeatherParameters.Progress.NearbyConditions = LoadStatuses.Loaded;
-
-		UpdateWeatherCanvas(WeatherParameters, canvasLatestObservations);
-	};
-	BackGroundImage.src = 'images/BackGround1_1.png';
-	//BackGroundImage.src = "images/BackGround1_" + _Themes.toString() + ".png";
+	UpdateWeatherCanvas(WeatherParameters, canvasLatestObservations);
 
 };
 
@@ -5585,7 +5562,6 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 		}
 	}
 
-	const img = new Image();
 	let cnvRegionalMap;
 	let cnvRegionalMapId;
 	let divRegionalMap;
