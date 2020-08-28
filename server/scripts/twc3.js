@@ -7242,16 +7242,13 @@ var DrawCurrentConditions = function (WeatherParameters, context) {
 	//console.log(_UpdateWeatherUpdateMs);
 };
 
-var DrawCustomScrollText = function (WeatherParameters, context) {
-	var font, size, color, x, y, shadow;
-	var text;
-
-	font = 'Star4000';
-	size = '24pt';
-	color = '#ffffff';
-	shadow = 2;
-	x = 640;
-	y = 430;
+const DrawCustomScrollText = (WeatherParameters, context) => {
+	const font = 'Star4000';
+	const size = '24pt';
+	const color = '#ffffff';
+	const shadow = 2;
+	let x = 640;
+	const y = 430;
 
 	if (WeatherParameters.Progress.GetTotalPercentage() !== 100) {
 		return;
@@ -7260,14 +7257,14 @@ var DrawCustomScrollText = function (WeatherParameters, context) {
 	// Clear the date and time area.
 	context.drawImage(canvasBackGroundCurrentConditions[0], 0, 0, 640, 75, 0, 405, 640, 75);
 
-	text = _ScrollText;
+	const text = _ScrollText;
 	//text = "WELCOME TO THE WEATHER STAR 4000+! IF YOU ARE ENJOYING THIS SITE THEN YOU WILL LOVE THE WEATHER STAR 4000 SIMULATOR!";
 	//text = "Hello World!";
 	//text = "A";
 
 	x = 640 - ((_UpdateCustomScrollTextMs / _UpdateWeatherUpdateMs) * 5);
-	if (x < ((text.length + 10) * 15 * -1)) // Wait an extra 5 characters.
-	{
+	// Wait an extra 5 characters.
+	if (x < ((text.length + 10) * 15 * -1)) {
 		_UpdateCustomScrollTextMs = 0;
 		x = 640;
 	}
@@ -7285,11 +7282,9 @@ $.ajaxCORS = function (e) {
 	return $.ajax(e);
 };
 
-var _CallBack = null;
+let _CallBack = null;
 
-var SetCallBack = function (e) {
-	_CallBack = e.CallBack;
-};
+var SetCallBack = (e) => _CallBack = e.CallBack;
 
 const Units = {
 	English: 0,
@@ -7313,7 +7308,7 @@ var _ScrollText = '';
 var _DontLoadGifs = false;
 var _RefreshGifs = false;
 
-var AssignUnits = function (e) {
+var AssignUnits = (e) => {
 	switch (e.Units) {
 	case 'ENGLISH':
 		_Units = Units.English;
@@ -7321,12 +7316,13 @@ var AssignUnits = function (e) {
 	case 'METRIC':
 		_Units = Units.Metric;
 		break;
+	default:
 	}
 
 	RefreshSegments();
 };
 
-var AssignThemes = function (e) {
+var AssignThemes = (e) => {
 	switch (e.Themes) {
 	case 'THEMEA':
 		_Themes = Themes.ThemeA;
@@ -7355,16 +7351,13 @@ var AssignThemes = function (e) {
 	RefreshSegments();
 };
 
-var RefreshSegments = function () {
+const RefreshSegments = () => {
 	_DontLoadGifs = true;
 
-	if (_WeatherParameters) {
-		_WeatherParameters.Progress.DrawProgress();
-	}
+	if (_WeatherParameters)  _WeatherParameters.Progress.DrawProgress();
 
 	PopulateCurrentConditions(_WeatherParameters);
 	PopulateRegionalObservations(_WeatherParameters);
-	//PopulateExtendedForecast(_WeatherParameters);
 	PopulateExtendedForecast(_WeatherParameters, 1);
 	PopulateExtendedForecast(_WeatherParameters, 2);
 	PopulateAlmanacInfo(_WeatherParameters);
@@ -7383,34 +7376,24 @@ var RefreshSegments = function () {
 	_DontLoadGifs = false;
 
 	_RefreshGifs = true;
-	window.setTimeout(function () { _RefreshGifs = false; }, 200);
+	window.setTimeout(() => _RefreshGifs = false, 200);
 };
 
-var AudioPlayToggle = function () {
-	//var audio = $("#audMusic")[0];
-
+var AudioPlayToggle = () => {
 	_IsAudioPlaying = !(_IsAudioPlaying);
 
 	if (_IsAudioPlaying) {
 		_AudioPlayIntervalId = window.setIntervalWorker(function () {
-			if (_WeatherParameters.Progress.GetTotalPercentage() !== 100) {
-				return;
-			}
+			if (_WeatherParameters.Progress.GetTotalPercentage() !== 100) return;
 
 			window.clearIntervalWorker(_AudioPlayIntervalId);
 			_AudioPlayIntervalId = null;
 
 			if (_AudioContext === null && audMusic.attr('src') === '') {
-				////audio.src = "Audio/Andrew Korus - Hello There.mp3";
-				//audio.src = GetNextMusicUrl();
-				//audio.load();
 				LoadAudio(GetNextMusicUrl());
 				return;
 			}
-			//audio.volume = 1.0;
-			//audio.play();
 			PlayAudio();
-			//RefreshStateOfMusicAudio();
 
 		}, _AudioPlayInterval);
 	} else {
@@ -7427,16 +7410,16 @@ var AudioPlayToggle = function () {
 
 };
 
-var IsAudioPlaying = function () {
+const IsAudioPlaying = () => {
 	return _IsAudioPlaying;
 };
 
-var audMusic_OnError = function () {
+const audMusic_OnError = () => {
 	//RefreshStateOfMusicAudio();
 };
 
-var RefreshStateOfMusicAudio = function () {
-	var IsAudioPlaying = _IsAudioPlaying;
+const RefreshStateOfMusicAudio = () => {
+	const IsAudioPlaying = _IsAudioPlaying;
 
 	if (window.AudioContext) {
 		_IsAudioPlaying = (_AudioContext.state === 'running' && _AudioDuration !== 0);
@@ -7450,60 +7433,23 @@ var RefreshStateOfMusicAudio = function () {
 	}
 };
 
-var AudioOnTimeUpdate = function () {
+const AudioOnTimeUpdate = () => {
 	if (window.AudioContext) {
 		_AudioCurrentTime = _AudioContext.currentTime;
 	} else {
 		//audio.currentTime
-		var audio = audMusic[0];
-
-		//console.log(audio.currentTime.toString() + " " + audio.duration.toString());
-		_AudioCurrentTime = audio.currentTime;
+		_AudioCurrentTime = audMusic[0].currentTime;
 	}
-	//console.log(_AudioCurrentTime.toString() + " " + _AudioDuration.toString());
 
 	if (_IsAudioPlaying) {
-		var EndingOffsetInSeconds = 3;
-		var VolumeDecrementBy = 0.0;
-		var IntervalMs = 50;
+		const EndingOffsetInSeconds = 3;
+		let VolumeDecrementBy = 0.0;
+		const IntervalMs = 50;
 
 		VolumeDecrementBy = 1 / ((EndingOffsetInSeconds * 1000) / IntervalMs);
 
-		//if (_AudioCurrentTime >= (_AudioDuration - 2))
-		//if (_AudioCurrentTime >= 10)
 		if (_AudioCurrentTime >= (_AudioDuration - EndingOffsetInSeconds)) {
 			if (!_AudioFadeOutIntervalId) {
-				//var AudioFadeOutInterval = new Worker("Scripts/Interval.js");
-				//AudioFadeOutInterval.onmessage = function (e)
-				//{
-				//    switch (e.data.Action)
-				//    {
-				//        case "SET":
-				//            _AudioFadeOutIntervalId = e.data.Id;
-				//            break;
-				//        case "ELASPED":
-				//            if (e.data.Id === _AudioFadeOutIntervalId)
-				//            {
-				//                var volume = VolumeAudio();
-				//                volume -= VolumeDecrementBy;
-				//                VolumeAudio(volume);
-
-				//                if (volume <= 0)
-				//                {
-				//                    AudioFadeOutInterval.postMessage({ Action: "CLEAR", Id: _AudioFadeOutIntervalId });
-				//                    _AudioFadeOutIntervalId = null;
-
-				//                    if (_IsAudioPlaying)
-				//                    {
-				//                        LoadAudio(GetNextMusicUrl());
-				//                    }
-				//                }
-				//            }
-				//            break;
-				//    }
-				//};
-				//AudioFadeOutInterval.postMessage({ Action: "SET", Ms: IntervalMs });
-
 				_AudioFadeOutIntervalId = window.setIntervalWorker(function () {
 					var volume = VolumeAudio();
 					volume -= VolumeDecrementBy;
@@ -7519,41 +7465,13 @@ var AudioOnTimeUpdate = function () {
 					}
 				}, IntervalMs);
 
-				//_AudioFadeOutIntervalId = window.setInterval(function ()
-				//{
-
-				//    //volume -= 0.05;
-				//    //audio.volume = volume;
-				//    var volume = VolumeAudio();
-				//    volume -= VolumeDecrementBy;
-				//    VolumeAudio(volume);
-
-				//    //if (volume === 0)
-				//    if (volume <= 0)
-				//    {
-				//        window.clearInterval(_AudioFadeOutIntervalId);
-				//        _AudioFadeOutIntervalId = null;
-
-				//        //audio.pause();
-				//        //audio.volume = 1.0;
-				//        //audio.src = GetNextMusicUrl();
-				//        //audio.load();
-				//        //audio.play();
-
-				//        //PauseAudio();
-				//        LoadAudio(GetNextMusicUrl());
-				//        //PlayAudio();
-
-				//        //RefreshStateOfMusicAudio();
-				//    }
-				//}, IntervalMs);
 			}
 		}
 	}
 
 };
 
-var PopulateMusicUrls = function () {
+const PopulateMusicUrls = () => {
 	_MusicUrls = [];
 	_MusicUrls.push('Audio/Andrew Korus - Hello There.mp3');
 	_MusicUrls.push('Audio/Ficara - Stormy Weather.mp3');
@@ -7595,7 +7513,6 @@ var PopulateMusicUrls = function () {
 	_MusicUrls.push('Audio/Trammell Starks - After Midnight.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - After The Rain.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - All I Need To Know.mp3');
-	// GIT-33 _MusicUrls.push("Audio/Trammell Starks - All That Jazz.mp3");
 	_MusicUrls.push('Audio/Trammell Starks - Autumn Blue.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - Better Than Nothing.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - Bobbys Theme.mp3');
@@ -7605,7 +7522,6 @@ var PopulateMusicUrls = function () {
 	_MusicUrls.push('Audio/Trammell Starks - Here Comes The Rain.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - Im So Dizzy.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - If You Only Knew.mp3');
-	// GIT-33 _MusicUrls.push("Audio/Trammell Starks - Island Groove.mp3");
 	_MusicUrls.push('Audio/Trammell Starks - Just For The Moment.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - Midnight Rain.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - Pier 32.mp3');
@@ -7624,20 +7540,18 @@ var PopulateMusicUrls = function () {
 	_MusicUrls.push('Audio/Trammell Starks - Under The Influence.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - Ups And Downs.mp3');
 	_MusicUrls.push('Audio/Trammell Starks - Water Colors.mp3');
-	//_MusicUrls.push("Audio/.mp3");
-
 	_MusicUrlsTemp = _MusicUrls.slice(0);
 };
 
-var GetNextMusicUrl = function () {
+const GetNextMusicUrl = () => {
 	if (_MusicUrlsTemp.length < 1) { _MusicUrlsTemp = _MusicUrls.slice(0); }
-	var index = Math.floor(Math.random() * _MusicUrlsTemp.length);
-	var item = _MusicUrlsTemp[index];
+	const index = Math.floor(Math.random() * _MusicUrlsTemp.length);
+	const item = _MusicUrlsTemp[index];
 	_MusicUrlsTemp.splice(index, 1);
 	return item;
 };
 
-var LoadAudio = function(Url) {
+const LoadAudio = async (Url) => {
 	if (_AudioRefreshIntervalId) {
 		window.clearIntervalWorker(_AudioRefreshIntervalId);
 		_AudioRefreshIntervalId = null;
@@ -7647,12 +7561,6 @@ var LoadAudio = function(Url) {
 		if (_AudioContext) {
 			_AudioContext.close();
 			_AudioContext = null;
-			//_AudioContext = new AudioContext();
-			//_AudioContext.ontimeupdate = AudioOnTimeUpdate;
-			//_AudioContext.onplay = RefreshStateOfMusicAudio;
-			//_AudioContext.onpause = RefreshStateOfMusicAudio;
-			//_AudioContext.onplaying = RefreshStateOfMusicAudio;
-			//_AudioContext.onstatechange = RefreshStateOfMusicAudio;
 		}
 		if (_AudioBufferSource) {
 			_AudioBufferSource.stop();
@@ -7662,42 +7570,41 @@ var LoadAudio = function(Url) {
 		_AudioDuration = 0;
 		_AudioCurrentTime = 0;
 
-		var req = new XMLHttpRequest();
-		//req.open("GET", "Audio/Trammell Starks - The Blizzard Song.mp3", true);
-		//req.open("GET", "Audio/Brian Hughes - Here We Go.mp3", true);
-		req.open('GET', Url, true);
-		req.responseType = 'arraybuffer';
-		req.onload = function () {
-			//decode the loaded data
-			_AudioContext.decodeAudioData(req.response, function (buffer) {
-				//create a source node from the buffer
-				_AudioBufferSource = _AudioContext.createBufferSource();
-				_AudioBufferSource.buffer = buffer;
-				////connect to the final output node (the speakers)
-				//_AudioBufferSource.connect(_AudioContext.destination);
+		const audioData = await $.ajax({
+			type: 'GET',
+			url: Url,
+			xhr: () => {
+				const xhr = new HMLHttpRequest();
+				xhr.responseType = 'arraybuffer';
+				return xhr;
+			},
+		});
 
-				_AudioDuration = buffer.duration;
-				_AudioCurrentTime = 0;
+		//decode the loaded data
+		_AudioContext.decodeAudioData(audioData, (buffer) => {
+			//create a source node from the buffer
+			_AudioBufferSource = _AudioContext.createBufferSource();
+			_AudioBufferSource.buffer = buffer;
 
-				//create a gain node
-				_AudioGain = _AudioContext.createGain();
-				_AudioBufferSource.connect(_AudioGain);
-				_AudioGain.connect(_AudioContext.destination);
-				_AudioGain.gain.value = 1.00;
-				//_AudioGain.gain.value = 0.1;
+			_AudioDuration = buffer.duration;
+			_AudioCurrentTime = 0;
 
-				//PlayAudio();
-				_AudioBufferSource.start();
-				_AudioContext.resume();
+			//create a gain node
+			_AudioGain = _AudioContext.createGain();
+			_AudioBufferSource.connect(_AudioGain);
+			_AudioGain.connect(_AudioContext.destination);
+			_AudioGain.gain.value = 1.00;
 
-				_AudioRefreshIntervalId = window.setIntervalWorker(function () {
-					AudioOnTimeUpdate();
-					RefreshStateOfMusicAudio();
-				}, 500);
+			_AudioBufferSource.start();
+			_AudioContext.resume();
 
-			});
-		};
-		req.send();
+			_AudioRefreshIntervalId = window.setIntervalWorker(function () {
+				AudioOnTimeUpdate();
+				RefreshStateOfMusicAudio();
+			}, 500);
+		});
+
+
 	} else {
 		var audio = audMusic[0];
 
@@ -7707,13 +7614,13 @@ var LoadAudio = function(Url) {
 		_AudioCurrentTime = 0;
 
 		audio.volume = 1.00;
-		audio.oncanplaythrough = function () {
+		audio.oncanplaythrough = () => {
 			_AudioDuration = audio.duration;
 			_AudioCurrentTime = 0;
 
 			PlayAudio();
 
-			_AudioRefreshIntervalId = window.setIntervalWorker(function () {
+			_AudioRefreshIntervalId = window.setIntervalWorker(() => {
 				AudioOnTimeUpdate();
 				RefreshStateOfMusicAudio();
 			}, 500);
@@ -7723,10 +7630,10 @@ var LoadAudio = function(Url) {
 		audio.load();
 	}
 };
-var PlayAudio = function() {
+
+const PlayAudio = () => {
 	if (window.AudioContext) {
 		if (_AudioDuration !== 0) {
-			//_AudioBufferSource.start(0, _AudioCurrentTime, _AudioDuration);
 			_AudioContext.resume();
 		}
 	} else {
@@ -7734,7 +7641,8 @@ var PlayAudio = function() {
 		audio.play();
 	}
 };
-var PauseAudio = function() {
+
+const PauseAudio = () => {
 	if (window.AudioContext) {
 		if (_AudioDuration !== 0) {
 			//_AudioBufferSource.stop();
@@ -7745,8 +7653,9 @@ var PauseAudio = function() {
 		audio.pause();
 	}
 };
-var VolumeAudio = function(vol) {
-	var volume = -1;
+
+const VolumeAudio = (vol) => {
+	let volume = -1;
 
 	if (window.AudioContext) {
 		if (_AudioGain) {
@@ -7757,7 +7666,7 @@ var VolumeAudio = function(vol) {
 			volume =_AudioGain.gain.value;
 		}
 	} else {
-		var audio = audMusic[0];
+		let audio = audMusic[0];
 		if (vol !== undefined) {
 			audio.volume = vol;
 		}
@@ -7768,8 +7677,9 @@ var VolumeAudio = function(vol) {
 	return volume;
 };
 
-var NarrationPlayToggle = function () {
+var NarrationPlayToggle = () => {
 	_IsNarrationPlaying = !(_IsNarrationPlaying);
+	let _NarrationPlayIntervalId;
 
 	if (_IsNarrationPlaying) {
 		if (!window.speechSynthesis) {
@@ -7782,11 +7692,7 @@ var NarrationPlayToggle = function () {
 			return;
 		}
 
-		_NarrationPlayIntervalId = window.setIntervalWorker(function () {
-			//if (_WeatherParameters.Progress.GetTotalPercentage() !== 100)
-			//{
-			//    return;
-			//}
+		_NarrationPlayIntervalId = window.setIntervalWorker(() => {
 
 			window.clearIntervalWorker(_NarrationPlayIntervalId);
 			_NarrationPlayIntervalId = null;
@@ -7797,15 +7703,6 @@ var NarrationPlayToggle = function () {
 			_Utterance.volume = 1.0;
 			_Utterance.rate = 0.9;
 			_Utterance.pitch = 1.0;
-			//_Utterance.text = GetNarrationText();
-
-			//SelectVoice(_Utterance);
-			//_Utterance.onend = function ()
-			//{
-			//    console.log("Narration Finished.");
-			//};
-
-			//window.speechSynthesis.speak(_Utterance);
 			SpeakUtterance();
 
 		}, 100);
@@ -7824,32 +7721,25 @@ var NarrationPlayToggle = function () {
 
 };
 
-var IsNarrationPlaying = function () {
-	return _IsNarrationPlaying;
-};
+var IsNarrationPlaying = () => _IsNarrationPlaying;
 
-var SpeakUtterance = function () {
-	if (_IsNarrationPlaying === false) {
-		return;
-	}
+const SpeakUtterance = () => {
+	if (_IsNarrationPlaying === false) return;
 
-	var CurrentUtteranceId = new Date().getTime();
+	const CurrentUtteranceId = new Date().getTime();
 	_CurrentUtteranceId = CurrentUtteranceId;
 
-	if (window.speechSynthesis.speaking) {
-		window.speechSynthesis.cancel();
-	}
+	if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 
-	var Text = GetNarrationText();
-	if (Text === '') {
-		return;
-	}
-	console.log('Speak Utterance: \'' + Text + '\'');
+	const Text = GetNarrationText();
+	if (Text === '') return;
 
-	var Sentences = Text.split('.');
-	var SentenceIndex = -1;
+	console.log(`Speak Utterance: '${Text}'`);
 
-	var SpeakNextSentence = function() {
+	const Sentences = Text.split('.');
+	let SentenceIndex = -1;
+
+	const SpeakNextSentence = () => {
 		if (_IsNarrationPlaying === false) {
 			console.log('_IsNarrationPlaying === false.');
 			_IsSpeaking = false;
@@ -7857,7 +7747,7 @@ var SpeakUtterance = function () {
 		}
 
 		if (CurrentUtteranceId !== _CurrentUtteranceId) {
-			console.log('CurrentUtteranceId (' + CurrentUtteranceId + ') !== _CurrentUtteranceId (' + _CurrentUtteranceId + ')');
+			console.log(`CurrentUtteranceId (${CurrentUtteranceId}) !== _CurrentUtteranceId (${_CurrentUtteranceId})`);
 			return;
 		}
 
@@ -7868,7 +7758,7 @@ var SpeakUtterance = function () {
 			return;
 		}
 
-		var Sentence = Sentences[SentenceIndex];
+		const Sentence = Sentences[SentenceIndex];
 
 		_CurrentUtterance = new SpeechSynthesisUtterance();
 		_CurrentUtterance.text = Sentence;
@@ -7878,21 +7768,20 @@ var SpeakUtterance = function () {
 		_CurrentUtterance.volume = _Utterance.volume;
 
 		window.speechSynthesis.speak(_CurrentUtterance);
-		console.log('Speaking \'' + Sentence + '\'');
+		console.log(`Speaking '${Sentence}'`);
 		_IsSpeaking = true;
 	};
 
-	//SpeakNextSentence();
-	setTimeout(function () { SpeakNextSentence(); }, 500);
+	setTimeout(SpeakNextSentence, 500);
 
 };
 
-var GetNarrationText = function () {
-	var CanvasType = Math.floor(_CurrentPosition);
-	var SubCanvasType = Math.round2((_CurrentPosition - CanvasType), 1) * 10;
+const GetNarrationText = () => {
+	const CanvasType = Math.floor(_CurrentPosition);
+	const SubCanvasType = Math.round2((_CurrentPosition - CanvasType), 1) * 10;
 
-	var Temperature;
-	var Text = '';
+	let Temperature;
+	let Text = '';
 
 	switch (CanvasType) {
 	case CanvasTypes.CurrentWeather:
@@ -7937,7 +7826,7 @@ var GetNarrationText = function () {
 			break;
 		}
 
-		Text += 'The current conditions at ' + WeatherCurrentConditions.StationName + '. ';
+		Text += `The current conditions at ${WeatherCurrentConditions.StationName}. `;
 		Text += WeatherCurrentConditions.Conditions + '. ';
 		Text += Temperature.toString().replaceAll('.', ' point ') + ' degrees ';
 
@@ -7981,16 +7870,16 @@ var GetNarrationText = function () {
 		break;
 
 	case CanvasTypes.LatestObservations:
-		var WeatherCurrentRegionalConditions = _WeatherParameters.WeatherCurrentRegionalConditions;
-		var SortedArray = WeatherCurrentRegionalConditions.SortedArray;
+		const WeatherCurrentRegionalConditions = _WeatherParameters.WeatherCurrentRegionalConditions;
+		const SortedArray = WeatherCurrentRegionalConditions.SortedArray;
 
 		Text += 'Latest observations for the following cities. ';
 
 		$(SortedArray).each(function () {
-			var WeatherCurrentCondition = this;
+			const WeatherCurrentCondition = this;
 
-			var Temperature;
-			var WindSpeed;
+			let Temperature;
+			let WindSpeed;
 
 			switch (_Units) {
 			case Units.English:
@@ -7999,12 +7888,11 @@ var GetNarrationText = function () {
 				WindUnit = ' miles per hour ';
 				break;
 
-			case Units.Metric:
+			default:
 				Temperature = Math.round(WeatherCurrentCondition.TemperatureC);
 				WindSpeed = WeatherCurrentCondition.WindSpeedC;
 				WindUnit = ' kilometers per hour ';
 				break;
-			default:
 			}
 
 			Text += WeatherCurrentCondition.StationName + ' ';
@@ -8025,12 +7913,12 @@ var GetNarrationText = function () {
 
 	case CanvasTypes.ExtendedForecast1:
 	case CanvasTypes.ExtendedForecast2:
-		var WeatherExtendedForecast = _WeatherParameters.WeatherExtendedForecast;
+		const WeatherExtendedForecast = _WeatherParameters.WeatherExtendedForecast;
 
 		Text += 'Extended Forecast. ';
 
-		var LBound;
-		var UBound;
+		let LBound;
+		let UBound;
 		switch (CanvasType) {
 		case CanvasTypes.ExtendedForecast1:
 			LBound = 0;
@@ -8045,7 +7933,7 @@ var GetNarrationText = function () {
 		$(WeatherExtendedForecast.Day).each(function (Index) {
 			if (Index < LBound || Index > UBound) return true;
 
-			var Day = this;
+			const Day = this;
 
 			switch (_Units) {
 			case Units.English:
@@ -8069,9 +7957,9 @@ var GetNarrationText = function () {
 		break;
 
 	case CanvasTypes.Almanac:
-		var AlmanacInfo = _WeatherParameters.AlmanacInfo;
-		var Today = new Date();
-		var Tomorrow = Today.addDays(1);
+		const AlmanacInfo = _WeatherParameters.AlmanacInfo;
+		const Today = new Date();
+		const Tomorrow = Today.addDays(1);
 
 		if (isNaN(AlmanacInfo.TodaySunRise)) {
 			Text += 'No sunrise for ' + Today.getDayName() + ' ';
@@ -8095,7 +7983,7 @@ var GetNarrationText = function () {
 			Text += 'sunset is at ' + AlmanacInfo.TomorrowSunSet.getFormattedTime() + '. ';
 		}
 
-		$(AlmanacInfo.MoonPhases).each(function (Index, MoonPhase) {
+		AlmanacInfo.MoonPhases.forEach(MoonPhase => {
 			switch (MoonPhase.Phase) {
 			case 'Full':
 				Text += 'Full moon ';
@@ -8118,80 +8006,75 @@ var GetNarrationText = function () {
 		break;
 
 	case CanvasTypes.AlmanacTides:
-		var AlmanacInfo = _WeatherParameters.AlmanacInfo;
-		var WeatherTides = _WeatherParameters.WeatherTides;
-		var TideCounter = 0;
+		{
+			const AlmanacInfo = _WeatherParameters.AlmanacInfo;
+			const WeatherTides = _WeatherParameters.WeatherTides;
+			let TideCounter = 0;
 
-		$(WeatherTides).each(function (Index, WeatherTide) {
-			Text += WeatherTide.StationName.toLowerCase() + ' Tides. ';
+			WeatherTides.forEach(WeatherTide => {
+				Text += WeatherTide.StationName.toLowerCase() + ' Tides. ';
 
-			TideCounter = 0;
-			Text += 'Low tides at ';
-			$(WeatherTide.TideTypes).each(function (Index, TideType) {
-				if (TideType !== 'low') {
-					return true;
-				}
+				TideCounter = 0;
+				Text += 'Low tides at ';
+				WeatherTide.TideTypes.forEach(TideType => {
+					if (TideType !== 'low') return true;
 
-				var TideTime = WeatherTide.TideTimes[Index];
-				var TideDay = WeatherTide.TideDays[Index];
+					const TideTime = WeatherTide.TideTimes[Index];
+					const TideDay = WeatherTide.TideDays[Index];
 
-				if (_Units === Units.Metric) {
-					TideTime = utils.calc.TimeTo24Hour(TideTime);
-				}
-				TideDay = _DayLongNames[TideDay];
+					if (_Units === Units.Metric) {
+						TideTime = utils.calc.TimeTo24Hour(TideTime);
+					}
+					TideDay = _DayLongNames[TideDay];
 
-				Text += TideDay + ' at ' + TideTime;
-				if (TideCounter === 0) {
-					Text += ' and ';
-				} else {
-					Text += '. ';
-				}
-				TideCounter++;
+					Text += TideDay + ' at ' + TideTime;
+					if (TideCounter === 0) {
+						Text += ' and ';
+					} else {
+						Text += '. ';
+					}
+					TideCounter++;
+				});
+
+				TideCounter = 0;
+				Text += 'High tides at ';
+				WeatherTide.TideTypes.forEach(TideType => {
+					if (TideType !== 'high') return true;
+
+					const TideTime = WeatherTide.TideTimes[Index];
+					const TideDay = WeatherTide.TideDays[Index];
+
+					if (_Units === Units.Metric) {
+						TideTime = utils.calc.TimeTo24Hour(TideTime);
+					}
+					TideDay = _DayLongNames[TideDay];
+
+					Text += TideDay + ' at ' + TideTime;
+					if (TideCounter === 0) {
+						Text += ' and ';
+					} else {
+						Text += '. ';
+					}
+					TideCounter++;
+				});
+
 			});
 
-			TideCounter = 0;
-			Text += 'High tides at ';
-			$(WeatherTide.TideTypes).each(function (Index, TideType) {
-				if (TideType !== 'high') {
-					return true;
-				}
-
-				var TideTime = WeatherTide.TideTimes[Index];
-				var TideDay = WeatherTide.TideDays[Index];
-
-				if (_Units === Units.Metric) {
-					TideTime = utils.calc.TimeTo24Hour(TideTime);
-				}
-				TideDay = _DayLongNames[TideDay];
-
-				Text += TideDay + ' at ' + TideTime;
-				if (TideCounter === 0) {
-					Text += ' and ';
-				} else {
-					Text += '. ';
-				}
-				TideCounter++;
-			});
-
-		});
-
-		if (isNaN(AlmanacInfo.TodaySunRise)) {
-			Text += 'No sunrise for today ';
-		} else {
-			Text += 'Sunrise for today is at ' + AlmanacInfo.TodaySunRise.getFormattedTime() + ' ';
+			if (isNaN(AlmanacInfo.TodaySunRise)) {
+				Text += 'No sunrise for today ';
+			} else {
+				Text += 'Sunrise for today is at ' + AlmanacInfo.TodaySunRise.getFormattedTime() + ' ';
+			}
+			if (isNaN(AlmanacInfo.TodaySunSet)) {
+				Text += ' and no setset. ';
+			} else {
+				Text += ' and sunset is at ' + AlmanacInfo.TodaySunSet.getFormattedTime() + '. ';
+			}
 		}
-		if (isNaN(AlmanacInfo.TodaySunSet)) {
-			Text += ' and no setset. ';
-		} else {
-			Text += ' and sunset is at ' + AlmanacInfo.TodaySunSet.getFormattedTime() + '. ';
-		}
-
-		//Text += ". ";
-
 		break;
 
 	case CanvasTypes.Outlook:
-		var Outlook = _WeatherParameters.Outlook;
+		const Outlook = _WeatherParameters.Outlook;
 
 		Text += 'Your 30 day outlook from mid ' + _MonthLongNames[Outlook.From] + ' to mid ' + _MonthLongNames[Outlook.To] + '. ';
 		Text += 'Temperatures are expected to be ' + GetOutlookDescription(Outlook.Temperature) + '. ';
@@ -8200,9 +8083,9 @@ var GetNarrationText = function () {
 		break;
 
 	case CanvasTypes.MarineForecast:
-		var MarineForecast = _WeatherParameters.MarineForecast;
-		var WindSpeed;
-		var Tide;
+		const MarineForecast = _WeatherParameters.MarineForecast;
+		let WindSpeed;
+		let Tide;
 
 		Text += 'Marine Forecast. ';
 
@@ -8291,107 +8174,90 @@ var GetNarrationText = function () {
 
 	case CanvasTypes.RegionalForecast1:
 	case CanvasTypes.RegionalForecast2:
-		//var Today = new Date();
-		//var addDays = 0;
-		//if (Today.getHours() >= 12)
-		//{
-		//    addDays = 1;
-		//    Today.setHours(0, 0, 0, 0);
-		//}
-		//else if (Today.getHours() === 0)
-		//{
-		//    // Prevent Midnight from causing the wrong icons to appear.
-		//    Today.setHours(1, 0, 0, 0);
-		//}
+		{		const Today = new Date();
+			var addDays = 0;
+			var IsNightTime;
+			var GetTodaysForecast;
+			var GetTonightsForecast;
+			var GetTomorrowsForecast;
+			var RegionalForecastCities;
 
-		//var Tomorrow = Today.addDays(addDays);
-		//var _Date = Tomorrow.getYYYYMMDD();
-		//var DayName = Tomorrow.getDayName();
+			if (CanvasType === CanvasTypes.RegionalForecast2) {
+				RegionalForecastCities = _WeatherParameters.RegionalForecastCities2;
 
-		var Today = new Date();
-		var addDays = 0;
-		var IsNightTime;
-		var GetTodaysForecast;
-		var GetTonightsForecast;
-		var GetTomorrowsForecast;
-		var RegionalForecastCities;
-
-		if (CanvasType === CanvasTypes.RegionalForecast2) {
-			RegionalForecastCities = _WeatherParameters.RegionalForecastCities2;
-
-			if (Today.getHours() >= 12) {
+				if (Today.getHours() >= 12) {
 				// Tomorrow's daytime forecast
-				addDays = 1;
-				Today.setHours(0, 0, 0, 0);
-				IsNightTime = false;
-				GetTomorrowsForecast = true;
-			} else {
+					addDays = 1;
+					Today.setHours(0, 0, 0, 0);
+					IsNightTime = false;
+					GetTomorrowsForecast = true;
+				} else {
 				// Todays's nighttime forecast
-				if (Today.getHours() === 0) {
+					if (Today.getHours() === 0) {
 					// Prevent Midnight from causing the wrong icons to appear.
-					Today.setHours(1, 0, 0, 0);
+						Today.setHours(1, 0, 0, 0);
+					}
+					IsNightTime = true;
+					GetTonightsForecast = true;
 				}
-				IsNightTime = true;
-				GetTonightsForecast = true;
-			}
-		} else {
-			RegionalForecastCities = _WeatherParameters.RegionalForecastCities1;
+			} else {
+				RegionalForecastCities = _WeatherParameters.RegionalForecastCities1;
 
-			if (Today.getHours() >= 12) {
+				if (Today.getHours() >= 12) {
 				// Todays's nighttime forecast
 				// Prevent Midnight from causing the wrong icons to appear.
-				Today.setHours(1, 0, 0, 0);
-				IsNightTime = true;
-				GetTonightsForecast = true;
-			} else {
-				// Today's daytime forecast
-				if (Today.getHours() === 0) {
-					// Prevent Midnight from causing the wrong icons to appear.
 					Today.setHours(1, 0, 0, 0);
+					IsNightTime = true;
+					GetTonightsForecast = true;
+				} else {
+				// Today's daytime forecast
+					if (Today.getHours() === 0) {
+					// Prevent Midnight from causing the wrong icons to appear.
+						Today.setHours(1, 0, 0, 0);
+					}
+					IsNightTime = false;
+					GetTodaysForecast = true;
 				}
-				IsNightTime = false;
-				GetTodaysForecast = true;
 			}
+
+			const Tomorrow = Today.addDays(addDays);
+			var _Date = Tomorrow.getYYYYMMDD();
+			var DayName = Tomorrow.getDayName();
+
+			Text += 'Regional forecast for ' + DayName + (IsNightTime ? ' Night ' : '') + ' for the following cities. ';
+
+			$(RegionalForecastCities).each(function () {
+				var RegionalForecastCity = this;
+
+				var RegionalCity = RegionalForecastCity.RegionalCity;
+				var weatherTravelForecast = RegionalForecastCity.weatherTravelForecast;
+
+				// City Name
+				Text += RegionalCity.Name + ' ';
+				Text += weatherTravelForecast.Conditions + ' ';
+
+				// Temperature
+				if (IsNightTime) {
+					var MinimumTemperature;
+					if (_Units === Units.English) {
+						MinimumTemperature = weatherTravelForecast.MinimumTemperature.toString();
+					} else {
+						MinimumTemperature = Math.round(weatherTravelForecast.MinimumTemperatureC).toString();
+					}
+					Text += ' with a low of ' + MinimumTemperature.toString().replaceAll('.', ' point ') + '. ';
+				} else {
+					var MaximumTemperature;
+					if (_Units === Units.English) {
+						MaximumTemperature = weatherTravelForecast.MaximumTemperature.toString();
+					} else {
+						MaximumTemperature = Math.round(weatherTravelForecast.MaximumTemperatureC).toString();
+					}
+					Text += ' with a high of ' + MaximumTemperature.toString().replaceAll('.', ' point ') + '. ';
+				}
+			});
+
+			Text += '. ';
 		}
-
-		var Tomorrow = Today.addDays(addDays);
-		var _Date = Tomorrow.getYYYYMMDD();
-		var DayName = Tomorrow.getDayName();
-
-		Text += 'Regional forecast for ' + DayName + (IsNightTime ? ' Night ' : '') + ' for the following cities. ';
-
-		$(RegionalForecastCities).each(function () {
-			var RegionalForecastCity = this;
-
-			var RegionalCity = RegionalForecastCity.RegionalCity;
-			var weatherTravelForecast = RegionalForecastCity.weatherTravelForecast;
-
-			// City Name
-			Text += RegionalCity.Name + ' ';
-			Text += weatherTravelForecast.Conditions + ' ';
-
-			// Temperature
-			if (IsNightTime) {
-				var MinimumTemperature;
-				if (_Units === Units.English) {
-					MinimumTemperature = weatherTravelForecast.MinimumTemperature.toString();
-				} else {
-					MinimumTemperature = Math.round(weatherTravelForecast.MinimumTemperatureC).toString();
-				}
-				Text += ' with a low of ' + MinimumTemperature.toString().replaceAll('.', ' point ') + '. ';
-			} else {
-				var MaximumTemperature;
-				if (_Units === Units.English) {
-					MaximumTemperature = weatherTravelForecast.MaximumTemperature.toString();
-				} else {
-					MaximumTemperature = Math.round(weatherTravelForecast.MaximumTemperatureC).toString();
-				}
-				Text += ' with a high of ' + MaximumTemperature.toString().replaceAll('.', ' point ') + '. ';
-			}
-		});
-
-		Text += '. ';
-
 		break;
 
 	case CanvasTypes.RegionalObservations:
@@ -8501,7 +8367,7 @@ var GetNarrationText = function () {
 	return Text;
 };
 
-var GetVerboseText = function (Text) {
+const GetVerboseText = (Text) => {
 	Text = ' ' + Text;
 	Text = Text.replaceAll('\n', ' ');
 	Text = Text.replaceAll('*', ' ');
@@ -8551,12 +8417,10 @@ var GetVerboseText = function (Text) {
 	Text = Text.replaceAll(' 180S', ' HUNDRED EIGHTIES ');
 	Text = Text.replaceAll(' 190S', ' HUNDRED NINETIES ');
 
-	//Text = Text.toLowerCase();
-
 	return Text;
 };
 
-var GetWindDirectionWords = function (WindDirection) {
+const GetWindDirectionWords = (WindDirection) => {
 	var Words = WindDirection;
 
 	Words = Words.replaceAll('N', 'North ');
