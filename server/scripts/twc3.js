@@ -5671,7 +5671,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				if (!DontLoadGifs) {
 					// Conditions Icon
 					Gifs.push(await utils.SuperGifAsync({
-						src: city.icon,
+						src: GetWeatherRegionalIconFromIconLink(city.icon, IsNightTime),
 						max_width: 42,
 						loop_delay: 100,
 						auto_play: true,
@@ -5732,7 +5732,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				if (!DontLoadGifs) {
 					// Conditions Icon
 					Gifs.push(await utils.SuperGifAsync({
-						src: city.icon,
+						src: GetWeatherRegionalIconFromIconLink(city.icon, IsNightTime),
 						max_width: 42,
 						loop_delay: 100,
 						auto_play: true,
@@ -5877,7 +5877,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 			RegionalObservations.push({
 				name: city.Name,
 				temperature: utils.units.CelsiusToFahrenheit(observation.temperature.value),
-				icon: GetWeatherRegionalIconFromIconLink(observation.icon),
+				icon: observation.icon,
 				x: CityXY.x,
 				y: CityXY.y,
 			});
@@ -5890,7 +5890,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				high: forecast.properties.periods[todayShift].temperature||0,
 				low: forecast.properties.periods[todayShift+1].temperature||0,
 				name: city.Name,
-				icon: GetWeatherRegionalIconFromIconLink(forecast.properties.periods[todayShift].icon),
+				icon: forecast.properties.periods[todayShift].icon,
 				x: CityXY.x,
 				y: CityXY.y,
 			};
