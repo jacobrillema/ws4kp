@@ -1132,6 +1132,9 @@ var GetFileNameFromUrl = function (Url) {
 	return UrlParts[UrlParts.length - 1];
 };
 
+// internal function to add path to returned icon
+const addPath = (icon) => `images/r/${icon}`;
+
 const GetWeatherRegionalIconFromIconLink = (link, isNightTime) => {
 	// extract day or night if not provided
 	if (isNightTime === undefined) isNightTime = link.indexOf('/night/') >=0;
@@ -1146,8 +1149,6 @@ const GetWeatherRegionalIconFromIconLink = (link, isNightTime) => {
 		conditionName = match[1];
 	}
 
-	// internal function to add path to returned icon
-	const addPath = (icon) => `images/r/${icon}`;
 
 	// find the icon
 	switch (conditionName + (isNightTime?'-n':'')) {
@@ -1254,123 +1255,104 @@ const GetWeatherRegionalIconFromIconLink = (link, isNightTime) => {
 	}
 };
 
-var GetWeatherIcon2FromIconLink = function (WeatherIconLink, WeatherConditions, WeatherParameters, OverrideIsDay) {
-	var WeatherIcon = GetWeatherIconFromIconLink(WeatherIconLink, WeatherConditions, WeatherParameters, OverrideIsDay);
-	WeatherIcon = WeatherIcon.replace('images/', '').toLowerCase();
-	let Icon;
+const GetWeatherIcon2FromIconLink = function (link, OverrideIsDay = true) {
+	// grab everything after the last slash ending at any of these: ?&,
+	const afterLastSlash = link.toLowerCase().match(/[^/]+$/)[0];
+	let conditionName = afterLastSlash.match(/(.*?)[,?&.]/)[1];
 
-	switch (WeatherIcon) {
-	case 'cc_clear1.gif':
-		Icon = 'Sunny.gif';
-		break;
+	// if a 'DualImage' is captured, adjust to just the j parameter
+	if (conditionName === 'dualimage') {
+		const match = link.match(/&j=(.*)&/);
+		conditionName = match[1];
+	}
 
-	case 'cc_clear0.gif':
-		Icon = 'Clear.gif';
-		break;
+
+	// find the icon
+	switch (conditionName + (!OverrideIsDay?'-n':'')) {
+
+
+	case 'skc':
+		return addPath('Sunny.gif');
+
+	case 'skc-n':
+		return addPath('Clear.gif');
 
 	case 'cc_mostlycloudy1.gif':
-		Icon = 'Mostly-Cloudy.gif';
-		break;
+		return addPath('Mostly-Cloudy.gif');
 
 	case 'cc_mostlycloudy0.gif':
-		Icon = 'Partly-Clear.gif';
-		break;
+		return addPath('Partly-Clear.gif');
 
 	case 'cc_partlycloudy1.gif':
-		Icon = 'Partly-Cloudy.gif';
-		break;
+		return addPath('Partly-Cloudy.gif');
 
 	case 'cc_partlycloudy0.gif':
-		Icon = 'Mostly-Clear.gif';
-		break;
+		return addPath('Mostly-Clear.gif');
 
 	case 'cc_cloudy.gif':
-		Icon = 'Cloudy.gif';
-		break;
+		return addPath('Cloudy.gif');
 
 	case 'cc_fog.gif':
-		Icon = 'Fog.gif';
-		break;
+		return addPath('Fog.gif');
 
 	case 'sleet.gif':
-		Icon = 'Sleet.gif';
-		break;
+		return addPath('Sleet.gif');
 
 	case 'ef_scatshowers.gif':
-		Icon = 'Scattered-Showers.gif';
-		break;
+		return addPath('Scattered-Showers.gif');
 
 	case 'cc_showers.gif':
-		Icon = 'Shower.gif';
-		break;
+		return addPath('Shower.gif');
 
 	case 'cc_rain.gif':
-		Icon = 'Rain.gif';
-		break;
+		return addPath('Rain.gif');
 
 		//case "ef_scatsnowshowers.gif":
 	case 'light-snow.gif':
-		Icon = 'Light-Snow.gif';
-		break;
+		return addPath('Light-Snow.gif');
 
 	case 'cc_snowshowers.gif':
-		Icon = 'Heavy-Snow.gif';
-		break;
+		return addPath('Heavy-Snow.gif');
 
 	case 'cc_snow.gif':
 	case 'heavy-snow.gif':
-		Icon = 'Heavy-Snow.gif';
-		break;
+		return addPath('Heavy-Snow.gif');
 
 	case 'cc_rainsnow.gif':
-		//Icon = "Ice-Snow.gif";
-		Icon = 'Rain-Snow.gif';
-		break;
+		//return addPath("Ice-Snow.gif");
+		return addPath('Rain-Snow.gif');
 
 	case 'cc_freezingrain.gif':
-		Icon = 'Freezing-Rain.gif';
-		break;
+		return addPath('Freezing-Rain.gif');
 
 	case 'cc_mix.gif':
-		Icon = 'Wintry-Mix.gif';
-		break;
+		return addPath('Wintry-Mix.gif');
 
 	case 'freezing-rain-sleet.gif':
-		Icon = 'Freezing-Rain-Sleet.gif';
-		break;
+		return addPath('Freezing-Rain-Sleet.gif');
 
 	case 'snow-sleet.gif':
-		Icon = 'Snow-Sleet.gif';
-		break;
+		return addPath('Snow-Sleet.gif');
 
 	case 'ef_scattstorms.gif':
-		Icon = 'Scattered-Tstorms.gif';
-		break;
+		return addPath('Scattered-Tstorms.gif');
 
 	case 'ef_scatsnowshowers.gif':
-		Icon = 'Scattered-Snow-Showers.gif';
-		break;
+		return addPath('Scattered-Snow-Showers.gif');
 
 	case 'cc_tstorm.gif':
 	case 'ef_isolatedtstorms.gif':
-		Icon = 'Thunderstorm.gif';
-		break;
+		return addPath('Thunderstorm.gif');
 
 	case 'cc_windy.gif':
 	case 'cc_windy2.gif':
-		Icon = 'Windy.gif';
-		break;
+		return addPath('Windy.gif');
 
 	case 'blowing-snow.gif':
-		Icon = 'Blowing-Snow.gif';
-		break;
+		return addPath('Blowing-Snow.gif');
 
 	default:
 		console.error('Unable to locate icon for \'' + WeatherIcon + '\'');
-		Icon = '';
-		break;
+		return addPath('');
 	}
-
-	Icon = 'images/2/' + Icon;
-	return Icon;
 };

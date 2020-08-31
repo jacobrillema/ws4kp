@@ -3337,15 +3337,17 @@ const PopulateCurrentConditions = async (WeatherParameters) => {
 	let Visibility = Math.round(observations.visibility.value/1000);
 	let VisibilityUnit = ' km.';
 	let WindSpeed = Math.round(observations.windSpeed.value);
-	let WindDirection = utils.calc.DirectionToNSEW(observations.windDirection.value);
+	const WindDirection = utils.calc.DirectionToNSEW(observations.windDirection.value);
 	let Pressure = Math.round(observations.barometricPressure.value);
 	let HeatIndex = Math.round(observations.heatIndex.value);
 	let WindChill = Math.round(observations.windChill.value);
 	let WindGust = Math.round(observations.windGust.value);
 	let Humidity = Math.round(observations.relativeHumidity.value);
-	let Icon = GetWeatherRegionalIconFromIconLink(observations.icon);
-	let StationName = WeatherParameters.WeatherCurrentConditions.station.properties.name;
+	const Icon = GetWeatherIcon2FromIconLink(observations.icon);
+	const StationName = WeatherParameters.WeatherCurrentConditions.station.properties.name;
 	let PressureDirection = '';
+	const TextConditions = observations.textDescription;
+
 	// difference since last measurement (pascals, looking for difference of more than 150)
 	const pressureDiff = (observations.barometricPressure.value - WeatherParameters.WeatherCurrentConditions.features[1].properties.barometricPressure.value);
 	if (pressureDiff > 150) PressureDirection = 'R';
@@ -3367,7 +3369,7 @@ const PopulateCurrentConditions = async (WeatherParameters) => {
 
 	divTemperature.html(Temperature + '&deg;');
 	divStation.html(StationName);
-	divConditions.html(observations.textDescription);
+	divConditions.html(TextConditions);
 	divHumidity.html('Humidity: ' + Humidity + '%');
 	divDewpoint.html('Dewpoint: ' + DewPoint + '&deg;');
 	divCeiling.html('Ceiling: ' + (!observations.Ceiling ? 'Unlimited' : observations.Ceiling + ' ' + CeilingUnit));
@@ -3412,7 +3414,7 @@ const PopulateCurrentConditions = async (WeatherParameters) => {
 	DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', 170, 135, Temperature + String.fromCharCode(176), 2);
 
 	let Conditions = observations.textDescription;
-	if (Conditions.length > 15) {
+	if (TextConditions.length > 15) {
 		Conditions = observations.ShortConditions;
 	}
 	DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 195, 170, Conditions, 2, 'center');
@@ -3480,6 +3482,24 @@ const PopulateCurrentConditions = async (WeatherParameters) => {
 	WeatherParameters.Progress.CurrentConditions = LoadStatuses.Loaded;
 
 	UpdateWeatherCanvas(WeatherParameters, canvasCurrentWeather);
+};
+
+const shortenCurrentConditions = (condition) => {
+	condition = condition.replaceAll('Light', 'L');
+	condition = condition.replaceAll('Heavy', 'H');
+	condition = condition.replaceAll('Partly', 'P');
+	condition = condition.replaceAll('Mostly', 'M');
+	condition = condition.replaceAll('Few', 'F');
+	condition = condition.replaceAll('Thunderstorm', 'T\'storm');
+	condition = condition.replaceAll(' in ', '');
+	condition = condition.replaceAll('Vicinity', '');
+	condition = condition.replaceAll(' and ', ' ');
+	condition = condition.replaceAll('Freezing Rain', 'Frz Rn');
+	condition = condition.replaceAll('Freezing', 'Frz');
+	condition = condition.replaceAll('Unknown Precip', '');
+	condition = condition.replaceAll('L Snow Fog', 'L Snw/Fog');
+	condition = condition.replaceAll(' with ', '/');
+	return condition;
 };
 
 var WeatherExtendedForecast = function (WeatherParser) {
@@ -5525,7 +5545,7 @@ const PopulateRegionalObservations = async (WeatherParameters) => {
 		}
 
 		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 65, y, condition.City.substr(0, 14), 2);
-		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 345, y, condition.textDescription.substr(0, 9), 2);
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 345, y, shortenCurrentConditions(condition.textDescription).substr(0, 9), 2);
 
 		if (WindSpeed > 0) {
 			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, windDirection + (Array(6 - windDirection.length - WindSpeed.toString().length).join(' ')) + WindSpeed.toString(), 2);
