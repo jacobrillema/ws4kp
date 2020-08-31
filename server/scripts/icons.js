@@ -24,6 +24,7 @@ const icons = (() => {
 		switch (conditionName + (isNightTime?'-n':'')) {
 		case 'skc':
 		case 'hot':
+		case 'haze':
 			return addPath('Sunny.gif');
 
 		case 'skc-n':
@@ -32,7 +33,6 @@ const icons = (() => {
 			return addPath('Clear-1992.gif');
 
 		case 'bkn':
-		case 'few':
 			return addPath('Mostly-Cloudy-1994-2.gif');
 
 		case 'bkn-n':
@@ -42,6 +42,7 @@ const icons = (() => {
 			return addPath('Partly-Clear-1994-2.gif');
 
 		case 'sct':
+		case 'few':
 			return addPath('Partly-Cloudy.gif');
 
 		case 'sct-n':
@@ -102,6 +103,7 @@ const icons = (() => {
 			return addPath('Scattered-Tstorms-Night-1994-2.gif');
 
 		case 'tsra_hi':
+		case 'tsra_hi-n':
 		case 'hurricane':
 			return addPath('Thunderstorm.gif');
 

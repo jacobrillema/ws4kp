@@ -216,9 +216,21 @@ const GetCurrentWeather = async (WeatherParameters) => {
 };
 
 const getExtendedForecast = async (WeatherParameters) => {
-	// TODO: extended forecast
-	PopulateExtendedForecast(WeatherParameters, 1);
-	PopulateExtendedForecast(WeatherParameters, 2);
+	try {
+		const forecast = await $.ajax({
+			type: 'GET',
+			url: WeatherParameters.Forecast,
+			crossDomain: true,
+		});
+		WeatherParameters.ExtendedForecast = ParseExtendedForecast(forecast.properties.periods);
+
+		PopulateExtendedForecast(WeatherParameters, 1);
+		PopulateExtendedForecast(WeatherParameters, 2);
+	} catch (e) {
+		console.error('Unable to get extended forecast');
+		console.error(e);
+		return false;
+	}
 };
 
 const GetMonthPrecipitation = async (WeatherParameters) => {
@@ -2987,124 +2999,79 @@ const shortenCurrentConditions = (condition) => {
 	return condition;
 };
 
-var WeatherExtendedForecast = function (WeatherParser) {
-	//var _Today = new Date();
-	//var _NextDay = _Today.addDays(2);
-	var Today = new Date();
-	//var _Days = [1, 2, 3];
-	//var _Days = [0, 1, 2, 3, 4, 5];
-	var _Days = [0, 1, 2, 3, 4, 5, 6];
-	//if (Today.getHours() >= 12)
-	//if (Today.getHours() >= 15)
-	//{
-	//    //_Days = [2, 3, 4];
-	//    var _Days = [1, 2, 3, 4, 5, 6];
-	//}
-	Today.setHours(0, 0, 0, 0);
+// the api provides the forecast in 12 hour increments, flatten to day increments with high and low temperatures
+const ParseExtendedForecast = (fullForecast) => {
+	// create a list of days starting with today
+	const _Days = [0, 1, 2, 3, 4, 5, 6];
 
-	var _LayoutKey;
-	var _PeriodIndex = [];
-	//var _Days = [];
-	var _Dates = [];
-	var _Day = {};
-	//var _DayName;
-
-	var _self = this;
-	this.Day = [];
-
-	$(_Days).each(function () {
-		var NewDate = Today.addDays(this);
-		var Date = NewDate.getYYYYMMDD();
-		var DayName = NewDate.getDayName();
-
-		$(WeatherParser.data_forecast.time_layout).each(function () {
-			_LayoutKey = this.layout_key;
-
-			$(this.start_valid_time).each(function (Index) {
-				if (this.value.indexOf(Date) !== -1) {
-					_PeriodIndex[Date + '_' + _LayoutKey] = Index;
-					return false;
-				}
-			});
-		});
-
-		_Dates.push({
-			Date: Date,
-			DayName: DayName,
-		});
+	const dates = _Days.map(shift => {
+		const date = luxon.DateTime.local().startOf('day').plus({days:shift});
+		return date.toLocaleString({weekday: 'short'});
 	});
 
+	// track the destination forecast index
+	let destIndex = 0;
+	const forecast = [];
+	fullForecast.forEach(period => {
+		// create the destination object if necessary
+		if (!forecast[destIndex]) forecast.push({dayName:'', low: undefined, high: undefined, text: undefined, icon: undefined});
+		// get the object to modify/populate
+		const fDay = forecast[destIndex];
+		// high temperature will always be last in the source array so it will overwrite the low values assigned below
+		// TODO: change to commented line when incons are matched up
+		// fDay.icon = icons.GetWeatherIconFromIconLink(period.icon);
+		fDay.icon = icons.GetWeatherRegionalIconFromIconLink(period.icon);
+		fDay.text = shortenExtendedForecastText(period.shortForecast);
+		fDay.dayName = dates[destIndex];
 
-	$(_Dates).each(function () {
-		//_PeriodIndex = [];
-		_Day = {};
-		var Date = this.Date;
-		var DayName = this.DayName;
-
-		_Day.Date = Date;
-		_Day.DayName = DayName;
-		_Day.DayShortName = _DayShortNames[DayName];
-
-		_LayoutKey = WeatherParser.data_forecast.parameters.temperature_maximum.time_layout;
-		_Day.MaximumTemperature = WeatherParser.data_forecast.parameters.temperature_maximum.value[_PeriodIndex[Date + '_' + _LayoutKey]];
-		_Day.MaximumTemperatureC = utils.calc.FahrenheitToCelsius(_Day.MaximumTemperature);
-		if (!_Day.MaximumTemperature) {
-			return true;
-		} else if ($.isNumeric(_Day.MaximumTemperature) === false) {
-			return true;
+		if (period.isDaytime) {
+			// day time is the high temperature
+			fDay.high = period.temperature;
+			destIndex++;
+		} else {
+			// low temperature
+			fDay.low = period.temperature;
 		}
-
-		_LayoutKey = WeatherParser.data_forecast.parameters.temperature_minimum.time_layout;
-		_Day.MinimumTemperature = WeatherParser.data_forecast.parameters.temperature_minimum.value[_PeriodIndex[Date + '_' + _LayoutKey]];
-		_Day.MinimumTemperatureC = utils.calc.FahrenheitToCelsius(_Day.MinimumTemperature);
-		if (!_Day.MinimumTemperature) {
-			return true;
-		} else if ($.isNumeric(_Day.MinimumTemperature) === false) {
-			return true;
-		}
-
-		_LayoutKey = WeatherParser.data_forecast.parameters.weather.time_layout;
-		_Day.Conditions = WeatherParser.data_forecast.parameters.weather.weather_conditions[_PeriodIndex[Date + '_' + _LayoutKey]].weather_summary.trim();
-		_Day.Conditions = _Day.Conditions.replaceAll(' and ', ' ');
-		_Day.Conditions = _Day.Conditions.replaceAll('Slight ', '');
-		_Day.Conditions = _Day.Conditions.replaceAll('Chance ', '');
-		_Day.Conditions = _Day.Conditions.replaceAll('Very ', '');
-		_Day.Conditions = _Day.Conditions.replaceAll('Patchy ', '');
-		_Day.Conditions = _Day.Conditions.replaceAll('Areas ', '');
-		_Day.Conditions = _Day.Conditions.replaceAll('Dense ', '');
-
-		var Conditions = _Day.Conditions.split(' ');
-		if (_Day.Conditions.indexOf('then') !== -1) {
-			Conditions = _Day.Conditions.split(' then ');
-			Conditions = Conditions[1].split(' ');
-		}
-
-		_Day.Conditions1 = Conditions[0].substr(0, 10);
-		_Day.Conditions2 = '';
-		if (Conditions[1]) {
-			if (_Day.Conditions1.endsWith('.') === false) {
-				_Day.Conditions2 = Conditions[1].substr(0, 10);
-			} else {
-				_Day.Conditions1 = _Day.Conditions1.replaceAll('.', '');
-			}
-
-			if (_Day.Conditions2 === 'Blowing') {
-				_Day.Conditions2 = '';
-			}
-		}
-		_Day.Conditions = _Day.Conditions1;
-		if (_Day.Conditions2 !== '') {
-			_Day.Conditions += ' ' + _Day.Conditions2;
-		}
-
-		_LayoutKey = WeatherParser.data_forecast.parameters.conditions_icon.time_layout;
-		_Day.Icon = WeatherParser.data_forecast.parameters.conditions_icon.icon_link[_PeriodIndex[Date + '_' + _LayoutKey]];
-		_Day.Icon = icons.GetWeatherIconFromIconLink(_Day.Icon, _Day.Conditions);
-
-		_self.Day.push(_Day);
 	});
 
+	return forecast;
+};
 
+const shortenExtendedForecastText = (long) => {
+	let short = long;
+	short = short.replaceAll(' and ', ' ');
+	short = short.replaceAll('Slight ', '');
+	short = short.replaceAll('Chance ', '');
+	short = short.replaceAll('Very ', '');
+	short = short.replaceAll('Patchy ', '');
+	short = short.replaceAll('Areas ', '');
+	short = short.replaceAll('Dense ', '');
+
+	let conditions = short.split(' ');
+	if (short.indexOf('then') !== -1) {
+		conditions = short.split(' then ');
+		conditions = conditions[1].split(' ');
+	}
+
+	let short1 = conditions[0].substr(0, 10);
+	let short2 = '';
+	if (conditions[1]) {
+		if (!short1.endsWith('.')) {
+			short2 = conditions[1].substr(0, 10);
+		} else {
+			short1 = short1.replaceAll('.', '');
+		}
+
+		if (short2 === 'Blowing') {
+			short2 = '';
+		}
+	}
+	short = short1;
+	if (short2 !== '') {
+		short += ' ' + short2;
+	}
+
+	return [short, short1, short2];
 };
 
 Date.prototype.addHours = function (hours) {
@@ -3142,26 +3109,17 @@ Date.prototype.getYYYYMMDD = function () {
 	return this.toISOString().split('T')[0];
 };
 
-var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
+const PopulateExtendedForecast = async (WeatherParameters, ScreenIndex = 1) => {
 	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.FourDayForecast !== LoadStatuses.Loaded)) {
 		return;
 	}
 
-	var WeatherExtendedForecast = WeatherParameters.WeatherExtendedForecast;
-
-	$(WeatherExtendedForecast.Day).each(function (Index, Day) {
-		$('#divDayShortName' + (Index + 1)).html(Day.DayShortName.toUpperCase());
-		$('#divConditions' + (Index + 1)).html(Day.Conditions);
-		$('#divIcon' + (Index + 1)).html('<img src=\'' + Day.Icon + '\' />');
-		$('#divLo' + (Index + 1)).html('Lo<br />' + Day.MinimumTemperature);
-		$('#divHi' + (Index + 1)).html('Hi<br />' + Day.MaximumTemperature);
-	});
+	const forecast = WeatherParameters.ExtendedForecast;
 
 	// Draw canvas
-	//var canvas = canvasExtendedForecast[0];
-	var canvas = null;
-	var LBound;
-	var UBound;
+	let canvas;
+	let LBound;
+	let UBound;
 	switch (ScreenIndex) {
 	case 1:
 		LBound = 0;
@@ -3174,155 +3132,73 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 		UBound = 5;
 		canvas = canvasExtendedForecast2[0];
 	}
-	var context = canvas.getContext('2d');
+	const context = canvas.getContext('2d');
 
-	var Counter = 0;
-	//var MaxIcons = WeatherExtendedForecast.Day.length;
-	var MaxIcons = 3;
+	const gifIcons = [];
 
-	var gifIcons = [];
+	const DrawExtendedForecast = async () => {
+		const BackGroundImage = await utils.loadImg('images/BackGround2_1.png');
 
-	var DrawExtendedForecast = function () {
-		var BackGroundImage = new Image();
-		BackGroundImage.onload = function () {
-			context.drawImage(BackGroundImage, 0, 0);
-			DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-			DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-			DrawHorizontalGradientSingle(context, 0, 90, 640, 399, _SideColor1, _SideColor2);
-			context.drawImage(BackGroundImage, 38, 100, 174, 297, 38, 100, 174, 297);
-			context.drawImage(BackGroundImage, 232, 100, 174, 297, 232, 100, 174, 297);
-			context.drawImage(BackGroundImage, 426, 100, 174, 297, 426, 100, 174, 297);
+		context.drawImage(BackGroundImage, 0, 0);
+		DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+		DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+		DrawHorizontalGradientSingle(context, 0, 90, 640, 399, _SideColor1, _SideColor2);
+		context.drawImage(BackGroundImage, 38, 100, 174, 297, 38, 100, 174, 297);
+		context.drawImage(BackGroundImage, 232, 100, 174, 297, 232, 100, 174, 297);
+		context.drawImage(BackGroundImage, 426, 100, 174, 297, 426, 100, 174, 297);
 
-			DrawTitleText(context, 'Extended', 'Forecast');
+		DrawTitleText(context, 'Extended', 'Forecast');
 
-			let x = 100;
-			$(WeatherExtendedForecast.Day).each(function (Index) {
-				if (Index < LBound || Index > UBound) return true;
-
-				var Day = this;
-				DrawText(context, 'Star4000', '24pt', '#FFFF00', x, 135, Day.DayShortName.toUpperCase(), 2);
-				x += 195;
-			});
-
-			x = 85;
-			$(WeatherExtendedForecast.Day).each(function (Index) {
-				if (Index < LBound || Index > UBound) return true;
-
-				DrawText(context, 'Star4000', '24pt', '#8080FF', x, 345, 'Lo', 2, 'center');
-				x += 195;
-			});
-
-			x = 165;
-			$(WeatherExtendedForecast.Day).each(function (Index) {
-				if (Index < LBound || Index > UBound) return true;
-
-				DrawText(context, 'Star4000', '24pt', '#FFFF00', x, 345, 'Hi', 2, 'center');
-				x += 195;
-			});
-
-			x = 85;
-			$(WeatherExtendedForecast.Day).each(function (Index) {
-				if (Index < LBound || Index > UBound) return true;
-
-				var Day = this;
-
-				var MinimumTemperature;
-
-				switch (_Units) {
-				case Units.English:
-					MinimumTemperature = Day.MinimumTemperature;
-					break;
-
-				default:
-					MinimumTemperature = Math.round(Day.MinimumTemperatureC);
-					break;
-				}
-
-				DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', x, 385, MinimumTemperature, 2, 'center');
-				x += 195;
-			});
-
-			x = 165;
-			$(WeatherExtendedForecast.Day).each(function (Index) {
-				if (Index < LBound || Index > UBound) return true;
-
-				var Day = this;
-
-				var MaximumTemperature;
-
-				switch (_Units) {
-				case Units.English:
-					MaximumTemperature = Day.MaximumTemperature;
-					break;
-
-				default:
-					MaximumTemperature = Math.round(Day.MaximumTemperatureC);
-					break;
-				}
-
-				DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', x, 385, MaximumTemperature, 2, 'center');
-				x += 195;
-			});
-
-			x = 120;
-			$(WeatherExtendedForecast.Day).each(function (Index) {
-				if (Index < LBound || Index > UBound) return true;
-
-
-
-				var Day = this;
-				var Conditions1 = Day.Conditions1;
-				var Conditions2 = Day.Conditions2;
-
-				DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 270, Conditions1, 2, 'center');
-				DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 310, Conditions2, 2, 'center');
-				x += 195;
-			});
-
-			x = 46;
-			$(gifIcons).each(function () {
-				// Max Width = 158px
-				var gifIcon = this;
-				gifIcon.setX(x + (158 / 2) - (gifIcon.get_canvas().width / 2));
-				gifIcon.setFirstTime();
-				x += 195;
-			});
-
-			if (ScreenIndex === 1) {
-				WeatherParameters.Progress.FourDayForecast1 = LoadStatuses.Loaded;
-			} else if (ScreenIndex === 2) {
-				WeatherParameters.Progress.FourDayForecast2 = LoadStatuses.Loaded;
+		forecast.forEach((Day, Index) => {
+			if (Index < LBound || Index > UBound) return true;
+			const offset = (Index-LBound)*195;
+			DrawText(context, 'Star4000', '24pt', '#FFFF00', 100+offset, 135, Day.dayName.toUpperCase(), 2);
+			DrawText(context, 'Star4000', '24pt', '#8080FF', 85+offset, 345, 'Lo', 2, 'center');
+			DrawText(context, 'Star4000', '24pt', '#FFFF00', 165+offset, 345, 'Hi', 2, 'center');
+			let  low = Day.low;
+			if (low !== undefined) {
+				if (_Units === Units.Metric) low = utils.units.FahrenheitToCelsius(low);
+				DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', 85+offset, 385, low, 2, 'center');
 			}
+			let high = Day.high;
+			if (_Units === Units.Metric) high = utils.units.FahrenheitToCelsius(high);
+			DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', 165+offset, 385, high, 2, 'center');
+			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 120+offset, 270, Day.text[1], 2, 'center');
+			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 120+offset, 310, Day.text[2], 2, 'center');
+		});
 
-			//WeatherParameters.Progress.FourDayForecast = LoadStatuses.Loaded;
-			if (WeatherParameters.Progress.FourDayForecast1 === LoadStatuses.Loaded && WeatherParameters.Progress.FourDayForecast2 === LoadStatuses.Loaded) {
-				WeatherParameters.Progress.FourDayForecast = LoadStatuses.Loaded;
-			}
+		gifIcons.forEach((gifIcon, Index) => {
+			const offset = Index*195;
+			gifIcon.setX(46+offset + (158 / 2) - (gifIcon.get_canvas().width / 2));
+			gifIcon.setFirstTime();
+		});
 
-			UpdateWeatherCanvas(WeatherParameters, $(canvas));
-		};
-		BackGroundImage.src = 'images/BackGround2_1.png';
-		//BackGroundImage.src = "images/BackGround2_" + _Themes.toString() + ".png";
+		if (ScreenIndex === 1) {
+			WeatherParameters.Progress.FourDayForecast1 = LoadStatuses.Loaded;
+		} else if (ScreenIndex === 2) {
+			WeatherParameters.Progress.FourDayForecast2 = LoadStatuses.Loaded;
+		}
+
+		if (WeatherParameters.Progress.FourDayForecast1 === LoadStatuses.Loaded && WeatherParameters.Progress.FourDayForecast2 === LoadStatuses.Loaded) {
+			WeatherParameters.Progress.FourDayForecast = LoadStatuses.Loaded;
+		}
+
+		UpdateWeatherCanvas(WeatherParameters, $(canvas));
 
 	};
 
-	var x = 70;
 
 	if (_DontLoadGifs) {
 		DrawExtendedForecast();
 	} else {
-		$(WeatherExtendedForecast.Day).each(function (Index) {
+		await Promise.all(forecast.map(async (Day, Index) => {
 			if (Index < LBound || Index > UBound) return true;
-
-			var Day = this;
-			var Icon = Day.Icon;
-
-			var gifIcon = new SuperGif({
-				src: Icon,
+			const gifIcon = await utils.SuperGifAsync({
+				src: Day.icon,
 				loop_delay: 100,
 				auto_play: true,
 				canvas: canvas,
-				x: x,
+				x: 70 + Index*195,
 				y: 150,
 				//max_width: 126,
 				max_height: 75,
@@ -3330,16 +3206,8 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 
 			gifIcons.push(gifIcon);
 
-			x += 195;
-
-			gifIcon.load(function () {
-				Counter++;
-				if (Counter === MaxIcons) {
-					DrawExtendedForecast();
-				}
-			});
-
-		});
+		}));
+		DrawExtendedForecast();
 	}
 };
 
@@ -3452,7 +3320,7 @@ const ConvertConditionsToMetric = (condition) => {
 							break;
 						default:
 						}
-						TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+						TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 						words[idx + 4] = words[idx + 4].replaceAll(TempF.toString() + 'S', TempC.toString());
 						words[idx + 3] = 'NEAR';
@@ -3473,7 +3341,7 @@ const ConvertConditionsToMetric = (condition) => {
 								break;
 							default:
 							}
-							TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+							TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 							words[idx + 7] = words[idx + 7].replaceAll(TempF.toString() + 'S', TempC.toString());
 							words[idx + 6] = 'NEAR';
@@ -3495,7 +3363,7 @@ const ConvertConditionsToMetric = (condition) => {
 								break;
 							default:
 							}
-							TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+							TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 							words[idx + 5] = words[idx + 5].replaceAll(TempF.toString() + 'S', TempC.toString());
 							words[idx + 4] = '?';
@@ -3505,7 +3373,7 @@ const ConvertConditionsToMetric = (condition) => {
 						const TempF = parseInt(words[idx + 3]);
 						let TempC = TempF;
 						TempC += 5;
-						TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+						TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 						words[idx + 3] = 'NEAR ' + words[idx + 3].replaceAll(TempF.toString() + 'S', TempC.toString());
 					}
@@ -3516,7 +3384,7 @@ const ConvertConditionsToMetric = (condition) => {
 						TempC *= -1;
 					}
 					TempC += 1;
-					TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+					TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 					words[idx + 2] = words[idx + 2].replaceAll(TempF.toString(), TempC.toString());
 
@@ -3526,7 +3394,7 @@ const ConvertConditionsToMetric = (condition) => {
 					const TempF = parseInt(words[idx + 1]);
 					let TempC = TempF;
 					TempC += 5;
-					TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+					TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 					words[idx + 1] = words[idx + 1].replaceAll(TempF.toString(), TempC.toString());
 
@@ -3534,7 +3402,7 @@ const ConvertConditionsToMetric = (condition) => {
 						const TempF = parseInt(words[idx + 3]);
 						let TempC = TempF;
 						TempC += 5;
-						TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+						TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 						words[idx + 3] = words[idx + 3].replaceAll(TempF.toString(), TempC.toString());
 					}
@@ -3546,7 +3414,7 @@ const ConvertConditionsToMetric = (condition) => {
 					TempC *= -1;
 				}
 				TempC += 1;
-				TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+				TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 				words[idx + 2] = words[idx + 2].replaceAll(TempF.toString(), TempC.toString());
 
@@ -3568,7 +3436,7 @@ const ConvertConditionsToMetric = (condition) => {
 					break;
 				default:
 				}
-				TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+				TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 				words[idx + 1] = words[idx + 1].replaceAll(TempF.toString() + 'S', TempC.toString());
 				words[idx + 1] = words[idx + 1].replaceAll(TempF.toString(), TempC.toString());
@@ -3581,7 +3449,7 @@ const ConvertConditionsToMetric = (condition) => {
 						TempC *= -1;
 					}
 					TempC += 1;
-					TempC = Math.round(utils.calc.FahrenheitToCelsius(TempC));
+					TempC = Math.round(utils.units.FahrenheitToCelsius(TempC));
 
 					words[idx + 1] = words[idx + 1].replaceAll(TempF.toString(), TempC.toString());
 
@@ -4523,8 +4391,8 @@ const PopulateTravelCities = (WeatherParameters) => {
 				let {low, high} = city;
 
 				if (_Units === Units.English) {
-					low = utils.calc.FahrenheitToCelsius(low);
-					high = utils.calc.FahrenheitToCelsius(high);
+					low = utils.units.FahrenheitToCelsius(low);
+					high = utils.units.FahrenheitToCelsius(high);
 				}
 
 				// convert to strings with no decimal
@@ -4890,11 +4758,11 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				// Temperature
 				if (IsNightTime) {
 					let MinimumTemperature = city.low.toString();
-					if (_Units === Units.Metric) MinimumTemperature = Math.round(utils.calc.FahrenheitToCelsius(city.low)).toString();
+					if (_Units === Units.Metric) MinimumTemperature = Math.round(utils.units.FahrenheitToCelsius(city.low)).toString();
 					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (MinimumTemperature.length * 15), city.y + 20, MinimumTemperature, 2);
 				} else {
 					let MaximumTemperature = city.high.toString();
-					if (_Units === Units.Metric) MaximumTemperature = Math.round(utils.calc.FahrenheitToCelsius(city.high)).toString();
+					if (_Units === Units.Metric) MaximumTemperature = Math.round(utils.units.FahrenheitToCelsius(city.high)).toString();
 					DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (MaximumTemperature.length * 15), city.y + 20, MaximumTemperature, 2);
 				}
 			}));
@@ -4950,7 +4818,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 
 				// Temperature
 				let temperature = city.temperature.toString();
-				if (_Units === Units.Metric) temperature = Math.round(utils.calc.FahrenheitToCelsius(city.temperature)).toString();
+				if (_Units === Units.Metric) temperature = Math.round(utils.units.FahrenheitToCelsius(city.temperature)).toString();
 				DrawText(cnvRegionalMap[0].getContext('2d'), 'Star4000 Large Compressed', '28px', '#ffff00', city.x - (temperature.length * 15), city.y + 20, temperature, 2);
 			}));
 
