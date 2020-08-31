@@ -1,4 +1,4 @@
-/* globals _StationInfo, luxon, _RegionalCities, utils, icons, _TravelCities */
+/* globals _StationInfo, luxon, _RegionalCities, utils, icons, _TravelCities, SunCalc */
 
 const _DayShortNames = { 'Sunday': 'Sun', 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat' };
 const _DayLongNameArray = Object.keys(_DayShortNames);
@@ -294,7 +294,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 			if (StationIds.length === 0) {
 				// No tide stations available for this location.
 
-				PopulateAlmanacInfo(_WeatherParameters);
 
 				return;
 			}
@@ -392,14 +391,11 @@ var GetTideInfo2 = function (WeatherParameters) {
 						if (TideInfoCount >= MaxStationCount) {
 							PopulateTideInfo(WeatherParameters);
 
-							PopulateAlmanacInfo(_WeatherParameters);
 
 						}
 					},
 					error: function (xhr, error, errorThrown) {
 						console.error('GetTideInfo failed: ' + errorThrown);
-
-						PopulateAlmanacInfo(_WeatherParameters);
 
 					},
 				});
@@ -413,8 +409,6 @@ var GetTideInfo2 = function (WeatherParameters) {
 		},
 		error: function (xhr, error, errorThrown) {
 			console.error('GetTideInfo failed: ' + errorThrown);
-
-			PopulateAlmanacInfo(_WeatherParameters);
 		},
 	});
 };
@@ -1740,6 +1734,7 @@ $(() => {
 		ShowDopplerMap(_WeatherParameters);
 		GetWeatherHazards3(_WeatherParameters);
 		getExtendedForecast(_WeatherParameters);
+		getAlminacInfo(_WeatherParameters);
 
 		if (_UpdateWeatherCanvasInterval) {
 			window.clearInterval(_UpdateWeatherCanvasInterval);
@@ -3927,136 +3922,6 @@ Number.prototype.pad = function(size) {
 	return s;
 };
 
-var MoonPhasesParser3 = function (json) {
-
-	var _self = this;
-	this.Phases = [];
-
-	$(json.astroPhases).each(function () {
-		var phase = this;
-
-		//    Url += Now.getFullYear().pad() + "/";
-		//    Url += (Now.getMonth() + 1).pad(2) + "/";
-		//    Url += Now.getDate().pad(2) + "/";
-
-		var phaseDate = new Date(phase.date);
-
-		var Phase = {
-			date: (phaseDate.getMonth() + 1).pad(2) + '/' + phaseDate.getDate().pad(2) + '/' + phaseDate.getFullYear().pad(),
-			time: '12:00:00',
-			phase: '',
-		};
-
-		switch (phase.moonPhase) {
-		case 'WANING_HALF_LAST_QTR':
-			Phase.phase = 'Last';
-			break;
-		case 'NEW_MOON':
-			Phase.phase = 'New';
-			break;
-		case 'WAXING_HALF_FIRST_QTR':
-			Phase.phase = 'First';
-			break;
-		case 'FULL_MOON':
-			Phase.phase = 'Full';
-			break;
-		default:
-		}
-
-		_self.Phases.push(Phase);
-
-		if (_self.Phases.length === 4) {
-			return false;
-		}
-	});
-};
-
-var SunRiseSetParser3 = function (json) {
-	var _self = this;
-
-	var riseSet = json.astroData[0].sun.riseSet;
-
-	//if (riseSet.riseUTC === "Sun rise doesn't exist")
-	//{
-	//    _self.SunRise = "";
-	//}
-	//else
-	//{
-	//    //_self.SunRise = riseSet.riseUTC;
-	//    var riseUtcTime = riseSet.riseUTC.split("T")[1].split(":");
-	//    _self.SunRise = riseUtcTime[0] + ":" + riseUtcTime[1];
-	//}
-
-	//if (riseSet.setUTC === "Sun set doesn't exist")
-	//{
-	//    _self.SunSet = "";
-	//}
-	//else
-	//{
-	//    //_self.SunSet = riseSet.setUTC;
-	//    var setUtcTime = riseSet.setUTC.split("T")[1].split(":");
-	//    _self.SunSet = setUtcTime[0] + ":" + setUtcTime[1];
-	//}
-
-	if (riseSet.rise === 'Sun rise doesn\'t exist' || riseSet.rise === undefined) {
-		_self.SunRise = '';
-	} else {
-		var riseTime = riseSet.rise.split('T')[1].split(':');
-		_self.SunRise = riseTime[0] + ':' + riseTime[1];
-	}
-
-	if (riseSet.set === 'Sun set doesn\'t exist' || riseSet.set === undefined) {
-		_self.SunSet = '';
-	} else {
-		var setTime = riseSet.set.split('T')[1].split(':');
-		_self.SunSet = setTime[0] + ':' + setTime[1];
-	}
-
-	if (riseSet.riseLocal === 'Sun rise doesn\'t exist' || riseSet.riseLocal === undefined) {
-		_self.SunRiseLocal = '';
-	} else {
-		var riseLocalTime = new Date(riseSet.riseLocal);
-		_self.SunRiseLocal = riseLocalTime.getHours().pad(2) + ':' + riseLocalTime.getMinutes().pad(2);
-	}
-
-	if (riseSet.setLocal === 'Sun set doesn\'t exist' || riseSet.setLocal === undefined) {
-		_self.SunSetLocal = '';
-	} else {
-		var setLocalTime = new Date(riseSet.setLocal);
-		_self.SunSetLocal = setLocalTime.getHours().pad(2) + ':' + setLocalTime.getMinutes().pad(2);
-	}
-
-	var tz = parseInt(riseSet.riseLocal.split('-')[3]) * -1;
-
-	var dt = new Date();
-	if (dt.dst()) {
-		tz++;
-	}
-
-	switch (tz) {
-	case -5:
-		_self.TimeZone = 'EST';
-		break;
-	case -6:
-		_self.TimeZone = 'CST';
-		break;
-	case -7:
-		_self.TimeZone = 'MST';
-		break;
-	case -8:
-		_self.TimeZone = 'PST';
-		break;
-	case -9:
-		_self.TimeZone = 'AST';
-		break;
-	case -10:
-		_self.TimeZone = 'HST';
-		break;
-	default:
-	}
-
-};
-
 var AlmanacInfo = function (MoonPhasesParser, SunRiseSetParserToday, SunRiseSetParserTomorrow) {
 	var _self = this;
 	//var Today = new Date();
@@ -4095,157 +3960,104 @@ var AlmanacInfo = function (MoonPhasesParser, SunRiseSetParserToday, SunRiseSetP
 	this.TomorrowSunRiseLocal = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseLocal);//, SunRiseSetParserToday.TimeZone);
 	this.TomorrowSunSetLocal = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetLocal);//, SunRiseSetParserToday.TimeZone);
 
-	//this.TodaySunRise = new Date(SunRiseSetParserToday.SunRise);
-	//this.TodaySunSet = new Date(SunRiseSetParserToday.SunSet);
-
-	//this.TomorrowSunRise = new Date(SunRiseSetParserTomorrow.SunRise);
-	//this.TomorrowSunSet = new Date(SunRiseSetParserTomorrow.SunSet);
-
-	//this.TodaySunRiseLocal = new Date(SunRiseSetParserToday.SunRiseLocal);
-	//this.TodaySunSetLocal = new Date(SunRiseSetParserToday.SunSetLocal);
-
-	//this.TomorrowSunRiseLocal = new Date(SunRiseSetParserTomorrow.SunRiseLocal);
-	//this.TomorrowSunSetLocal = new Date(SunRiseSetParserTomorrow.SunSetLocal);
-
 };
 
-var PopulateAlmanacInfo = function (WeatherParameters) {
-	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.Almanac !== LoadStatuses.Loaded)) {
-		return;
-	}
+const getAlminacInfo = (WeatherParameters) => {
+	// calculated locally for today and tomorrow
+	const sun = [
+		SunCalc.getTimes(new Date(), WeatherParameters.Latitude, WeatherParameters.Longitude),
+		SunCalc.getTimes((new Date()).addDays(1), WeatherParameters.Latitude, WeatherParameters.Longitude)
+	];
 
-	var AlmanacInfo = WeatherParameters.AlmanacInfo;
-	divSunrise.html('Sunrise:');
+	// brute force the moon phases by scanning the next 30 days
+	const moon;
 
-	divSunriseTodayName.html(AlmanacInfo.TodaySunRise.getDayName());
-	divSunriseToday.html(AlmanacInfo.TodaySunRise.getFormattedTime());
-	divSunriseTomorrow.html(AlmanacInfo.TomorrowSunRise.getFormattedTime());
+	WeatherParameters.AlmanacInfo = {
+		sun,
+		moon,
+	};
+	WeatherParameters.Progress.Almanac = LoadStatuses.Loaded;
+	PopulateAlmanacInfo(WeatherParameters);
+};
 
-	divSunset.html('Sunset:');
-	divSunsetTomorrowName.html(AlmanacInfo.TomorrowSunRise.getDayName());
-	divSunsetToday.html(AlmanacInfo.TodaySunSet.getFormattedTime());
-	divSunsetTomorrow.html(AlmanacInfo.TomorrowSunSet.getFormattedTime());
+const PopulateAlmanacInfo = async (WeatherParameters) => {
+	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.Almanac !== LoadStatuses.Loaded)) return;
 
-	$(AlmanacInfo.MoonPhases).each(function (Index, MoonPhase) {
-		var date = MoonPhase.Date.getMonthShortName() + ' ' + MoonPhase.Date.getDate().toString();
-
-		$('#divMoonDate' + (Index + 1).toString()).html(date);
-		$('#divMoonPhase' + (Index + 1).toString()).html(MoonPhase.Phase);
-	});
+	const info = WeatherParameters.AlmanacInfo;
 
 	// Draw canvas
-	var canvas = canvasAlmanac[0];
-	var context = canvas.getContext('2d');
+	const canvas = canvasAlmanac[0];
+	const context = canvas.getContext('2d');
 
-	var MoonImageCounter = 0;
+	// load all images in parallel
+	const [FullMoonImage, LastMoonImage, NewMoonImage, FirstMoonImage, BackGroundImage] = await Promise.all([
+		utils.loadImg('images/2/Full-Moon.gif'),
+		utils.loadImg('images/2/Last-Quarter.gif'),
+		utils.loadImg('images/2/New-Moon.gif'),
+		utils.loadImg('images/2/First-Quarter.gif'),
+		utils.loadImg('images/BackGround3_1.png'),
+	]);
 
-	var MoonImageLoaded = function() {
-		MoonImageCounter++;
-		if (MoonImageCounter === 4) {
-			var BackGroundImage = new Image();
-			BackGroundImage.onload = function () {
-				context.drawImage(BackGroundImage, 0, 0);
-				DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-				DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-				DrawHorizontalGradientSingle(context, 0, 90, 640, 190, _SideColor1, _SideColor2);
+	context.drawImage(BackGroundImage, 0, 0);
+	DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
+	DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
+	DrawHorizontalGradientSingle(context, 0, 90, 640, 190, _SideColor1, _SideColor2);
 
-				DrawTitleText(context, 'Almanac', 'Astronomical');
+	DrawTitleText(context, 'Almanac', 'Astronomical');
 
-				//DrawText(context, "Star4000", "24pt", "#FFFF00", 320, 120, AlmanacInfo.TodaySunRise.getDayName(), 2, "center");
-				//DrawText(context, "Star4000", "24pt", "#FFFF00", 500, 120, AlmanacInfo.TomorrowSunRise.getDayName(), 2, "center");
-				var Today = new Date();
-				var Tomorrow = Today.addDays(1);
-				DrawText(context, 'Star4000', '24pt', '#FFFF00', 320, 120, Today.getDayName(), 2, 'center');
-				DrawText(context, 'Star4000', '24pt', '#FFFF00', 500, 120, Tomorrow.getDayName(), 2, 'center');
+	const Today = luxon.DateTime.local();
+	const Tomorrow = Today.plus({days: 1});
+	DrawText(context, 'Star4000', '24pt', '#FFFF00', 320, 120, Today.toLocaleString({weekday: 'long'}), 2, 'center');
+	DrawText(context, 'Star4000', '24pt', '#FFFF00', 500, 120, Tomorrow.toLocaleString({weekday: 'long'}), 2, 'center');
 
-				DrawText(context, 'Star4000', '24pt', '#FFFFFF', 70, 150, 'Sunrise:', 2);
-				if (isNaN(AlmanacInfo.TodaySunRise)) {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 270, 150, 'No Sunrise', 2);
-				} else {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 270, 150, AlmanacInfo.TodaySunRise.getFormattedTime(), 2);
-				}
-				if (isNaN(AlmanacInfo.TomorrowSunRise)) {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 450, 150, 'No Sunrise', 2);
-				} else {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 450, 150, AlmanacInfo.TomorrowSunRise.getFormattedTime(), 2);
-				}
+	DrawText(context, 'Star4000', '24pt', '#FFFFFF', 70, 150, 'Sunrise:', 2);
+	DrawText(context, 'Star4000', '24pt', '#FFFFFF', 270, 150, luxon.DateTime.fromJSDate(info.sun[0].sunrise).toLocaleString(luxon.DateTime.TIME_SIMPLE).toLowerCase(), 2);
+	DrawText(context, 'Star4000', '24pt', '#FFFFFF', 450, 150, luxon.DateTime.fromJSDate(info.sun[1].sunrise).toLocaleString(luxon.DateTime.TIME_SIMPLE).toLowerCase(), 2);
 
-				DrawText(context, 'Star4000', '24pt', '#FFFFFF', 70, 180, ' Sunset:', 2);
-				if (isNaN(AlmanacInfo.TodaySunSet)) {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 270, 180, 'No Sunset', 2);
-				} else {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 270, 180, AlmanacInfo.TodaySunSet.getFormattedTime(), 2);
-				}
-				if (isNaN(AlmanacInfo.TomorrowSunSet)) {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 450, 180, 'No Sunset', 2);
-				} else {
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', 450, 180, AlmanacInfo.TomorrowSunSet.getFormattedTime(), 2);
-				}
+	DrawText(context, 'Star4000', '24pt', '#FFFFFF', 70, 180, ' Sunset:', 2);
+	DrawText(context, 'Star4000', '24pt', '#FFFFFF', 270, 180, luxon.DateTime.fromJSDate(info.sun[0].sunset).toLocaleString(luxon.DateTime.TIME_SIMPLE).toLowerCase(), 2);
+	DrawText(context, 'Star4000', '24pt', '#FFFFFF', 450, 180, luxon.DateTime.fromJSDate(info.sun[1].sunset).toLocaleString(luxon.DateTime.TIME_SIMPLE).toLowerCase(), 2);
 
-				DrawText(context, 'Star4000', '24pt', '#FFFF00', 70, 220, 'Moon Data:', 2);
+	DrawText(context, 'Star4000', '24pt', '#FFFF00', 70, 220, 'Moon Data:', 2);
 
-				var x = 120;
-				$(AlmanacInfo.MoonPhases).each(function (Index, MoonPhase) {
-					var date;
-					switch (_Units) {
-					case Units.English:
-						date = MoonPhase.Date.getMonthShortName() + ' ' + MoonPhase.Date.getDate().toString();
-						break;
-					default:
-						date = MoonPhase.Date.getDate().toString() + ' ' + MoonPhase.Date.getMonthShortName();
-						break;
-					}
-
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 260, MoonPhase.Phase, 2, 'center');
-					DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 390, date, 2, 'center');
-
-					switch (MoonPhase.Phase) {
-					case 'Full':
-						context.drawImage(FullMoonImage, x - 45, 270);
-						break;
-					case 'Last':
-						context.drawImage(LastMoonImage, x - 45, 270);
-						break;
-					case 'New':
-						context.drawImage(NewMoonImage, x - 45, 270);
-						break;
-					case 'First':
-						context.drawImage(FirstMoonImage, x - 45, 270);
-						break;
-					default:
-					}
-
-					x += 130;
-				});
-
-				WeatherParameters.Progress.Almanac = LoadStatuses.Loaded;
-
-				UpdateWeatherCanvas(WeatherParameters, canvasAlmanac);
-			};
-			BackGroundImage.src = 'images/BackGround3_1.png';
-			//BackGroundImage.src = "images/BackGround3_" + _Themes.toString() + ".png";
+	var x = 120;
+	$(AlmanacInfo.MoonPhases).each(function (Index, MoonPhase) {
+		var date;
+		switch (_Units) {
+		case Units.English:
+			date = MoonPhase.Date.getMonthShortName() + ' ' + MoonPhase.Date.getDate().toString();
+			break;
+		default:
+			date = MoonPhase.Date.getDate().toString() + ' ' + MoonPhase.Date.getMonthShortName();
+			break;
 		}
-	};
 
-	var FullMoonImage = new Image();
-	FullMoonImage.onload = MoonImageLoaded;
-	//FullMoonImage.src = "images/Moon1.gif";
-	FullMoonImage.src = 'images/2/Full-Moon.gif';
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 260, MoonPhase.Phase, 2, 'center');
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 390, date, 2, 'center');
 
-	var LastMoonImage = new Image();
-	LastMoonImage.onload = MoonImageLoaded;
-	//LastMoonImage.src = "images/Moon2.gif";
-	LastMoonImage.src = 'images/2/Last-Quarter.gif';
+		switch (MoonPhase.Phase) {
+		case 'Full':
+			context.drawImage(FullMoonImage, x - 45, 270);
+			break;
+		case 'Last':
+			context.drawImage(LastMoonImage, x - 45, 270);
+			break;
+		case 'New':
+			context.drawImage(NewMoonImage, x - 45, 270);
+			break;
+		case 'First':
+			context.drawImage(FirstMoonImage, x - 45, 270);
+			break;
+		default:
+		}
 
-	var NewMoonImage = new Image();
-	NewMoonImage.onload = MoonImageLoaded;
-	//NewMoonImage.src = "images/Moon3.gif";
-	NewMoonImage.src = 'images/2/New-Moon.gif';
+		x += 130;
+	});
 
-	var FirstMoonImage = new Image();
-	FirstMoonImage.onload = MoonImageLoaded;
-	//FirstMoonImage.src = "images/Moon4.gif";
-	FirstMoonImage.src = 'images/2/First-Quarter.gif';
+	WeatherParameters.Progress.Almanac = LoadStatuses.Loaded;
+
+	UpdateWeatherCanvas(WeatherParameters, canvasAlmanac);
+
 
 };
 
