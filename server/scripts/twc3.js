@@ -1,4 +1,4 @@
-/* globals _StationInfo, luxon, _RegionalCities, utils, _TravelCities */
+/* globals _StationInfo, luxon, _RegionalCities, utils, icons, _TravelCities */
 
 const _DayShortNames = { 'Sunday': 'Sun', 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat' };
 const _DayLongNameArray = Object.keys(_DayShortNames);
@@ -3343,7 +3343,7 @@ const PopulateCurrentConditions = async (WeatherParameters) => {
 	let WindChill = Math.round(observations.windChill.value);
 	let WindGust = Math.round(observations.windGust.value);
 	let Humidity = Math.round(observations.relativeHumidity.value);
-	const Icon = GetWeatherIcon2FromIconLink(observations.icon);
+	const Icon = icons.GetWeatherIconFromIconLink(observations.icon);
 	const StationName = WeatherParameters.WeatherCurrentConditions.station.properties.name;
 	let PressureDirection = '';
 	const TextConditions = observations.textDescription;
@@ -3614,7 +3614,7 @@ var WeatherExtendedForecast = function (WeatherParser) {
 
 		_LayoutKey = WeatherParser.data_forecast.parameters.conditions_icon.time_layout;
 		_Day.Icon = WeatherParser.data_forecast.parameters.conditions_icon.icon_link[_PeriodIndex[Date + '_' + _LayoutKey]];
-		_Day.Icon = GetWeatherIcon2FromIconLink(_Day.Icon, _Day.Conditions);
+		_Day.Icon = icons.GetWeatherIconFromIconLink(_Day.Icon, _Day.Conditions);
 
 		_self.Day.push(_Day);
 	});
@@ -5126,7 +5126,7 @@ const GetTravelWeather = async (WeatherParameters) => {
 				high: forecast.properties.periods[todayShift].temperature,
 				low: forecast.properties.periods[todayShift+1].temperature,
 				name: city.Name,
-				icon: GetWeatherRegionalIconFromIconLink(forecast.properties.periods[todayShift].icon),
+				icon: icons.GetWeatherRegionalIconFromIconLink(forecast.properties.periods[todayShift].icon),
 			};
 		} catch (e) {
 			console.error(`GetTravelWeather for ${city.Name} failed`);
@@ -5221,10 +5221,7 @@ var WeatherTravelForecast = function (WeatherDwmlParser, ForceToday, ForceTonigh
 
 	_LayoutKey = WeatherDwmlParser.data_forecast.parameters.conditions_icon.time_layout;
 	this.Icon = WeatherDwmlParser.data_forecast.parameters.conditions_icon.icon_link[_PeriodIndex[_LayoutKey]];
-	//this.Icon = GetWeatherIconFromIconLink(this.Icon);
-	//this.Icon = GetWeatherRegionalIconFromIconLink(this.Icon);
-	//this.Icon = GetWeatherRegionalIconFromIconLink(this.Icon, this.Conditions, _WeatherParameters);
-	this.Icon = GetWeatherRegionalIconFromIconLink(this.Icon, this.Conditions, _WeatherParameters, ForceTonight);
+	this.Icon = icons.GetWeatherRegionalIconFromIconLink(this.Icon, this.Conditions, _WeatherParameters, ForceTonight);
 
 	this.DayName = DayName;
 };
@@ -5691,7 +5688,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				if (!DontLoadGifs) {
 					// Conditions Icon
 					Gifs.push(await utils.SuperGifAsync({
-						src: GetWeatherRegionalIconFromIconLink(city.icon, IsNightTime),
+						src: icons.GetWeatherRegionalIconFromIconLink(city.icon, IsNightTime),
 						max_width: 42,
 						loop_delay: 100,
 						auto_play: true,
@@ -5752,7 +5749,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				if (!DontLoadGifs) {
 					// Conditions Icon
 					Gifs.push(await utils.SuperGifAsync({
-						src: GetWeatherRegionalIconFromIconLink(city.icon, IsNightTime),
+						src: icons.GetWeatherRegionalIconFromIconLink(city.icon, IsNightTime),
 						max_width: 42,
 						loop_delay: 100,
 						auto_play: true,
