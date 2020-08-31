@@ -722,22 +722,21 @@ var GetOutlookPrecipitationIndicator = function (PixelColor) {
 	//}
 };
 
-var GetPixelColor = function (context, x, y) {
+const GetPixelColor = (context, x, y) => {
 	var PixelData = context.getImageData(x, y, 1, 1).data;
 	var R = PixelData[0];
 	var G = PixelData[1];
 	var B = PixelData[2];
-	var A = PixelData[3];
 	return '#' + ('000000' + RgbToHex(R, G, B)).slice(-6);
 };
 
-var RgbToHex = function (r, g, b) {
-	if (r > 255 || g > 255 || b > 255)
-		throw 'Invalid color component';
+const RgbToHex = (r, g, b) => {
+	if (r > 255 || g > 255 || b > 255) throw 'Invalid color component';
 	return ((r << 16) | (g << 8) | b).toString(16).toUpperCase();
 };
-var HexToRgb = function (h) {
-	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+
+const HexToRgb = (h) => {
+	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
 	return result ? {
 		r: parseInt(result[1], 16),
 		g: parseInt(result[2], 16),
@@ -1103,7 +1102,6 @@ var PopulateMarineForecast = function (WeatherParameters) {
 		// Warning Message
 		if (MarineForecast.Warning !== '') {
 			DrawBorder(context, '#000000', 4, 100, 135, 440, 40);
-			color = '#ffff00';
 			DrawText(context, 'Star4000', '24pt', '#ffffff', 320, 165, MarineForecast.Warning, true, 'center');
 		}
 
@@ -1121,7 +1119,7 @@ var PopulateMarineForecast = function (WeatherParameters) {
 			TodayWindSpeedHigh = MarineForecast.TodayWindSpeedHigh;
 			TodayWindSpeedLow = MarineForecast.TodayWindSpeedLow;
 			break;
-		case Units.Metric:
+		default:
 			TodayWindSpeedHigh = MarineForecast.TodayWindSpeedHighC;
 			TodayWindSpeedLow = MarineForecast.TodayWindSpeedLowC;
 			break;
@@ -1145,7 +1143,7 @@ var PopulateMarineForecast = function (WeatherParameters) {
 			TodayTideLow = MarineForecast.TodayTideLow;
 			TideUnit = '\'';
 			break;
-		case Units.Metric:
+		default:
 			TodayTideHigh = MarineForecast.TodayTideHighC;
 			TodayTideLow = MarineForecast.TodayTideLowC;
 			TideUnit = 'm';
@@ -1178,7 +1176,7 @@ var PopulateMarineForecast = function (WeatherParameters) {
 			TomorrowWindSpeedHigh = MarineForecast.TomorrowWindSpeedHigh;
 			TomorrowWindSpeedLow = MarineForecast.TomorrowWindSpeedLow;
 			break;
-		case Units.Metric:
+		default:
 			TomorrowWindSpeedHigh = MarineForecast.TomorrowWindSpeedHighC;
 			TomorrowWindSpeedLow = MarineForecast.TomorrowWindSpeedLowC;
 			break;
@@ -1195,14 +1193,14 @@ var PopulateMarineForecast = function (WeatherParameters) {
 
 		var TomorrowTideHigh = 0;
 		var TomorrowTideLow = 0;
-		var TideUnit = '';
+
 		switch (_Units) {
 		case Units.English:
 			TomorrowTideHigh = MarineForecast.TomorrowTideHigh;
 			TomorrowTideLow = MarineForecast.TomorrowTideLow;
 			TideUnit = '\'';
 			break;
-		case Units.Metric:
+		default:
 			TomorrowTideHigh = MarineForecast.TomorrowTideHighC;
 			TomorrowTideLow = MarineForecast.TomorrowTideLowC;
 			TideUnit = 'm';
@@ -1456,33 +1454,6 @@ var GetAqiDescription = function (IndexValue) {
 	return Description;
 };
 
-var GetAqiIndexValue = function (Description) {
-	var IndexValue = 0;
-
-	switch (Description.toLowerCase()) {
-	case 'good':
-		IndexValue = 0;
-		break;
-	case 'moderate':
-		IndexValue = 51;
-		break;
-	case 'unhealthy for sensitive groups':
-		IndexValue = 101;
-		break;
-	case 'unhealthy':
-		IndexValue = 151;
-		break;
-	case 'very unhealthy':
-		IndexValue = 201;
-		break;
-	case 'hazardous':
-		IndexValue = 301;
-		break;
-	default:
-	}
-
-	return IndexValue;
-};
 
 String.prototype.capitalize = function () {
 	return this.toLowerCase().replace(/\b[a-z]/g, function (letter) {
@@ -1490,114 +1461,6 @@ String.prototype.capitalize = function () {
 	});
 };
 
-const GetTimeZone = (WeatherParameters) => {
-	const Now = new Date();
-
-	jeoquery.getGeoNames(
-		'timezone',
-		{ lat: WeatherParameters.Latitude.toString(), lng: WeatherParameters.Longitude.toString() },
-		function (data) {
-			WeatherParameters.TimeZoneOffsetDst = data.dstOffset;
-			WeatherParameters.TimeZoneOffsetGmt = data.gmtOffset;
-		},
-		function (errorThrown) {
-			console.error('GetTimeZone failed: ' + errorThrown);
-			WeatherParameters.Progress.Almanac = LoadStatuses.Failed;
-		});
-
-};
-
-var GetMoonPhases = function (WeatherParameters) {
-	var Now = new Date();
-	var tz = WeatherParameters.TimeZoneOffsetGmt;
-	if (Now.dst()) {
-		tz = WeatherParameters.TimeZoneOffsetDst;
-	}
-
-	var Url = 'http://api.usno.navy.mil/moon/phase?nump=4&date=';
-	Url += (Now.getMonth() + 1).pad(2) + '/';
-	Url += Now.getDate().pad(2) + '/';
-	Url += Now.getFullYear().pad();
-	Url += '&tz=' + tz.toString();
-
-	// Load the xml file using ajax
-	$.ajax({
-		type: 'GET',
-		url: Url,
-		dataType: 'json',
-		crossDomain: true,
-		cache: false,
-		success: function (json) {
-			console.log(json);
-
-			WeatherParameters.MoonPhasesParser = new MoonPhasesParser(json);
-			console.log(WeatherParameters.MoonPhasesParser);
-
-			//WeatherParameters.WeatherMonthlyTotals = new WeatherMonthlyTotals(WeatherParameters.WeatherMonthlyTotalsParser);
-			//console.log(WeatherParameters.WeatherMonthlyTotals);
-			//PopulateCurrentConditions(WeatherParameters.WeatherMonthlyTotals);
-
-			GetSunRiseSets(WeatherParameters);
-		},
-		error: function (xhr, error, errorThrown) {
-			console.error('GetMoonPhases failed: ' + errorThrown);
-			WeatherParameters.Progress.Almanac = LoadStatuses.Failed;
-		},
-	});
-};
-
-var GetSunRiseSets = function (WeatherParameters, Tomorrow) {
-	var Now = new Date();
-	var tz = WeatherParameters.TimeZoneOffsetGmt;
-
-	if (Tomorrow) {
-		Now = Now.addDays(1);
-	}
-
-	if (Now.dst()) {
-		tz = WeatherParameters.TimeZoneOffsetDst;
-	}
-
-	var Url = 'http://api.usno.navy.mil/rstt/oneday?coords=';
-	Url += (WeatherParameters.Latitude < 0 ? (WeatherParameters.Latitude * -1).toString() + 'S' : WeatherParameters.Latitude.toString() + 'N') + ',';
-	Url += (WeatherParameters.Longitude < 0 ? (WeatherParameters.Longitude * -1).toString() + 'W' : WeatherParameters.Longitude.toString() + 'E') + '&';
-	Url += 'date=';
-	Url += (Now.getMonth() + 1).pad(2) + '/';
-	Url += Now.getDate().pad(2) + '/';
-	Url += Now.getFullYear().pad();
-	Url += '&tz=' + tz.toString();
-
-	// Load the xml file using ajax
-	$.ajax({
-		type: 'GET',
-		url: Url,
-		dataType: 'json',
-		crossDomain: true,
-		cache: false,
-		success: function (json) {
-			console.log(json);
-
-			if (Tomorrow) {
-				WeatherParameters.SunRiseSetParserTomorrow = new SunRiseSetParser(json);
-				console.log(WeatherParameters.SunRiseSetParserTomorrow);
-
-				WeatherParameters.AlmanacInfo = new AlmanacInfo(WeatherParameters.MoonPhasesParser, WeatherParameters.SunRiseSetParserToday, WeatherParameters.SunRiseSetParserTomorrow);
-				console.log(WeatherParameters.AlmanacInfo);
-				PopulateAlmanacInfo(WeatherParameters);
-
-			} else {
-				WeatherParameters.SunRiseSetParserToday = new SunRiseSetParser(json);
-				console.log(WeatherParameters.SunRiseSetParserToday);
-
-				GetSunRiseSets(WeatherParameters, true);
-			}
-		},
-		error: function (xhr, error, errorThrown) {
-			console.error('GetSunRiseSets failed: ' + errorThrown);
-			WeatherParameters.Progress.Almanac = LoadStatuses.Failed;
-		},
-	});
-};
 
 Date.prototype.stdTimezoneOffset = function () {
 	var jan = new Date(this.getFullYear(), 0, 1);
@@ -1640,40 +1503,11 @@ var GetWeatherHazards3 = function (WeatherParameters) {
 			$xml.find('entry').each(function () {
 				var entry = $(this);
 
-				// Skip Special Weather Statements.
-				//var cap_event = entry.find("*event");
-				var cap_event = entry.find('cap_event');
-				//if (cap_event.text() === "Special Weather Statement")
-				//{
-				//    return true;
-				//}
-
 				// Skip non-alerts.
-				//var cap_msgType = entry.find("*msgType");
 				var cap_msgType = entry.find('cap_msgType');
 				if (cap_msgType.text() !== 'Alert') {
 					return true;
 				}
-
-				//var counter = 0;
-				//var summary = entry.find("summary");
-				//$(summary.text().split("...")).each(function ()
-				//{
-				//    var text = this.toString();
-				//    if (text === "" || text === " ")
-				//    {
-				//        return true;
-				//    }
-
-				//    counter++;
-				//    if (counter < 2)
-				//    {
-				//        return true;
-				//    }
-
-				//    WeatherParameters.WeatherHazardConditions.Summaries.push(text);
-				//    return false;
-				//});
 
 				var link = entry.find('link');
 				var Url = link.attr('href');
@@ -1682,13 +1516,8 @@ var GetWeatherHazards3 = function (WeatherParameters) {
 			});
 
 			if (HazardUrls.length === 0) {
-				//WeatherParameters.WeatherHazardConditions.Hazards.push("TESTING TESTING 1-2-3 TESTING.");
-				//WeatherParameters.WeatherHazardConditions.Hazards.push("THIS IS A TEST\nTHIS IS SOME REALLY LONG MESSAGE THAT WE WOULD WANT TO WRAP AT SOME POINT.\n\nTHIS IS THE BEGINNING OF OTHER PARAGRAPH WHICH CAN THEN INDICATE THAT THERE IS SOME MORE TEXT THAT WOULD NEED TO BE WRAPPED.\n\n\I WOULD LIKE TO ADD SOME TEST TEXT HERE SO THAT IT WILL CAUSE THE SCREEN TO WRAP BECAUSE IT IS DISPLAYING MORE TEXT THAT WOULD NORMALLY FIX ON THE SCREEN; HOWEVER WE NEED TO ALSO TEST TO SEE IF THERE IS LESS HEIGHT THAN THE MAXIMUM HEIGHT.");
-				//WeatherParameters.WeatherHazardConditions.Hazards.push("...WARNING... .THIS IS NOT A DRILL! .THE RED HOUR IS ALMOST UPON US.  DO YOU HAVE A PLACE TO SLEEP IT OFF, AYUH?");
-
 				PopulateHazardConditions(WeatherParameters);
 				console.log(WeatherParameters.WeatherHazardConditions);
-				//WeatherParameters.Progress.Hazards = LoadStatuses.Loaded;
 				return;
 			}
 
@@ -1712,10 +1541,9 @@ var GetWeatherHazards3 = function (WeatherParameters) {
 						if (HazardCounter === HazardUrls.length) {
 							PopulateHazardConditions(WeatherParameters);
 							console.log(WeatherParameters.WeatherHazardConditions);
-							//WeatherParameters.Progress.Hazards = LoadStatuses.Loaded;
 						}
 					},
-					error: function (xhr, error, errorThrown) {
+					error: function () {
 						console.error('GetWeatherHazards3 failed for Url: ' + Url);
 						WeatherParameters.Progress.Hazards = LoadStatuses.Failed;
 					},
@@ -2980,349 +2808,6 @@ var canvasProgress_click = function (e) {
 	}
 };
 
-// See: http://www.nws.noaa.gov/mdl/XML/Design/MDL_XML_Design.htm
-//<dwml xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0" xsi:noNamespaceSchemaLocation="http://graphical.weather.gov/xml/DWMLgen/schema/DWML.xsd">
-var WeatherDwmlParser = function (xml) {
-	//this._self = this;
-
-	var dwml = xml.find('dwml');
-
-	this.xmlns_xsd = dwml.attr('xmlns:xsd');
-	this.xmlns_xsi = dwml.attr('xmlns:xsi');
-	this.version = dwml.attr('version');
-	this.xsi_noNamespaceSchemaLocation = dwml.attr('xsi:noNamespaceSchemaLocation');
-
-	this.head = new DwmlHead(dwml.find('head'));
-	this.data_current_observations = new DwmlData(dwml.find('data[type=\'current observations\']'));
-	this.data_forecast = new DwmlData(dwml.find('data[type=\'forecast\']'));
-};
-
-//<head>
-//</head>
-var DwmlHead = function (head) {
-	this.product = new DwmlHeadProduct(head.find('product'));
-	this.source = new DwmlHeadSource(head.find('source'));
-};
-
-//<product concise-name="dwmlByDay" operational-mode="developmental" srsName="WGS 1984">
-//<creation-date refresh-frequency="PT1H">2016-09-08T22:27:56-04:00</creation-date>
-//<category>current observations and forecast</category>
-//</product>
-var DwmlHeadProduct = function (product) {
-	this.concise_name = product.attr('concise-name');
-	this.operational_mode = product.attr('operational-mode');
-	this.srsName = product.attr('srsName');
-
-	this.creation_date = new DwmlHeadProductCreationDate(product.find('creation-date'));
-	//this.category = new DwmlHeadProductCategory(product.find("category"));
-	this.category = product.find('category').text();
-};
-var DwmlHeadProductCreationDate = function (creation_date) {
-	this.refresh_frequency = creation_date.attr('refresh-frequency');
-	this.value = creation_date.text();
-};
-//var DwmlHeadProductCategory = function (category)
-//{
-//    this.value = category.text();
-//};
-
-//<source>
-//<production-center>Baltimore, MD/Washington, D.C.</production-center>
-//<credit>http://www.weather.gov/lwx</credit>
-//<more-information>http://www.nws.noaa.gov/forecasts/xml/</more-information>
-//</source>
-var DwmlHeadSource = function (source) {
-	this.production_center = source.find('production-center').text();
-	this.credit = source.find('credit').text();
-	this.more_information = source.find('more-information').text();
-};
-//var DwmlHeadSourceProductionCenter = function (production_center)
-//{
-//    this.value = production_center.text();
-//};
-//var DwmlHeadSourceCredit = function (credit)
-//{
-//    this.value = credit.text();
-//};
-//var DwmlHeadSourceMoreInformation = function (more_information)
-//{
-//    this.value = more_information.text();
-//};
-
-
-//<data type="current observations">
-var DwmlData = function (data) {
-	var applicable_location;
-	var time_layout;
-
-	this.location = new DwmlDataLocation(data.find('location'));
-
-	applicable_location = this.location.location_key; //.value;
-
-	this.moreWeatherInformation = new DwmlDataMoreWeatherInformation(data.find('moreWeatherInformation[applicable-location=\'' + applicable_location + '\']'));
-
-	//this.time_layout = new DwmlDataTimeLayout(data.find("time-layout"));
-	var _self = this;
-	this.time_layout = [];
-	data.find('time-layout').each(function () {
-		_self.time_layout.push(new DwmlDataTimeLayout($(this)));
-	});
-
-	this.parameters = new DwmlDataParameters(data.find('parameters[applicable-location=\'' + applicable_location + '\']'));
-};
-
-//<location>
-//<location-key>point1</location-key>
-//<point latitude="39.4" longitude="-77.98"/>
-//<area-description>Eastern WV Regional Airport/Shepherd Field, WV</area-description>
-//<height datum="mean sea level" height-units="feet">538</height>
-//</location>
-//<location-key>point1</location-key>
-//<description>Medford, NY</description>
-//<point latitude="40.84" longitude="-72.99"/>
-//<city state="NY">Medford</city>
-//<height datum="mean sea level">128</height>
-var DwmlDataLocation = function (location) {
-	//this.location_key = new DwmlDataLocationLocationKey(location.find("location-key"));
-	this.location_key = location.find('location-key').text();
-	this.point = new DwmlDataLocationPoint(location.find('point'));
-	this.height = new DwmlDataLocationHeight(location.find('height'));
-
-	// Current Observations Only
-	//this.area_description = new DwmlDataLocationAreaDescription(location.find("area-description"));
-	this.area_description = location.find('area-description').text();
-
-	// Forecast Only
-	//this.description = new DwmlDataLocationDescription(location.find("description"));
-	this.description = location.find('description').text();
-	this.city = new DwmlDataLocationCity(location.find('city'));
-};
-//var DwmlDataLocationLocationKey = function (location_key)
-//{
-//    this.value = location_key.text();
-//};
-var DwmlDataLocationPoint = function (point) {
-	this.latitude = point.attr('latitude');
-	this.longitude = point.attr('longitude');
-};
-var DwmlDataLocationHeight = function (height) {
-	this.datum = height.attr('datum');
-	this.height_units = height.attr('height-units');
-	this.value = height.text();
-};
-//var DwmlDataLocationAreaDescription = function (area_description)
-//{
-//    this.value = area_description.text();
-//};
-//var DwmlDataLocationDescription = function (description)
-//{
-//    this.value = description.text();
-//};
-var DwmlDataLocationCity = function (city) {
-	this.state = city.attr('state');
-	this.value = city.text();
-};
-
-//<moreWeatherInformation applicable-location="point1">http://www.nws.noaa.gov/data/obhistory/KMRB.html</moreWeatherInformation>
-var DwmlDataMoreWeatherInformation = function (moreWeatherInformation) {
-	this.applicable_location = moreWeatherInformation.attr('applicable-location');
-	this.value = moreWeatherInformation.text();
-};
-
-//<time-layout time-coordinate="local">
-//<layout-key>k-p1h-n1-1</layout-key>
-//<start-valid-time period-name="current">2016-09-08T22:53:00-04:00</start-valid-time>
-//</time-layout>
-var DwmlDataTimeLayout = function (time_layout) {
-	this.time_coordinate = time_layout.attr('time-coordinate');
-	this.summarization = time_layout.attr('summarization');
-
-	//this.layout_key = new DwmlDataTimeLayoutLayoutKey(time_layout.find("layout-key"));
-	this.layout_key = time_layout.find('layout-key').text();
-
-	var _self = this;
-	this.start_valid_time = [];
-	time_layout.find('start-valid-time').each(function () {
-		_self.start_valid_time.push(new DwmlDataTimeLayoutStartValidTime($(this)));
-	});
-};
-//var DwmlDataTimeLayoutLayoutKey = function (layout_key)
-//{
-//    this.value = layout_key.text();
-//};
-var DwmlDataTimeLayoutStartValidTime = function (start_valid_time) {
-	this.period_name = start_valid_time.attr('period-name');
-	this.value = start_valid_time.text();
-};
-
-//<parameters applicable-location="point1">
-//<temperature type="apparent" units="Fahrenheit" time-layout="k-p1h-n1-1">
-//<value>73</value>
-//</temperature>
-//<temperature type="dew point" units="Fahrenheit" time-layout="k-p1h-n1-1">
-//<value>71</value>
-//</temperature>
-//<humidity type="relative" time-layout="k-p1h-n1-1">
-//<value>94</value>
-//</humidity>
-var DwmlDataParameters = function (parameters) {
-	this.applicable_location = parameters.attr('applicable-location');
-	this.weather = new DwmlDataParametersWeather(parameters.find('weather'));
-	this.conditions_icon = new DwmlDataParametersConditionsIcon(parameters.find('conditions-icon'));
-
-	// Current Observations Only
-	this.temperature_apparent = new DwmlDataParametersTemperature(parameters.find('temperature[type=\'apparent\']'));
-	this.temperature_dew_point = new DwmlDataParametersTemperature(parameters.find('temperature[type=\'dew point\']'));
-	this.humidity = new DwmlDataParametersHumidity(parameters.find('humidity'));
-	this.direction = new DwmlDataParametersDirection(parameters.find('direction'));
-	this.wind_speed_gust = new DwmlDataParametersWindSpeed(parameters.find('wind-speed[type=\'gust\']'));
-	this.wind_speed_sustained = new DwmlDataParametersWindSpeed(parameters.find('wind-speed[type=\'sustained\']'));
-	this.pressure = new DwmlDataParametersPressure(parameters.find('pressure'));
-
-	// Forecast Only
-	this.temperature_maximum = new DwmlDataParametersTemperature(parameters.find('temperature[type=\'maximum\']'));
-	this.temperature_minimum = new DwmlDataParametersTemperature(parameters.find('temperature[type=\'minimum\']'));
-	this.probability_of_precipitation = new DwmlDataParametersProbabilityOfPrecipitation(parameters.find('probability-of-precipitation'));
-	this.wordedForecast = new DwmlDataParametersWordedForecast(parameters.find('wordedForecast'));
-	this.hazards = new DwmlDataParametersHazards(parameters.find('hazards'));
-};
-var DwmlDataParametersTemperature = function (temperature) {
-	this.type = temperature.attr('type');
-	this.units = temperature.attr('units');
-	this.time_layout = temperature.attr('time-layout');
-
-	var _self = this;
-	this.value = [];
-	temperature.find('value').each(function () {
-		_self.value.push($(this).text());
-	});
-
-	// Forecast Only
-	this.name = temperature.find('name').text();
-};
-var DwmlDataParametersHumidity = function (humidity) {
-	this.type = humidity.attr('type');
-	this.time_layout = humidity.attr('time-layout');
-	this.value = humidity.find('value').text();
-};
-//<weather time-layout="k-p1h-n1-1">
-//<name>Weather Type, Coverage, Intensity</name>
-//<weather-conditions weather-summary=" Fog/Mist"/>
-//<weather-conditions>
-//<value>
-//<visibility units="statute miles">6.00</visibility>
-//</value>
-//</weather-conditions>
-//</weather>
-var DwmlDataParametersWeather = function (weather) {
-	this.time_layout = weather.attr('time-layout');
-	this.name = weather.find('name').text();
-
-	var _self = this;
-	this.weather_conditions = [];
-	weather.find('weather-conditions').each(function () {
-		_self.weather_conditions.push(new DwmlDataParametersWeatherWeatherConditions($(this)));
-	});
-};
-var DwmlDataParametersWeatherWeatherConditions = function (weather_conditions) {
-	this.weather_summary = weather_conditions.attr('weather-summary');
-	this.visibility = new DwmlDataParametersWeatherWeatherConditionsVisibility(weather_conditions.find('value').find('visibility'));
-};
-var DwmlDataParametersWeatherWeatherConditionsVisibility = function (visibility) {
-	this.units = visibility.attr('units');
-	this.value = visibility.text();
-};
-//<conditions-icon type="forecast-NWS" time-layout="k-p1h-n1-1">
-//<name>Conditions Icon</name>
-//<icon-link>
-//http://forecast.weather.gov/newimages/medium/nfg.png
-//</icon-link>
-//</conditions-icon>
-var DwmlDataParametersConditionsIcon = function (conditions_icon) {
-	this.type = conditions_icon.attr('type');
-	this.time_layout = conditions_icon.attr('time-layout');
-	this.name = conditions_icon.find('name').text();
-
-	var _self = this;
-	this.icon_link = [];
-	conditions_icon.find('icon-link').each(function () {
-		_self.icon_link.push($(this).text());
-	});
-};
-//<direction type="wind" units="degrees true" time-layout="k-p1h-n1-1">
-//<value>180</value>
-//</direction>
-var DwmlDataParametersDirection = function (direction) {
-	this.type = direction.attr('type');
-	this.units = direction.attr('units');
-	this.time_layout = direction.attr('time-layout');
-	this.value = direction.find('value').text();
-};
-//<wind-speed type="gust" units="knots" time-layout="k-p1h-n1-1">
-//<value>NA</value>
-//</wind-speed>
-//<wind-speed type="sustained" units="knots" time-layout="k-p1h-n1-1">
-//<value>5</value>
-//</wind-speed>
-var DwmlDataParametersWindSpeed = function (wind_speed) {
-	this.type = wind_speed.attr('type');
-	this.units = wind_speed.attr('units');
-	this.time_layout = wind_speed.attr('time-layout');
-	this.value = wind_speed.find('value').text();
-};
-//<pressure type="barometer" units="inches of mercury" time-layout="k-p1h-n1-1">
-//<value>29.85</value>
-//</pressure>
-var DwmlDataParametersPressure = function (pressure) {
-	this.type = pressure.attr('type');
-	this.units = pressure.attr('units');
-	this.time_layout = pressure.attr('time-layout');
-	this.value = pressure.find('value').text();
-};
-
-var DwmlDataParametersProbabilityOfPrecipitation = function (probability_of_precipitation) {
-	this.type = probability_of_precipitation.attr('type');
-	this.units = probability_of_precipitation.attr('units');
-	this.time_layout = probability_of_precipitation.attr('time-layout');
-
-	var _self = this;
-	this.value = [];
-	probability_of_precipitation.find('value').each(function () {
-		_self.value.push($(this).text());
-	});
-
-	// Forecast Only
-	this.name = probability_of_precipitation.find('name').text();
-};
-
-var DwmlDataParametersWordedForecast = function (wordedForecast) {
-	this.time_layout = wordedForecast.attr('time-layout');
-	this.dataSource = wordedForecast.attr('dataSource');
-	this.wordGenerator = wordedForecast.attr('wordGenerator');
-	this.name = wordedForecast.find('name').text();
-
-	var _self = this;
-	this.text = [];
-	wordedForecast.find('text').each(function () {
-		_self.text.push($(this).text());
-	});
-};
-
-var DwmlDataParametersHazards = function (hazards) {
-	this.time_layout = hazards.attr('time-layout');
-	this.name = hazards.find('name').text();
-
-	var _self = this;
-	this.hazards_conditions = [];
-	hazards.find('hazard-conditions').each(function () {
-		_self.hazards_conditions.push(new DwmlDataParametersHazardsHazardConditions($(this)));
-	});
-};
-var DwmlDataParametersHazardsHazardConditions = function (hazards_conditions) {
-	this.headline = hazards_conditions.find('hazard').attr('headline');
-	this.hazardTextURL = hazards_conditions.find('hazard').find('hazardTextURL').text();
-};
-
 const PopulateCurrentConditions = async (WeatherParameters) => {
 	// test if needed
 	if (!WeatherParameters.WeatherCurrentConditions || (_DontLoadGifs && WeatherParameters.Progress.CurrentConditions !== LoadStatuses.Loaded)) return;
@@ -3535,7 +3020,7 @@ var WeatherExtendedForecast = function (WeatherParser) {
 		$(WeatherParser.data_forecast.time_layout).each(function () {
 			_LayoutKey = this.layout_key;
 
-			$(this.start_valid_time).each(function (Index, Value) {
+			$(this.start_valid_time).each(function (Index) {
 				if (this.value.indexOf(Date) !== -1) {
 					_PeriodIndex[Date + '_' + _LayoutKey] = Index;
 					return false;
@@ -3600,7 +3085,7 @@ var WeatherExtendedForecast = function (WeatherParser) {
 			if (_Day.Conditions1.endsWith('.') === false) {
 				_Day.Conditions2 = Conditions[1].substr(0, 10);
 			} else {
-				_Day.Conditions1 = Conditions1.replaceAll('.', '');
+				_Day.Conditions1 = _Day.Conditions1.replaceAll('.', '');
 			}
 
 			if (_Day.Conditions2 === 'Blowing') {
@@ -3710,7 +3195,7 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 
 			DrawTitleText(context, 'Extended', 'Forecast');
 
-			var x = 100;
+			let x = 100;
 			$(WeatherExtendedForecast.Day).each(function (Index) {
 				if (Index < LBound || Index > UBound) return true;
 
@@ -3719,25 +3204,23 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 				x += 195;
 			});
 
-			var x = 85;
+			x = 85;
 			$(WeatherExtendedForecast.Day).each(function (Index) {
 				if (Index < LBound || Index > UBound) return true;
 
-				var Day = this;
 				DrawText(context, 'Star4000', '24pt', '#8080FF', x, 345, 'Lo', 2, 'center');
 				x += 195;
 			});
 
-			var x = 165;
+			x = 165;
 			$(WeatherExtendedForecast.Day).each(function (Index) {
 				if (Index < LBound || Index > UBound) return true;
 
-				var Day = this;
 				DrawText(context, 'Star4000', '24pt', '#FFFF00', x, 345, 'Hi', 2, 'center');
 				x += 195;
 			});
 
-			var x = 85;
+			x = 85;
 			$(WeatherExtendedForecast.Day).each(function (Index) {
 				if (Index < LBound || Index > UBound) return true;
 
@@ -3759,7 +3242,7 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 				x += 195;
 			});
 
-			var x = 165;
+			x = 165;
 			$(WeatherExtendedForecast.Day).each(function (Index) {
 				if (Index < LBound || Index > UBound) return true;
 
@@ -3772,7 +3255,7 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 					MaximumTemperature = Day.MaximumTemperature;
 					break;
 
-				case Units.Metric:
+				default:
 					MaximumTemperature = Math.round(Day.MaximumTemperatureC);
 					break;
 				}
@@ -3781,7 +3264,7 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 				x += 195;
 			});
 
-			var x = 120;
+			x = 120;
 			$(WeatherExtendedForecast.Day).each(function (Index) {
 				if (Index < LBound || Index > UBound) return true;
 
@@ -3796,7 +3279,7 @@ var PopulateExtendedForecast = function (WeatherParameters, ScreenIndex) {
 				x += 195;
 			});
 
-			var x = 46;
+			x = 46;
 			$(gifIcons).each(function () {
 				// Max Width = 158px
 				var gifIcon = this;
@@ -3891,10 +3374,8 @@ const ConvertConditionsToMetric = (condition) => {
 				}
 
 				words[idx] = word.replaceAll('MPH', 'KPH');
-			}
-
-			// X TO Y INCH[ES].
-			else if (word.startsWith('INCH')) {
+			} else if (word.startsWith('INCH')) {
+				// X TO Y INCH[ES].
 
 				if ($.isNumeric(words[idx - 1])) {
 					words[idx - 1] = Math.round(utils.calc.InchesToCentimeters(words[idx - 1]));
@@ -3907,10 +3388,8 @@ const ConvertConditionsToMetric = (condition) => {
 
 				words[idx] = words[idx].replaceAll('INCHES', 'CMS');
 				words[idx] = words[idx].replaceAll('INCH', 'CM');
-			}
-
-			// X TO Y FEET.
-			else if (word.startsWith('FEET')) {
+			} else if (word.startsWith('FEET')) {
+				// X TO Y FEET.
 				if ($.isNumeric(words[idx - 1])) {
 					words[idx - 1] = utils.units.FeetToMeters(words[idx - 1]);
 				}
@@ -3921,10 +3400,8 @@ const ConvertConditionsToMetric = (condition) => {
 				}
 
 				words[idx] = word.replaceAll('FEET', 'METERS');
-			}
-
-			// X TO Y MILE[S].
-			else if (word.startsWith('MILE')) {
+			} else if (word.startsWith('MILE')) {
+				// X TO Y MILE[S].
 				if ($.isNumeric(words[idx - 1])) {
 					words[idx - 1] = utils.calc.MilesToKilometers(words[idx - 1]);
 				}
@@ -3935,10 +3412,8 @@ const ConvertConditionsToMetric = (condition) => {
 				}
 
 				words[idx] = word.replaceAll('MILE', 'KM');
-			}
-
-			// X AM.
-			else if (word.startsWith('AM')) {
+			} else if (word.startsWith('AM')) {
+				// X AM.
 				if ($.isNumeric(words[idx - 1])) {
 					let HH = parseInt(words[idx - 1]);
 					if (HH === 12) {
@@ -3947,10 +3422,8 @@ const ConvertConditionsToMetric = (condition) => {
 					words[idx - 1] = HH.toString() + ':00';
 					words[idx] = word.replaceAll('AM', '?');
 				}
-			}
-
-			// X PM.
-			else if (word.startsWith('PM')) {
+			} else if (word.startsWith('PM')) {
+				// X PM.
 				if ($.isNumeric(words[idx - 1])) {
 					let HH = parseInt(words[idx - 1]);
 					if (HH < 12) {
@@ -3959,12 +3432,9 @@ const ConvertConditionsToMetric = (condition) => {
 					words[idx - 1] = HH.toString() + ':00';
 					words[idx] = word.replaceAll('PM', '?');
 				}
-			}
-
-
-			// LOWS|HIGHS IN THE [MID|UPPER|LOWER] XS.
-			// LOWS|HIGHS NEAR XS.
-			else if (word === 'LOWS' || word === 'HIGHS') {
+			} else if (word === 'LOWS' || word === 'HIGHS') {
+				// LOWS|HIGHS IN THE [MID|UPPER|LOWER] XS.
+				// LOWS|HIGHS NEAR XS.
 				if (words[idx + 1] === 'IN' && words[idx + 2] === 'THE') {
 					if (words[idx + 3] === 'MID' || words[idx + 3] === 'UPPER' || words[idx + 3] === 'LOWER') {
 						const TempF = parseInt(words[idx + 4]);
@@ -4351,28 +3821,6 @@ String.prototype.centerText = function(numberOfSpaces) {
 	return text;
 };
 
-var WeatherHazardsParser = function (html) {
-	this.hazards = [];
-	var _self = this;
-
-	html.find('h3').each(function () {
-		_self.hazards.push({
-			head_line: $(this).text(),
-			text: $(this).next().text(),
-		});
-	});
-};
-
-var WeatherHazardConditions = function (WeatherHazardsParser, WeatherParameters) {
-	this.ZoneId = WeatherParameters.ZoneId;
-	this.Hazards = [];
-	var _self = this;
-
-	$(WeatherHazardsParser.hazards).each(function () {
-		_self.Hazards.push(this.text);
-	});
-};
-
 var PopulateHazardConditions = function (WeatherParameters) {
 	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.Hazards !== LoadStatuses.Loaded)) {
 		return;
@@ -4421,27 +3869,10 @@ var PopulateHazardConditions = function (WeatherParameters) {
 			if (Line.startsWith(ZoneId)) {
 				SkipLine = true;
 				return true;
-			}
-			//else if (Line.startsWith(StateId))
-			//{
-			//    SkipLine = true;
-			//    return true;
-			//}
-			//else if (Line.startsWith(CountyId))
-			//{
-			//    SkipLine = true;
-			//    return true;
-			//}
-			else if (Line.indexOf('>') !== -1) {
+			} else if (Line.indexOf('>') !== -1) {
 				SkipLine = true;
 				return true;
-			}
-			//else if (Line.indexOf(StateId) !== -1)
-			//{
-			//    SkipLine = true;
-			//    return true;
-			//}
-			else if (Line.indexOf('LAT...LON ') !== -1) {
+			} else if (Line.indexOf('LAT...LON ') !== -1) {
 				SkipLine = true;
 				return true;
 			}
@@ -4470,36 +3901,6 @@ var PopulateHazardConditions = function (WeatherParameters) {
 		BackGroundImage.onload = function () {
 			context.drawImage(BackGroundImage, 0, 0);
 
-			var y = -385;
-
-			//window.setInterval(function ()
-			//{
-			//    context.drawImage(cnvHazardsScroll[0], 0, y, 640, 385, 0, 0, 640, 385);
-
-			//    // Wait until the weather has been loaded.
-			//    if (WeatherParameters.Progress.GetTotalPercentage() !== 100)
-			//    {
-			//        return;
-			//    }
-
-			//    // Wait 3 seconds and then start scrolling.
-			//    if (_UpdateHazardsCounterMs === 0)
-			//    {
-			//        y = -385;
-			//    }
-			//    if (_UpdateHazardsCounterMs > 0)
-			//    {
-			//        //y += 1;
-			//        y += 5;
-			//    }
-			//    if (y > cnvHazardsScroll.height())
-			//    {
-			//        y = cnvHazardsScroll.height();
-			//        _UpdateHazardsCounterMs = 0;
-			//    }
-
-			//}, _UpdateHazardsInterval);
-
 			if (DontLoadGifs) {
 				UpdateHazards();
 			}
@@ -4517,11 +3918,6 @@ var PopulateHazardConditions = function (WeatherParameters) {
 
 	var HazardsText = divHazards.html();
 
-	//if (_Units === Units.Metric)
-	//{
-	//    HazardsText = ConvertConditionsToMetric(HazardsText);
-	//}
-
 	HazardsText = HazardsText.replaceAll('<br>', '\n');
 	HazardsText = HazardsText.replaceAll('<br/>', '\n');
 	HazardsText = HazardsText.replaceAll('<br />', '\n');
@@ -4538,10 +3934,8 @@ var PopulateHazardConditions = function (WeatherParameters) {
 	var cnvHazardsScroll;
 
 	var ShowHazardsScroll = function () {
-		var img = new Image();
 		var cnvHazardsScrollId;
 		var context;
-		var Hazards = WeatherParameters.Hazards;
 
 		cnvHazardsScrollId = 'cnvHazardsScroll';
 
@@ -4616,7 +4010,7 @@ var UpdateHazards = function (Offset) {
 
 };
 
-String.prototype.wordWrap =  function (intWidth, strBreak, cut) {
+String.prototype.wordWrap =  function () {
 
 	var str = this;
 
@@ -4636,12 +4030,12 @@ String.prototype.wordWrap =  function (intWidth, strBreak, cut) {
 		// @todo: Split this up over many more lines and more semantic variable names
 		// so it becomes readable
 		for (s = r[i], r[i] = '';
-		  s.length > m;
-		  r[i] += s.slice(0, j) + ((s = s.slice(j)).length ? b : '')) {
+			s.length > m;
+			r[i] += s.slice(0, j) + ((s = s.slice(j)).length ? b : '')) {
 			j = c === 2 || (j = s.slice(0, m + 1).match(/\S*(\s)?$/))[1]
-			  ? m
-			  : j.input.length - j[0].length || c === true && m ||
-				j.input.length + (j = s.slice(m).match(/^\S*/))[0].length;
+				? m
+				: j.input.length - j[0].length || c === true && m ||
+					j.input.length + (j = s.slice(m).match(/^\S*/))[0].length;
 		}
 	}
 
@@ -4657,14 +4051,6 @@ const WeatherMonthlyTotalsParser = (text) => {
 	return +text.match(/MONTH TO DATE\s*(\d{1,2}\.\d\d)/)[1];
 };
 
-var WeatherMonthlyTotals = function (WeatherMonthlyTotalsParser) {
-	var Now = new Date();
-	this.MonthName = Now.getMonthName();
-
-	this.PrecipitationTotal = WeatherMonthlyTotalsParser.Precipitation;
-	this.PrecipitationTotalC = utils.calc.InchesToCentimeters(this.PrecipitationTotal);
-};
-
 Number.prototype.pad = function(size) {
 	var s = String(this);
 	while (s.length < (size || 1)) {
@@ -4673,60 +4059,7 @@ Number.prototype.pad = function(size) {
 	return s;
 };
 
-var MoonPhasesParser = function (json) {
-	var _self = this;
-
-	this.Phases = [];
-	$(json.phasedata).each(function () {
-		_self.Phases.push(this);
-
-		if (_self.Phases.length === 4) {
-			return false;
-		}
-	});
-};
-
-var MoonPhasesParser2 = function (html) {
-	var Now = new Date();
-
-	var _self = this;
-	this.Phases = [];
-
-	html.find('.phaseIcon').find('td').each(function() {
-		var td = $(this);
-
-		var Phase = {
-			date: td.find('span').text(),
-			time: '12:00:00',
-			phase: td.clone().children().remove().end().text().trim(),
-		};
-
-		// Skip today
-		if (Phase.date === 'Today') {
-			return true;
-		}
-
-		// Need to convert date to mm/dd/yyyy
-		var MonthNumber = getMonthFromString(Phase.date.split(' ')[0]);
-		var DayNumber = parseInt(Phase.date.split(' ')[1]);
-		var YearNumber = Now.getFullYear();
-
-		if (MonthNumber - 1 < Now.getMonth()) {
-			YearNumber++;
-		}
-
-		Phase.date = MonthNumber.toString() + '/' + DayNumber.toString() + '/' + YearNumber.toString();
-
-		_self.Phases.push(Phase);
-
-		if (_self.Phases.length === 4) {
-			return false;
-		}
-	});
-};
-
 var MoonPhasesParser3 = function (json) {
-	var Now = new Date();
 
 	var _self = this;
 	this.Phases = [];
@@ -4768,50 +4101,6 @@ var MoonPhasesParser3 = function (json) {
 			return false;
 		}
 	});
-};
-
-function getMonthFromString(mon) {
-	return new Date(Date.parse(mon + ' 1, 2012')).getMonth() + 1;
-}
-
-var SunRiseSetParser = function (json) {
-	var _self = this;
-
-	$(json.sundata).each(function() {
-		switch (this.phen) {
-		case 'R': // Sunrise
-			//_self.SunRiseUTC = this.time;
-			_self.SunRise = this.time;
-			break;
-		case 'S': // Sunset
-			//_self.SunSetUTC = this.time;
-			_self.SunSet = this.time;
-			break;
-		default:
-			return true;
-		}
-	});
-};
-
-var SunRiseSetParser2 = function (html) {
-	var _self = this;
-
-	_self.SunRise = html.find('td:contains(Actual Time)').next().text();
-	_self.TimeZone = _self.SunRise.split(' ').splice(2, 1).join(' ');
-	_self.SunRise = _self.SunRise.split(' ').splice(0, 2).join(' ');
-	if (_self.SunRise === 'Sun does') {
-		_self.SunRise = '';
-	} else {
-		_self.SunRise = getTimeFromString(_self.SunRise);
-	}
-
-	_self.SunSet = html.find('td:contains(Actual Time)').next().next().text();
-	_self.SunSet = _self.SunSet.split(' ').splice(0, 2).join(' ');
-	if (_self.SunSet === 'Sun does') {
-		_self.SunSet = '';
-	} else {
-		_self.SunSet = getTimeFromString(_self.SunSet);
-	}
 };
 
 var SunRiseSetParser3 = function (json) {
@@ -4900,20 +4189,6 @@ var SunRiseSetParser3 = function (json) {
 
 };
 
-var getTimeFromString = function (tim) {
-	var time = tim;
-	var hours = Number(time.match(/^(\d+)/)[1]);
-	var minutes = Number(time.match(/:(\d+)/)[1]);
-	var AMPM = time.match(/\s(.*)$/)[1];
-	if (AMPM === 'PM' && hours < 12) hours = hours + 12;
-	if (AMPM === 'AM' && hours === 12) hours = hours - 12;
-	var sHours = hours.toString();
-	var sMinutes = minutes.toString();
-	if (hours < 10) sHours = '0' + sHours;
-	if (minutes < 10) sMinutes = '0' + sMinutes;
-	return sHours + ':' + sMinutes;
-};
-
 var AlmanacInfo = function (MoonPhasesParser, SunRiseSetParserToday, SunRiseSetParserTomorrow) {
 	var _self = this;
 	//var Today = new Date();
@@ -4929,7 +4204,7 @@ var AlmanacInfo = function (MoonPhasesParser, SunRiseSetParserToday, SunRiseSetP
 		_self.MoonPhases.push({
 			//Date: date[1] + " " + date[2],
 			//Date: GetDateFromUTC(date, time),
-			Date: GetDateFromTime(date, time),
+			Date: utils.dateTime.GetDateFromTime(date, time),
 			Phase: phase[0],
 		});
 	});
@@ -4940,17 +4215,17 @@ var AlmanacInfo = function (MoonPhasesParser, SunRiseSetParserToday, SunRiseSetP
 	//this.TomorrowSunRise = GetDateFromUTC((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseUTC);
 	//this.TomorrowSunSet = GetDateFromUTC((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetUTC);
 
-	this.TodaySunRise = GetDateFromTime(new Date(), SunRiseSetParserToday.SunRiseLocal);
-	this.TodaySunSet = GetDateFromTime(new Date(), SunRiseSetParserToday.SunSetLocal);
+	this.TodaySunRise = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunRiseLocal);
+	this.TodaySunSet = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunSetLocal);
 
-	this.TomorrowSunRise = GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseLocal);
-	this.TomorrowSunSet = GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetLocal);
+	this.TomorrowSunRise = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseLocal);
+	this.TomorrowSunSet = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetLocal);
 
-	this.TodaySunRiseLocal = GetDateFromTime(new Date(), SunRiseSetParserToday.SunRiseLocal);//, SunRiseSetParserToday.TimeZone);
-	this.TodaySunSetLocal = GetDateFromTime(new Date(), SunRiseSetParserToday.SunSetLocal);///, SunRiseSetParserToday.TimeZone);
+	this.TodaySunRiseLocal = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunRiseLocal);//, SunRiseSetParserToday.TimeZone);
+	this.TodaySunSetLocal = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunSetLocal);///, SunRiseSetParserToday.TimeZone);
 
-	this.TomorrowSunRiseLocal = GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseLocal);//, SunRiseSetParserToday.TimeZone);
-	this.TomorrowSunSetLocal = GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetLocal);//, SunRiseSetParserToday.TimeZone);
+	this.TomorrowSunRiseLocal = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseLocal);//, SunRiseSetParserToday.TimeZone);
+	this.TomorrowSunSetLocal = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetLocal);//, SunRiseSetParserToday.TimeZone);
 
 	//this.TodaySunRise = new Date(SunRiseSetParserToday.SunRise);
 	//this.TodaySunSet = new Date(SunRiseSetParserToday.SunSet);
@@ -5048,7 +4323,7 @@ var PopulateAlmanacInfo = function (WeatherParameters) {
 					case Units.English:
 						date = MoonPhase.Date.getMonthShortName() + ' ' + MoonPhase.Date.getDate().toString();
 						break;
-					case Units.Metric:
+					default:
 						date = MoonPhase.Date.getDate().toString() + ' ' + MoonPhase.Date.getMonthShortName();
 						break;
 					}
@@ -5141,89 +4416,6 @@ const GetTravelWeather = async (WeatherParameters) => {
 	WeatherParameters = Object.assign({}, WeatherParameters, {TravelCities: forecasts});
 	PopulateTravelCities(WeatherParameters);
 
-};
-
-var WeatherTravelForecast = function (WeatherDwmlParser, ForceToday, ForceTonight, ForceTomorrow) {
-	var Today = new Date();
-	var addDays = 0;
-
-	if (ForceToday || ForceTonight || ForceTomorrow) {
-		if (ForceToday) {
-			if (Today.getHours() === 0) {
-				// Prevent Midnight from causing the wrong icons to appear.
-				Today.setHours(1, 0, 0, 0);
-			}
-		} else if (ForceTonight) {
-			Today.setHours(12, 0, 0, 0);
-		} else if (ForceTomorrow) {
-			addDays = 1;
-			Today.setHours(0, 0, 0, 0);
-		}
-	} else {
-		if (Today.getHours() >= 12) {
-			addDays = 1;
-			Today.setHours(0, 0, 0, 0);
-		} else if (Today.getHours() === 0) {
-			// Prevent Midnight from causing the wrong icons to appear.
-			Today.setHours(1, 0, 0, 0);
-		}
-	}
-	//addDays = 0;
-
-	var Tomorrow = Today.addDays(addDays);
-	var _Date = Tomorrow.getYYYYMMDD();
-	var DayName = Tomorrow.getDayName();
-
-	var _LayoutKey;
-	var _PeriodIndex = [];
-
-	$(WeatherDwmlParser.data_forecast.time_layout).each(function () {
-		_LayoutKey = this.layout_key;
-
-		$(this.start_valid_time).each(function (Index, Value) {
-			if (this.value.indexOf(_Date) !== -1) {
-				var d = utils.calc.XmlDateToJsDate(this.value);
-
-				if (ForceTonight) {
-					if (this.period_name === 'Overnight' || this.period_name === 'Tonight' || this.period_name === 'Rest of Tonight' || this.period_name === 'This Evening') {
-						_PeriodIndex[_LayoutKey] = Index;
-						return false;
-					} else {
-						return true;
-					}
-				}
-
-				if (d.getHours() === 0) {
-					return true;
-				}
-				if (addDays !== 0) {
-					if (d.getTime() < Tomorrow.getTime()) {
-						return true;
-					}
-				}
-
-				_PeriodIndex[_LayoutKey] = Index;
-				return false;
-			}
-		});
-	});
-
-	_LayoutKey = WeatherDwmlParser.data_forecast.parameters.temperature_maximum.time_layout;
-	this.MaximumTemperature = WeatherDwmlParser.data_forecast.parameters.temperature_maximum.value[_PeriodIndex[_LayoutKey]];
-	this.MaximumTemperatureC = utils.calc.FahrenheitToCelsius(this.MaximumTemperature);
-
-	_LayoutKey = WeatherDwmlParser.data_forecast.parameters.temperature_minimum.time_layout;
-	this.MinimumTemperature = WeatherDwmlParser.data_forecast.parameters.temperature_minimum.value[_PeriodIndex[_LayoutKey]];
-	this.MinimumTemperatureC = utils.calc.FahrenheitToCelsius(this.MinimumTemperature);
-
-	_LayoutKey = WeatherDwmlParser.data_forecast.parameters.weather.time_layout;
-	this.Conditions = WeatherDwmlParser.data_forecast.parameters.weather.weather_conditions[_PeriodIndex[_LayoutKey]].weather_summary.trim();
-
-	_LayoutKey = WeatherDwmlParser.data_forecast.parameters.conditions_icon.time_layout;
-	this.Icon = WeatherDwmlParser.data_forecast.parameters.conditions_icon.icon_link[_PeriodIndex[_LayoutKey]];
-	this.Icon = icons.GetWeatherRegionalIconFromIconLink(this.Icon, this.Conditions, _WeatherParameters, ForceTonight);
-
-	this.DayName = DayName;
 };
 
 const PopulateTravelCities = (WeatherParameters) => {
@@ -5330,7 +4522,7 @@ const PopulateTravelCities = (WeatherParameters) => {
 				// get temperatures and convert if necessary
 				let {low, high} = city;
 
-				if (_Units = Units.English) {
+				if (_Units === Units.English) {
 					low = utils.calc.FahrenheitToCelsius(low);
 					high = utils.calc.FahrenheitToCelsius(high);
 				}
@@ -5416,7 +4608,7 @@ const UpdateTravelCities =  (offset) => {
 		_UpdateTravelCitiesY = $cnvTravelCitiesScroll.height() - 289;
 		break;
 	default:
-		_UpdateTravelCitiesY += (289 * Offset);
+		_UpdateTravelCitiesY += (289 * offset);
 		if (_UpdateTravelCitiesY > $cnvTravelCitiesScroll.height() - 289) {
 			_UpdateTravelCitiesY = $cnvTravelCitiesScroll.height() - 289;
 		} else if (_UpdateTravelCitiesY < 0) {
@@ -5616,8 +4808,6 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 	var addDays = 0;
 	var IsNightTime;
 	var RegionalForecastCities;
-	var GetTonightsForecast;
-	var GetTomorrowsForecast;
 
 	if (TomorrowForecast2) {
 		if (!WeatherParameters.RegionalForecastCities2) {
@@ -5630,7 +4820,6 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 			addDays = 1;
 			Today.setHours(0, 0, 0, 0);
 			IsNightTime = false;
-			GetTomorrowsForecast = true;
 		} else {
 			// Todays's nighttime forecast
 			if (Today.getHours() === 0) {
@@ -5638,7 +4827,6 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				Today.setHours(1, 0, 0, 0);
 			}
 			IsNightTime = true;
-			GetTonightsForecast = true;
 		}
 	} else {
 		if (!WeatherParameters.RegionalForecastCities1) {
@@ -5651,7 +4839,6 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 			// Prevent Midnight from causing the wrong icons to appear.
 			Today.setHours(1, 0, 0, 0);
 			IsNightTime = true;
-			GetTonightsForecast = true;
 		} else {
 			// Today's daytime forecast
 			if (Today.getHours() === 0) {
@@ -5659,7 +4846,6 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 				Today.setHours(1, 0, 0, 0);
 			}
 			IsNightTime = false;
-			GetTodaysForecast = true;
 		}
 	}
 
@@ -5985,8 +5171,7 @@ const GetXYFromLatitudeLongitude = (Latitude, Longitude, OffsetX, OffsetY) => {
 	y = (50.5 - Latitude) * 55.2;
 	y -= OffsetY; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (y > (ImgHeight - (OffsetY * 2))) // The OffsetY * 2
-	{
+	if (y > (ImgHeight - (OffsetY * 2))) {
 		y = ImgHeight - (OffsetY * 2);
 	} else if (y < 0) {
 		y = 0;
@@ -5995,8 +5180,7 @@ const GetXYFromLatitudeLongitude = (Latitude, Longitude, OffsetX, OffsetY) => {
 	x = ((-127.5 - Longitude) * 41.775) * -1;
 	x -= OffsetX; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (x > (ImgWidth - (OffsetX * 2))) // The OffsetX * 2
-	{
+	if (x > (ImgWidth - (OffsetX * 2))) {
 		x = ImgWidth - (OffsetX * 2);
 	} else if (x < 0) {
 		x = 0;
@@ -6014,8 +5198,7 @@ const GetXYFromLatitudeLongitudeDoppler = (Latitude, Longitude, OffsetX, OffsetY
 	y = (51.75 - Latitude) * 55.2;
 	y -= OffsetY; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (y > (ImgHeight - (OffsetY * 2))) // The OffsetY * 2
-	{
+	if (y > (ImgHeight - (OffsetY * 2))) {
 		y = ImgHeight - (OffsetY * 2);
 	} else if (y < 0) {
 		y = 0;
@@ -6024,8 +5207,7 @@ const GetXYFromLatitudeLongitudeDoppler = (Latitude, Longitude, OffsetX, OffsetY
 	x = ((-130.37 - Longitude) * 41.775) * -1;
 	x -= OffsetX; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (x > (ImgWidth - (OffsetX * 2))) // The OffsetX * 2
-	{
+	if (x > (ImgWidth - (OffsetX * 2))) {
 		x = ImgWidth - (OffsetX * 2);
 	} else if (x < 0) {
 		x = 0;
@@ -6065,8 +5247,7 @@ const GetXYFromLatitudeLongitudeAK = (Latitude, Longitude, OffsetX, OffsetY) => 
 	y = (73.0 - Latitude) * 56;
 	y -= OffsetY; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (y > (ImgHeight - (OffsetY * 2))) // The OffsetY * 2
-	{
+	if (y > (ImgHeight - (OffsetY * 2))) {
 		y = ImgHeight - (OffsetY * 2);
 	} else if (y < 0) {
 		y = 0;
@@ -6075,8 +5256,7 @@ const GetXYFromLatitudeLongitudeAK = (Latitude, Longitude, OffsetX, OffsetY) => 
 	x = ((-175.0 - Longitude) * 25.0) * -1;
 	x -= OffsetX; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (x > (ImgWidth - (OffsetX * 2))) // The OffsetX * 2
-	{
+	if (x > (ImgWidth - (OffsetX * 2))) {
 		x = ImgWidth - (OffsetX * 2);
 	} else if (x < 0) {
 		x = 0;
@@ -6115,8 +5295,7 @@ const GetXYFromLatitudeLongitudeHI = (Latitude, Longitude, OffsetX, OffsetY) => 
 	y = (25 - Latitude) * 55.2;
 	y -= OffsetY; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (y > (ImgHeight - (OffsetY * 2))) // The OffsetY * 2
-	{
+	if (y > (ImgHeight - (OffsetY * 2))) {
 		y = ImgHeight - (OffsetY * 2);
 	} else if (y < 0) {
 		y = 0;
@@ -6125,8 +5304,7 @@ const GetXYFromLatitudeLongitudeHI = (Latitude, Longitude, OffsetX, OffsetY) => 
 	x = ((-164.5 - Longitude) * 41.775) * -1;
 	x -= OffsetX; // Centers map.
 	// Do not allow the map to exceed the max/min coordinates.
-	if (x > (ImgWidth - (OffsetX * 2))) // The OffsetX * 2
-	{
+	if (x > (ImgWidth - (OffsetX * 2))) {
 		x = ImgWidth - (OffsetX * 2);
 	} else if (x < 0) {
 		x = 0;
@@ -6930,7 +6108,6 @@ var DrawCurrentConditions = function (WeatherParameters, context) {
 	var HeatIndex;
 	var WindChill;
 	var Pressure;
-	var PressureUnit;
 	var PressureDirection;
 	var WindSpeed;
 	var WindDirection;
@@ -7419,7 +6596,7 @@ const LoadAudio = async (Url) => {
 			type: 'GET',
 			url: Url,
 			xhr: () => {
-				const xhr = new HMLHttpRequest();
+				const xhr = new XMLHttpRequest();
 				xhr.responseType = 'arraybuffer';
 				return xhr;
 			},
@@ -7625,184 +6802,171 @@ const GetNarrationText = () => {
 	const CanvasType = Math.floor(_CurrentPosition);
 	const SubCanvasType = Math.round2((_CurrentPosition - CanvasType), 1) * 10;
 
-	let Temperature;
 	let Text = '';
 
 	switch (CanvasType) {
 	case CanvasTypes.CurrentWeather:
-		const WeatherCurrentConditions = _WeatherParameters.WeatherCurrentConditions;
+		{const WeatherCurrentConditions = _WeatherParameters.WeatherCurrentConditions;
 
-		switch (_Units) {
-		case Units.English:
-			Temperature = WeatherCurrentConditions.Temperature;
-			HeatIndex = WeatherCurrentConditions.HeatIndex;
-			WindChill = WeatherCurrentConditions.WindChill;
-			Humidity = WeatherCurrentConditions.Humidity;
-			DewPoint = WeatherCurrentConditions.DewPoint;
-			Pressure = WeatherCurrentConditions.Pressure;
-			PressureDirection = WeatherCurrentConditions.PressureDirection;
-			PressureUnit = ' inches ';
-			WindSpeed = WeatherCurrentConditions.WindSpeed;
-			WindGust = WeatherCurrentConditions.WindGust;
-			WindDirection = WeatherCurrentConditions.WindDirection;
-			WindUnit = ' miles per hour ';
-			VisibilityUnit = ' miles ';
-			Visibility = WeatherCurrentConditions.Visibility;
-			Ceiling = WeatherCurrentConditions.Ceiling;
-			CeilingUnit = ' feet ';
-			break;
-		default:
-			Temperature = WeatherCurrentConditions.TemperatureC.toString();
-			HeatIndex = WeatherCurrentConditions.HeatIndexC.toString();
-			WindChill = WeatherCurrentConditions.WindChillC.toString();
-			Humidity = WeatherCurrentConditions.Humidity.toString();
-			DewPoint = WeatherCurrentConditions.DewPointC.toString();
-			Pressure = WeatherCurrentConditions.PressureC.toString();
-			PressureDirection = WeatherCurrentConditions.PressureDirection;
-			PressureUnit = ' millibars ';
-			WindSpeed = WeatherCurrentConditions.WindSpeedC.toString();
-			WindGust = WeatherCurrentConditions.WindGustC.toString();
-			WindDirection = WeatherCurrentConditions.WindDirection;
-			WindUnit = ' kilometers per hour ';
-			VisibilityUnit = ' kilometers ';
-			Visibility = WeatherCurrentConditions.VisibilityC.toString();
-			Ceiling = WeatherCurrentConditions.CeilingC.toString();
-			CeilingUnit = ' meters ';
-			break;
-		}
 
-		Text += `The current conditions at ${WeatherCurrentConditions.StationName}. `;
-		Text += WeatherCurrentConditions.Conditions + '. ';
-		Text += Temperature.toString().replaceAll('.', ' point ') + ' degrees ';
+			let Temperature = WeatherCurrentConditions.Temperature;
+			let HeatIndex = WeatherCurrentConditions.HeatIndex;
+			let WindChill = WeatherCurrentConditions.WindChill;
+			let Humidity = WeatherCurrentConditions.Humidity;
+			let DewPoint = WeatherCurrentConditions.DewPoint;
+			let Pressure = WeatherCurrentConditions.Pressure;
+			let PressureDirection = WeatherCurrentConditions.PressureDirection;
+			let PressureUnit = ' inches ';
+			let WindSpeed = WeatherCurrentConditions.WindSpeed;
+			let WindGust = WeatherCurrentConditions.WindGust;
+			let WindDirection = WeatherCurrentConditions.WindDirection;
+			let WindUnit = ' miles per hour ';
+			let VisibilityUnit = ' miles ';
+			let Visibility = WeatherCurrentConditions.Visibility;
+			let Ceiling = WeatherCurrentConditions.Ceiling;
+			let CeilingUnit = ' feet ';
+			if (_Units === Units.Metric) {
+				Temperature = WeatherCurrentConditions.TemperatureC.toString();
+				HeatIndex = WeatherCurrentConditions.HeatIndexC.toString();
+				WindChill = WeatherCurrentConditions.WindChillC.toString();
+				Humidity = WeatherCurrentConditions.Humidity.toString();
+				DewPoint = WeatherCurrentConditions.DewPointC.toString();
+				Pressure = WeatherCurrentConditions.PressureC.toString();
+				PressureDirection = WeatherCurrentConditions.PressureDirection;
+				PressureUnit = ' millibars ';
+				WindSpeed = WeatherCurrentConditions.WindSpeedC.toString();
+				WindGust = WeatherCurrentConditions.WindGustC.toString();
+				WindDirection = WeatherCurrentConditions.WindDirection;
+				WindUnit = ' kilometers per hour ';
+				VisibilityUnit = ' kilometers ';
+				Visibility = WeatherCurrentConditions.VisibilityC.toString();
+				Ceiling = WeatherCurrentConditions.CeilingC.toString();
+				CeilingUnit = ' meters ';
 
-		if (HeatIndex !== Temperature) {
-			Text += 'with a heat index of ' + HeatIndex.toString().replaceAll('.', ' point ') + ' degrees ';
-		} else if (WindChill !== '' && WindChill < Temperature) {
-			Text += 'with a wind chill of ' + WindChill.toString().replaceAll('.', ' point ') + ' degrees';
-		}
-		Text += '. ';
+			}
 
-		if (WindSpeed > 0) {
-			Text += 'Winds ' + GetWindDirectionWords(WindDirection) + ' at ' + WindSpeed + WindUnit;
-		} else if (WindSpeed === 'NA') {
-			Text += 'Winds are not available ';
-		} else {
-			Text += 'Winds are calm ';
-		}
-		if (WindGust !== '') {
-			Text += ' gusts to ' + WindGust;
-		}
-		Text += '. ';
+			Text += `The current conditions at ${WeatherCurrentConditions.StationName}. `;
+			Text += WeatherCurrentConditions.Conditions + '. ';
+			Text += Temperature.toString().replaceAll('.', ' point ') + ' degrees ';
 
-		Text += 'Humidity is ' + Humidity.toString() + ' percent. ';
-		Text += 'Dewpoint is ' + DewPoint.toString().replaceAll('.', ' point ') + ' degrees. ';
+			if (HeatIndex !== Temperature) {
+				Text += 'with a heat index of ' + HeatIndex.toString().replaceAll('.', ' point ') + ' degrees ';
+			} else if (WindChill !== '' && WindChill < Temperature) {
+				Text += 'with a wind chill of ' + WindChill.toString().replaceAll('.', ' point ') + ' degrees';
+			}
+			Text += '. ';
 
-		Text += 'Ceiling  is ' + (Ceiling === '' ? 'Unlimited' : Ceiling + CeilingUnit) + '. ';
-		Text += 'Visibility is ' + parseInt(Visibility).toString() + VisibilityUnit + '. ';
+			if (WindSpeed > 0) {
+				Text += 'Winds ' + GetWindDirectionWords(WindDirection) + ' at ' + WindSpeed + WindUnit;
+			} else if (WindSpeed === 'NA') {
+				Text += 'Winds are not available ';
+			} else {
+				Text += 'Winds are calm ';
+			}
+			if (WindGust !== '') {
+				Text += ' gusts to ' + WindGust;
+			}
+			Text += '. ';
 
-		Text += 'Barometric Pressure is ' + Pressure.replaceAll('.', ' point ') + ' ' + PressureUnit + ' and ';
-		switch (PressureDirection) {
-		case 'R':
-			Text += 'rising';
-			break;
-		case 'F':
-			Text += 'falling';
-			break;
-		default:
-		}
-		Text += '. ';
+			Text += 'Humidity is ' + Humidity.toString() + ' percent. ';
+			Text += 'Dewpoint is ' + DewPoint.toString().replaceAll('.', ' point ') + ' degrees. ';
+
+			Text += 'Ceiling  is ' + (Ceiling === '' ? 'Unlimited' : Ceiling + CeilingUnit) + '. ';
+			Text += 'Visibility is ' + parseInt(Visibility).toString() + VisibilityUnit + '. ';
+
+			Text += 'Barometric Pressure is ' + Pressure.replaceAll('.', ' point ') + ' ' + PressureUnit + ' and ';
+			switch (PressureDirection) {
+			case 'R':
+				Text += 'rising';
+				break;
+			case 'F':
+				Text += 'falling';
+				break;
+			default:
+			}
+			Text += '. ';}
 
 		break;
 
 	case CanvasTypes.LatestObservations:
-		const WeatherCurrentRegionalConditions = _WeatherParameters.WeatherCurrentRegionalConditions;
-		const SortedArray = WeatherCurrentRegionalConditions.SortedArray;
+		{const WeatherCurrentRegionalConditions = _WeatherParameters.WeatherCurrentRegionalConditions;
+			const SortedArray = WeatherCurrentRegionalConditions.SortedArray;
 
-		Text += 'Latest observations for the following cities. ';
+			Text += 'Latest observations for the following cities. ';
 
-		$(SortedArray).each(function () {
-			const WeatherCurrentCondition = this;
+			$(SortedArray).each(function () {
+				const WeatherCurrentCondition = this;
 
-			let Temperature;
-			let WindSpeed;
 
-			switch (_Units) {
-			case Units.English:
-				Temperature = WeatherCurrentCondition.Temperature;
-				WindSpeed = WeatherCurrentCondition.WindSpeed;
-				WindUnit = ' miles per hour ';
-				break;
+				let Temperature = WeatherCurrentCondition.Temperature;
+				let WindSpeed = WeatherCurrentCondition.WindSpeed;
+				let WindUnit = ' miles per hour ';
 
-			default:
-				Temperature = Math.round(WeatherCurrentCondition.TemperatureC);
-				WindSpeed = WeatherCurrentCondition.WindSpeedC;
-				WindUnit = ' kilometers per hour ';
-				break;
-			}
+				if (_Units === Units.Metric) {
+					Temperature = Math.round(WeatherCurrentCondition.TemperatureC);
+					WindSpeed = WeatherCurrentCondition.WindSpeedC;
+					WindUnit = ' kilometers per hour ';
+				}
 
-			Text += WeatherCurrentCondition.StationName + ' ';
-			Text += WeatherCurrentCondition.Conditions + '. ';
-			Text += Temperature.toString().replaceAll('.', ' point ') + ' degrees ';
+				Text += WeatherCurrentCondition.StationName + ' ';
+				Text += WeatherCurrentCondition.Conditions + '. ';
+				Text += Temperature.toString().replaceAll('.', ' point ') + ' degrees ';
 
-			if (WeatherCurrentCondition.WindSpeed > 0) {
-				Text += ' with Winds ' + GetWindDirectionWords(WeatherCurrentCondition.WindDirection) + ' at ' + WindSpeed.toString() + ' ' + WindUnit + ' ';
-			} else {
-				Text += ' with Calm Winds ';
-			}
+				if (WeatherCurrentCondition.WindSpeed > 0) {
+					Text += ' with Winds ' + GetWindDirectionWords(WeatherCurrentCondition.WindDirection) + ' at ' + WindSpeed.toString() + ' ' + WindUnit + ' ';
+				} else {
+					Text += ' with Calm Winds ';
+				}
 
-			Text += '. ';
+				Text += '. ';
 
-		});
+			});}
 
 		break;
 
 	case CanvasTypes.ExtendedForecast1:
 	case CanvasTypes.ExtendedForecast2:
-		const WeatherExtendedForecast = _WeatherParameters.WeatherExtendedForecast;
+		{	const WeatherExtendedForecast = _WeatherParameters.WeatherExtendedForecast;
 
-		Text += 'Extended Forecast. ';
+			Text += 'Extended Forecast. ';
 
-		let LBound;
-		let UBound;
-		switch (CanvasType) {
-		case CanvasTypes.ExtendedForecast1:
-			LBound = 0;
-			UBound = 2;
-			break;
-		case CanvasTypes.ExtendedForecast2:
-			LBound = 3;
-			UBound = 5;
-			break;
-		}
-
-		$(WeatherExtendedForecast.Day).each(function (Index) {
-			if (Index < LBound || Index > UBound) return true;
-
-			const Day = this;
-
-			switch (_Units) {
-			case Units.English:
-				MinimumTemperature = Day.MinimumTemperature;
-				MaximumTemperature = Day.MaximumTemperature;
+			let LBound;
+			let UBound;
+			switch (CanvasType) {
+			case CanvasTypes.ExtendedForecast1:
+				LBound = 0;
+				UBound = 2;
 				break;
-
-			case Units.Metric:
-				MinimumTemperature = Math.round(Day.MinimumTemperatureC);
-				MaximumTemperature = Math.round(Day.MaximumTemperatureC);
+			case CanvasTypes.ExtendedForecast2:
+				LBound = 3;
+				UBound = 5;
 				break;
+			default:
 			}
 
-			Text += Day.DayName + ' ';
-			Text += Day.Conditions + '. ';
-			Text += ' with a high of ' + MaximumTemperature.toString().replaceAll('.', ' point ') + ' ';
-			Text += ' and a low of ' + MinimumTemperature.toString().replaceAll('.', ' point ') + ' ';
-			Text += '. ';
-		});
+			$(WeatherExtendedForecast.Day).each(function (Index) {
+				if (Index < LBound || Index > UBound) return true;
 
+				const Day = this;
+				let MinimumTemperature = Day.MinimumTemperature;
+				let MaximumTemperature = Day.MaximumTemperature;
+
+				if (_Units === Units.Metric) {
+					MinimumTemperature = Math.round(Day.MinimumTemperatureC);
+					MaximumTemperature = Math.round(Day.MaximumTemperatureC);
+				}
+
+				Text += Day.DayName + ' ';
+				Text += Day.Conditions + '. ';
+				Text += ' with a high of ' + MaximumTemperature.toString().replaceAll('.', ' point ') + ' ';
+				Text += ' and a low of ' + MinimumTemperature.toString().replaceAll('.', ' point ') + ' ';
+				Text += '. ';
+			});
+		}
 		break;
 
 	case CanvasTypes.Almanac:
-		const AlmanacInfo = _WeatherParameters.AlmanacInfo;
+	{	const AlmanacInfo = _WeatherParameters.AlmanacInfo;
 		const Today = new Date();
 		const Tomorrow = Today.addDays(1);
 
@@ -7842,13 +7006,14 @@ const GetNarrationText = () => {
 			case 'First':
 				Text += 'First quarter ';
 				break;
+			default:
 			}
 			Text += 'is on ' + MoonPhase.Date.getMonthName() + ' ' + MoonPhase.Date.getDate().toString() + '. ';
 		});
 
 		Text += '. ';
 
-		break;
+		break;}
 
 	case CanvasTypes.AlmanacTides:
 		{
@@ -7861,11 +7026,11 @@ const GetNarrationText = () => {
 
 				TideCounter = 0;
 				Text += 'Low tides at ';
-				WeatherTide.TideTypes.forEach(TideType => {
+				WeatherTide.TideTypes.forEach((TideType, Index) => {
 					if (TideType !== 'low') return true;
 
-					const TideTime = WeatherTide.TideTimes[Index];
-					const TideDay = WeatherTide.TideDays[Index];
+					let TideTime = WeatherTide.TideTimes[Index];
+					let TideDay = WeatherTide.TideDays[Index];
 
 					if (_Units === Units.Metric) {
 						TideTime = utils.calc.TimeTo24Hour(TideTime);
@@ -7883,11 +7048,11 @@ const GetNarrationText = () => {
 
 				TideCounter = 0;
 				Text += 'High tides at ';
-				WeatherTide.TideTypes.forEach(TideType => {
+				WeatherTide.TideTypes.forEach((TideType, Index) => {
 					if (TideType !== 'high') return true;
 
-					const TideTime = WeatherTide.TideTimes[Index];
-					const TideDay = WeatherTide.TideDays[Index];
+					let TideTime = WeatherTide.TideTimes[Index];
+					let TideDay = WeatherTide.TideDays[Index];
 
 					if (_Units === Units.Metric) {
 						TideTime = utils.calc.TimeTo24Hour(TideTime);
@@ -7919,102 +7084,102 @@ const GetNarrationText = () => {
 		break;
 
 	case CanvasTypes.Outlook:
-		const Outlook = _WeatherParameters.Outlook;
+		{const Outlook = _WeatherParameters.Outlook;
 
-		Text += 'Your 30 day outlook from mid ' + _MonthLongNames[Outlook.From] + ' to mid ' + _MonthLongNames[Outlook.To] + '. ';
-		Text += 'Temperatures are expected to be ' + GetOutlookDescription(Outlook.Temperature) + '. ';
-		Text += 'Precipitation is expected to be ' + GetOutlookDescription(Outlook.Precipitation) + '. ';
-
+			Text += 'Your 30 day outlook from mid ' + _MonthLongNames[Outlook.From] + ' to mid ' + _MonthLongNames[Outlook.To] + '. ';
+			Text += 'Temperatures are expected to be ' + GetOutlookDescription(Outlook.Temperature) + '. ';
+			Text += 'Precipitation is expected to be ' + GetOutlookDescription(Outlook.Precipitation) + '. ';
+		}
 		break;
 
 	case CanvasTypes.MarineForecast:
-		const MarineForecast = _WeatherParameters.MarineForecast;
-		let WindSpeed;
-		let Tide;
+		{const MarineForecast = _WeatherParameters.MarineForecast;
+			let WindSpeed;
+			let Tide;
 
-		Text += 'Marine Forecast. ';
+			Text += 'Marine Forecast. ';
 
-		if (MarineForecast.Warning !== '') {
-			Text += MarineForecast.Warning + '. ';
+			if (MarineForecast.Warning !== '') {
+				Text += MarineForecast.Warning + '. ';
+			}
+
+			Text += MarineForecast.TodayDayName;
+
+			switch (_Units) {
+			case Units.English:
+				WindSpeed = MarineForecast.TodayWindSpeedHigh.toString() + ' knots.';
+				if (MarineForecast.TodayWindSpeedLow !== MarineForecast.TodayWindSpeedHigh) {
+					WindSpeed = MarineForecast.TodayWindSpeedLow.toString() + ' to ' + WindSpeed;
+				}
+				break;
+			default:
+				WindSpeed = MarineForecast.TodayWindSpeedHighC.toString() + ' knots.';
+				if (MarineForecast.TodayWindSpeedLowC !== MarineForecast.TodayWindSpeedHighC) {
+					WindSpeed = MarineForecast.TodayWindSpeedLowC.toString() + ' to ' + WindSpeed;
+				}
+				break;
+			}
+			Text += ' winds ' + GetWindDirectionWords(MarineForecast.TodayWindDirection) + ' at ' + WindSpeed;
+
+			switch (_Units) {
+			case Units.English:
+				Tide = MarineForecast.TodayTideHigh.toString() + ' feet. ';
+				if (MarineForecast.TodayTideLow !== MarineForecast.TodayTideHigh) {
+					Tide = MarineForecast.TodayTideLow.toString() + ' to ' + Tide;
+				}
+				break;
+			default:
+				Tide = MarineForecast.TodayTideHighC.toString() + ' meters. ';
+				if (MarineForecast.TodayTideLowC !== MarineForecast.TodayTideHighC) {
+					Tide = MarineForecast.TodayTideLowC.toString() + ' to ' + Tide;
+				}
+				break;
+			}
+			Text += ' ' + MarineForecast.SeasOrWaves.capitalize() + ' at ' + Tide;
+
+
+			Text += MarineForecast.TomorrowDayName;
+
+			switch (_Units) {
+			case Units.English:
+				WindSpeed = MarineForecast.TomorrowWindSpeedHigh.toString() + ' knots. ';
+				if (MarineForecast.TomorrowWindSpeedLow !== MarineForecast.TomorrowWindSpeedHigh) {
+					WindSpeed = MarineForecast.TomorrowWindSpeedLow.toString() + ' to ' + WindSpeed;
+				}
+				break;
+			default:
+				WindSpeed = MarineForecast.TomorrowWindSpeedHighC.toString() + ' knots. ';
+				if (MarineForecast.TomorrowWindSpeedLowC !== MarineForecast.TomorrowWindSpeedHighC) {
+					WindSpeed = MarineForecast.TomorrowWindSpeedLowC.toString() + ' to ' + WindSpeed;
+				}
+				break;
+			}
+			Text += ' winds ' + GetWindDirectionWords(MarineForecast.TomorrowWindDirection) + ' at ' + WindSpeed;
+
+			switch (_Units) {
+			case Units.English:
+				Tide = MarineForecast.TomorrowTideHigh.toString() + ' feet. ';
+				if (MarineForecast.TomorrowTideLow !== MarineForecast.TomorrowTideHigh) {
+					Tide = MarineForecast.TomorrowTideLow.toString() + ' to ' + Tide;
+				}
+				break;
+			default:
+				Tide = MarineForecast.TomorrowTideHighC.toString() + ' meters. ';
+				if (MarineForecast.TomorrowTideLowC !== MarineForecast.TomorrowTideHighC) {
+					Tide = MarineForecast.TomorrowTideLowC.toString() + ' to ' + Tide;
+				}
+				break;
+			}
+			Text += ' ' + MarineForecast.SeasOrWaves.capitalize() + ' at ' + Tide;
 		}
-
-		Text += MarineForecast.TodayDayName;
-
-		switch (_Units) {
-		case Units.English:
-			WindSpeed = MarineForecast.TodayWindSpeedHigh.toString() + ' knots.';
-			if (MarineForecast.TodayWindSpeedLow !== MarineForecast.TodayWindSpeedHigh) {
-				WindSpeed = MarineForecast.TodayWindSpeedLow.toString() + ' to ' + WindSpeed;
-			}
-			break;
-		case Units.Metric:
-			WindSpeed = MarineForecast.TodayWindSpeedHighC.toString() + ' knots.';
-			if (MarineForecast.TodayWindSpeedLowC !== MarineForecast.TodayWindSpeedHighC) {
-				WindSpeed = MarineForecast.TodayWindSpeedLowC.toString() + ' to ' + WindSpeed;
-			}
-			break;
-		}
-		Text += ' winds ' + GetWindDirectionWords(MarineForecast.TodayWindDirection) + ' at ' + WindSpeed;
-
-		switch (_Units) {
-		case Units.English:
-			Tide = MarineForecast.TodayTideHigh.toString() + ' feet. ';
-			if (MarineForecast.TodayTideLow !== MarineForecast.TodayTideHigh) {
-				Tide = MarineForecast.TodayTideLow.toString() + ' to ' + Tide;
-			}
-			break;
-		case Units.Metric:
-			Tide = MarineForecast.TodayTideHighC.toString() + ' meters. ';
-			if (MarineForecast.TodayTideLowC !== MarineForecast.TodayTideHighC) {
-				Tide = MarineForecast.TodayTideLowC.toString() + ' to ' + Tide;
-			}
-			break;
-		}
-		Text += ' ' + MarineForecast.SeasOrWaves.capitalize() + ' at ' + Tide;
-
-
-		Text += MarineForecast.TomorrowDayName;
-
-		switch (_Units) {
-		case Units.English:
-			WindSpeed = MarineForecast.TomorrowWindSpeedHigh.toString() + ' knots. ';
-			if (MarineForecast.TomorrowWindSpeedLow !== MarineForecast.TomorrowWindSpeedHigh) {
-				WindSpeed = MarineForecast.TomorrowWindSpeedLow.toString() + ' to ' + WindSpeed;
-			}
-			break;
-		case Units.Metric:
-			WindSpeed = MarineForecast.TomorrowWindSpeedHighC.toString() + ' knots. ';
-			if (MarineForecast.TomorrowWindSpeedLowC !== MarineForecast.TomorrowWindSpeedHighC) {
-				WindSpeed = MarineForecast.TomorrowWindSpeedLowC.toString() + ' to ' + WindSpeed;
-			}
-			break;
-		}
-		Text += ' winds ' + GetWindDirectionWords(MarineForecast.TomorrowWindDirection) + ' at ' + WindSpeed;
-
-		switch (_Units) {
-		case Units.English:
-			Tide = MarineForecast.TomorrowTideHigh.toString() + ' feet. ';
-			if (MarineForecast.TomorrowTideLow !== MarineForecast.TomorrowTideHigh) {
-				Tide = MarineForecast.TomorrowTideLow.toString() + ' to ' + Tide;
-			}
-			break;
-		case Units.Metric:
-			Tide = MarineForecast.TomorrowTideHighC.toString() + ' meters. ';
-			if (MarineForecast.TomorrowTideLowC !== MarineForecast.TomorrowTideHighC) {
-				Tide = MarineForecast.TomorrowTideLowC.toString() + ' to ' + Tide;
-			}
-			break;
-		}
-		Text += ' ' + MarineForecast.SeasOrWaves.capitalize() + ' at ' + Tide;
-
 		break;
 
 	case CanvasTypes.AirQuality:
-		var AirQuality = _WeatherParameters.AirQuality;
+		{const AirQuality = _WeatherParameters.AirQuality;
 
-		Text = 'Air quality forecast for ' + AirQuality.Date.getDayName() + '. ';
-		Text += AirQuality.City + ', ' + GetAqiDescription(AirQuality.IndexValue) + ' with an air quality index of ' + AirQuality.IndexValue.toString() + '.';
-
+			Text = 'Air quality forecast for ' + AirQuality.Date.getDayName() + '. ';
+			Text += AirQuality.City + ', ' + GetAqiDescription(AirQuality.IndexValue) + ' with an air quality index of ' + AirQuality.IndexValue.toString() + '.';
+		}
 		break;
 
 	case CanvasTypes.RegionalForecast1:
@@ -8022,9 +7187,6 @@ const GetNarrationText = () => {
 		{		const Today = new Date();
 			var addDays = 0;
 			var IsNightTime;
-			var GetTodaysForecast;
-			var GetTonightsForecast;
-			var GetTomorrowsForecast;
 			var RegionalForecastCities;
 
 			if (CanvasType === CanvasTypes.RegionalForecast2) {
@@ -8035,7 +7197,6 @@ const GetNarrationText = () => {
 					addDays = 1;
 					Today.setHours(0, 0, 0, 0);
 					IsNightTime = false;
-					GetTomorrowsForecast = true;
 				} else {
 				// Todays's nighttime forecast
 					if (Today.getHours() === 0) {
@@ -8043,7 +7204,6 @@ const GetNarrationText = () => {
 						Today.setHours(1, 0, 0, 0);
 					}
 					IsNightTime = true;
-					GetTonightsForecast = true;
 				}
 			} else {
 				RegionalForecastCities = _WeatherParameters.RegionalForecastCities1;
@@ -8053,7 +7213,6 @@ const GetNarrationText = () => {
 				// Prevent Midnight from causing the wrong icons to appear.
 					Today.setHours(1, 0, 0, 0);
 					IsNightTime = true;
-					GetTonightsForecast = true;
 				} else {
 				// Today's daytime forecast
 					if (Today.getHours() === 0) {
@@ -8061,12 +7220,10 @@ const GetNarrationText = () => {
 						Today.setHours(1, 0, 0, 0);
 					}
 					IsNightTime = false;
-					GetTodaysForecast = true;
 				}
 			}
 
 			const Tomorrow = Today.addDays(addDays);
-			var _Date = Tomorrow.getYYYYMMDD();
 			var DayName = Tomorrow.getDayName();
 
 			Text += 'Regional forecast for ' + DayName + (IsNightTime ? ' Night ' : '') + ' for the following cities. ';

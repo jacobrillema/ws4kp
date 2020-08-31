@@ -222,7 +222,7 @@ const icons = (() => {
 			return addPath('Blowing-Snow.gif');
 
 		default:
-			console.error('Unable to locate icon for \'' + WeatherIcon + '\'');
+			console.error('Unable to locate icon for \'' + link + '\'');
 			return addPath('');
 		}
 	};
