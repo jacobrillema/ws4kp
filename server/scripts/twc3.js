@@ -3891,28 +3891,29 @@ const getAlminacInfo = (WeatherParameters) => {
 	// calculated locally for today and tomorrow
 	const sun = [
 		SunCalc.getTimes(new Date(), WeatherParameters.Latitude, WeatherParameters.Longitude),
-		SunCalc.getTimes(DateTime.local().plus({days:1}).toJSDate(), WeatherParameters.Latitude, WeatherParameters.Longitude)
+		SunCalc.getTimes(DateTime.local().plus({days:1}).toJSDate(), WeatherParameters.Latitude, WeatherParameters.Longitude),
 	];
 
 	// brute force the moon phases by scanning the next 30 days
 	const moon = [];
 	// start with yesterday
 	let moonDate = DateTime.local().minus({days:1});
-	let moonPhase = SunCalc.getMoonIllumination(moonDate.toJSDate());
+	let phase = SunCalc.getMoonIllumination(moonDate.toJSDate()).phase;
 	let iterations = 0;
 	do {
 		// get yesterday's moon info
-		const yesterdayPhase = moonPhase;
+		const lastPhase = phase;
 		// calculate new values
 		moonDate = moonDate.plus({days:1});
-		moonPhase = SunCalc.getMoonIllumination(moonDate.toJSDate());
+		phase = SunCalc.getMoonIllumination(moonDate.toJSDate()).phase;
 		// check for 4 cases
-		if (yesterdayPhase < 0.25 && moonPhase >= 0.25) moon.push({type: 'First', date: moonDate});
-		if (yesterdayPhase < 0.50 && moonPhase >= 0.50) moon.push({type: 'Full', date: moonDate});
-		if (yesterdayPhase < 0.70 && moonPhase >= 0.75) moon.push({type: 'Last', date: moonDate});
-		if (yesterdayPhase > moonPhase) moon.push({type: 'New', date: moonDate});
+		if (lastPhase < 0.25 && phase >= 0.25) moon.push(getMoonTransition(0.25, 'First', moonDate));
+		if (lastPhase < 0.50 && phase >= 0.50) moon.push(getMoonTransition(0.50, 'Full', moonDate));
+		if (lastPhase < 0.75 && phase >= 0.75) moon.push(getMoonTransition(0.75, 'Last', moonDate));
+		if (lastPhase > phase) moon.push(getMoonTransition(0.00, 'New', moonDate));
 
 		// stop after 30 days or 4 moon phases
+		iterations++;
 	} while (iterations <= 30 && moon.length < 4);
 
 	WeatherParameters.AlmanacInfo = {
@@ -3921,6 +3922,44 @@ const getAlminacInfo = (WeatherParameters) => {
 	};
 	WeatherParameters.Progress.Almanac = LoadStatuses.Loaded;
 	PopulateAlmanacInfo(WeatherParameters);
+};
+
+// get moon transition from one phase to the next by drilling down by hours, minutes and seconds
+const getMoonTransition = (threshold, phaseName, start, iteration = 0) => {
+	let moonDate = start;
+	let phase = SunCalc.getMoonIllumination(moonDate.toJSDate()).phase;
+	let iterations = 0;
+	const step = {
+		hours: iteration === 0 ? -1:0,
+		minutes: iteration === 1 ? 1:0,
+		seconds: iteration === 2 ? -1:0,
+		milliseconds: iteration === 3 ? 1:0,
+	};
+
+	// increasing test
+	let test = (lastPhase,phase,threshold) => lastPhase < threshold && phase >= threshold;
+	// decreasing test
+	if (iteration%2===0) test = (lastPhase,phase,threshold) => lastPhase > threshold && phase <= threshold;
+
+	do {
+		// store last phase
+		const lastPhase = phase;
+		// calculate new phase after step
+		moonDate = moonDate.plus(step);
+		phase = SunCalc.getMoonIllumination(moonDate.toJSDate()).phase;
+		// wrap phases > 0.9 to -0.1 for ease of detection
+		if (phase > 0.9) phase -= 1.0;
+		// compare
+		if (test(lastPhase, phase, threshold)) {
+			// last iteration is three, return value
+			if (iteration >= 3) break;
+			// iterate recursively
+			return getMoonTransition(threshold, phaseName, moonDate, iteration+1);
+		}
+		iterations++;
+	} while (iterations < 1000);
+
+	return {phase: phaseName, date: moonDate};
 };
 
 const PopulateAlmanacInfo = async (WeatherParameters) => {
@@ -3963,38 +4002,27 @@ const PopulateAlmanacInfo = async (WeatherParameters) => {
 
 	DrawText(context, 'Star4000', '24pt', '#FFFF00', 70, 220, 'Moon Data:', 2);
 
-	var x = 120;
-	$(AlmanacInfo.MoonPhases).each(function (Index, MoonPhase) {
-		var date;
-		switch (_Units) {
-		case Units.English:
-			date = MoonPhase.Date.getMonthShortName() + ' ' + MoonPhase.Date.getDate().toString();
-			break;
-		default:
-			date = MoonPhase.Date.getDate().toString() + ' ' + MoonPhase.Date.getMonthShortName();
-			break;
-		}
 
-		DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 260, MoonPhase.Phase, 2, 'center');
-		DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, 390, date, 2, 'center');
+	info.moon.forEach((MoonPhase, Index) => {
+		const date = MoonPhase.date.toLocaleString({month: 'short', day: 'numeric'});
 
-		switch (MoonPhase.Phase) {
-		case 'Full':
-			context.drawImage(FullMoonImage, x - 45, 270);
-			break;
-		case 'Last':
-			context.drawImage(LastMoonImage, x - 45, 270);
-			break;
-		case 'New':
-			context.drawImage(NewMoonImage, x - 45, 270);
-			break;
-		case 'First':
-			context.drawImage(FirstMoonImage, x - 45, 270);
-			break;
-		default:
-		}
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 120+Index*130, 260, MoonPhase.phase, 2, 'center');
+		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 120+Index*130, 390, date, 2, 'center');
 
-		x += 130;
+		const image = (() => {
+			switch (MoonPhase.phase) {
+			case 'Full':
+				return FullMoonImage;
+			case 'Last':
+				return LastMoonImage;
+			case 'New':
+				return NewMoonImage;
+			case 'First':
+			default:
+				return FirstMoonImage;
+			}
+		})();
+		context.drawImage(image, 75+Index*130, 270);
 	});
 
 	WeatherParameters.Progress.Almanac = LoadStatuses.Loaded;
