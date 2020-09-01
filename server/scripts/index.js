@@ -1,12 +1,3 @@
-/// <reference path="jquery-3.1.0.min.js" />
-/// <reference path="jquery.touchSwipe.min.js" />
-
-// Redirect user to SSL version of site.
-if (location.protocol != 'https:' && location.href.indexOf('localhost') == -1 && location.href.indexOf('192.') == -1)
-{
-	location.href = location.href.replace('http:', 'https:');
-}
-
 var frmGetLatLng;
 var txtAddress;
 var btnClearQuery;
@@ -81,8 +72,7 @@ var _canvasIds = [
 	'canvasHazards',
 ];
 
-var FullScreenResize = function ()
-{
+var FullScreenResize = function () {
 	var iframeDoc = $(iframeTwc[0].contentWindow.document);
 	var WindowWidth = $(window).width();
 	var WindowHeight = $(window).height();
@@ -97,8 +87,7 @@ var FullScreenResize = function ()
 	var Offset;
 	var inFullScreen = InFullScreen();
 
-	if (inFullScreen)
-	{
+	if (inFullScreen) {
 		//if (WindowWidth > WindowHeight)
 		//if (WindowWidth > 850)
 		//if (WindowWidth > 0)
@@ -119,8 +108,7 @@ var FullScreenResize = function ()
 
 			//LeftWidth = ((((WindowHeight * 16) / 9) - (WindowHeight * 1.25)) / 2) + "px";
 			LeftWidth = ((WindowWidth - (WindowHeight * 1.33333333333333333333)) / 2);
-			if (LeftWidth < 60)
-			{
+			if (LeftWidth < 60) {
 				LeftWidth = 60;
 			}
 			divTwcLeft.attr('style', 'width:' + LeftWidth + 'px; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;');
@@ -128,8 +116,7 @@ var FullScreenResize = function ()
 
 			//RightWidth = ((((WindowHeight * 16) / 9) - (WindowHeight * 1.25)) / 2) + "px";
 			RightWidth = ((WindowWidth - (WindowHeight * 1.33333333333333333333)) / 2);
-			if (RightWidth < 60)
-			{
+			if (RightWidth < 60) {
 				RightWidth = 60;
 			}
 			divTwcRight.attr('style', 'width:' + RightWidth + 'px; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;');
@@ -140,9 +127,7 @@ var FullScreenResize = function ()
 			iframeTwc.attr('style', 'width:' + IFrameWidth + 'px; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;');
 
 			//console.log(WindowWidth);
-		}
-		else
-		{
+		} else {
 			NewHeight = '';
 			NewWidth = WindowWidth + 'px';
 			divTwcTop.show();
@@ -157,15 +142,13 @@ var FullScreenResize = function ()
 			//divTwcMiddle.attr("style", "width:100%; height:" + IFrameHeight + "; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;");
 
 			TopHeight = ((WindowHeight - ((WindowWidth - Offset) * 0.75)) / 2);
-			if (TopHeight < 0)
-			{
+			if (TopHeight < 0) {
 				TopHeight = 0;
 			}
 			divTwcTop.attr('style', 'width:100%; height:' + TopHeight + 'px; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;');
 
 			BottomHeight = ((WindowHeight - ((WindowWidth - Offset) * 0.75)) / 2);
-			if (BottomHeight < 30)
-			{
+			if (BottomHeight < 30) {
 				BottomHeight = 30;
 			}
 			divTwcBottom.attr('style', 'width:100%; height:' + BottomHeight + 'px; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;');
@@ -178,8 +161,7 @@ var FullScreenResize = function ()
 		}
 	}
 
-	if (inFullScreen == false)
-	{
+	if (inFullScreen == false) {
 		NewHeight = '';
 		NewWidth = '';
 		divTwcTop.hide();
@@ -196,25 +178,20 @@ var FullScreenResize = function ()
 
 	//iframeDoc.find("#canvasProgress").css("width", NewWidth);
 	//iframeDoc.find("#canvasProgress").css("height", NewHeight);
-	$(_canvasIds).each(function ()
-	{
+	$(_canvasIds).each(function () {
 		var canvas = iframeDoc.find('#' + this.toString());
 		canvas.css('width', NewWidth);
 		canvas.css('height', NewHeight);
 	});
 
-	if (inFullScreen)
-	{
+	if (inFullScreen) {
 		$('body').css('overflow', 'hidden');
 		$('.ToggleFullScreen').val('Exit Full Screen');
 
-		if (!GetFullScreenElement())
-		{
+		if (!GetFullScreenElement()) {
 			EnterFullScreen();
 		}
-	}
-	else
-	{
+	} else {
 		$('body').css('overflow', '');
 		$('.ToggleFullScreen').val('Full Screen');
 	}
@@ -232,10 +209,8 @@ var FullScreenResize = function ()
 var _lockOrientation = screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation;
 var _unlockOrientation = screen.unlockOrientation || screen.mozUnlockOrientation || screen.msUnlockOrientation || (screen.orientation && screen.orientation.unlock);
 
-var OnFullScreen = function ()
-{
-	if (InFullScreen())
-	{
+var OnFullScreen = function () {
+	if (InFullScreen()) {
 		divTwc.attr('style', 'position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;');
 		FullScreenResize();
 
@@ -243,9 +218,7 @@ var OnFullScreen = function ()
 		//FullScreenResize();
 
 		if (_lockOrientation) try { _lockOrientation('landscape-primary'); } catch (ex) { console.log('Unable to lock screen orientation.'); }
-	}
-	else
-	{
+	} else {
 		divTwc.attr('style', '');
 		divTwcMiddle.attr('style', '');
 		iframeTwc.attr('style', '');
@@ -257,8 +230,7 @@ var OnFullScreen = function ()
 	}
 };
 
-var InFullScreen = function()
-{
+var InFullScreen = function() {
 	//return true;
 	//return (document.fullscreenEnabled || document.mozFullScreenEnabled || document.webkitFullscreenEnabled);
 	//return (window.innerHeight == screen.height);
@@ -267,35 +239,26 @@ var InFullScreen = function()
 	return ((_FullScreenOverride) || (GetFullScreenElement() != null) || (window.innerHeight == screen.height) || (window.innerHeight == (screen.height - 1)));
 };
 
-var GetFullScreenElement = function()
-{
-	if (_FullScreenOverride)
-	{
+var GetFullScreenElement = function() {
+	if (_FullScreenOverride) {
 		return document.body;
 	}
 
 	return (document.fullScreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
 };
 
-const btnFullScreen_click = () =>
-{
+const btnFullScreen_click = () => {
 
-	if (!InFullScreen())
-	{
+	if (!InFullScreen()) {
 		EnterFullScreen();
-	}
-	else
-	{
+	} else {
 		ExitFullscreen();
 
 	}
 
-	if (_IsPlaying)
-	{
+	if (_IsPlaying) {
 		_NoSleep.enable();
-	}
-	else
-	{
+	} else {
 		_NoSleep.disable();
 	}
 
@@ -304,31 +267,24 @@ const btnFullScreen_click = () =>
 	return false;
 };
 
-var EnterFullScreen = function ()
-{
+var EnterFullScreen = function () {
 	var element = document.body;
 
 	// Supports most browsers and their versions.
 	var requestMethod;
 	requestMethod = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || element.msRequestFullscreen;
 
-	if (requestMethod)
-	{
+	if (requestMethod) {
 		// Native full screen.
 		//requestMethod.call(element);
 		requestMethod.call(element, { navigationUI: 'hide' }); // https://bugs.chromium.org/p/chromium/issues/detail?id=933436#c7
-	} 
-	else if (typeof window.ActiveXObject !== 'undefined')
-	{
+	} else if (typeof window.ActiveXObject !== 'undefined') {
 		// Older IE.
 		var wscript = new ActiveXObject('WScript.Shell');
-		if (wscript !== null)
-		{
+		if (wscript !== null) {
 			wscript.SendKeys('{F11}');
 		}
-	}
-	else
-	{
+	} else {
 		// iOS doesn't support FullScreen API.
 		window.scrollTo(0, 0);
 		_FullScreenOverride = true;
@@ -338,149 +294,101 @@ var EnterFullScreen = function ()
 	UpdateFullScreenNavigate();
 };
 
-var ExitFullscreen = function ()
-{
+var ExitFullscreen = function () {
 	// exit full-screen
 
-	if (_FullScreenOverride)
-	{
+	if (_FullScreenOverride) {
 		_FullScreenOverride = false;
 		$(window).resize();
 	}
 
-	if (document.exitFullscreen)
-	{
+	if (document.exitFullscreen) {
 		// Chrome 71 broke this if the user pressed F11 to enter full screen mode.
 		document.exitFullscreen();
-	}
-	else if (document.webkitExitFullscreen)
-	{
+	} else if (document.webkitExitFullscreen) {
 		document.webkitExitFullscreen();
-	}
-	else if (document.mozCancelFullScreen)
-	{
+	} else if (document.mozCancelFullScreen) {
 		document.mozCancelFullScreen();
-	}
-	else if (document.msExitFullscreen)
-	{
+	} else if (document.msExitFullscreen) {
 		document.msExitFullscreen();
 	}
 };
 
-var btnNavigateMenu_click = function ()
-{
-	//var iFrameLocation = iframeTwc[0].contentWindow.location;
-	//iFrameLocation.hash = "";
-	//iFrameLocation.hash = "aProgress";
+var btnNavigateMenu_click = function () {
 	iframeTwc[0].contentWindow.NavigateMenu();
 	UpdateFullScreenNavigate();
 
 	return false;
 };
 
-var LoadTwcData = function ()
-{
+var LoadTwcData = function () {
 	txtAddress.blur();
 	StopAutoRefreshTimer();
 	_LastUpdate = null;
 	AssignLastUpdate();
 
-	console.log(latLon);
+	iframeTwc[0].contentWindow.postMessage(JSON.stringify({eventType: 'latLon', latLon}, window.location.origin));
 
 	iframeTwc.off('load');
+	FullScreenResize();
 
-	iframeTwc.on('load', () => {
-		switch (iframeTwc.attr('src'))
-		{
-		case 'about:blank':
-			if (!latLon)
-			{
-				iframeTwc.off('load');
-				return;
-			}
+	if (chkScrollText.is(':checked')) {
+		iframeTwc[0].contentWindow.AssignScrollText({ ScrollText: txtScrollText.val() });
+	}
 
-			iframeTwc.attr('src', 'twc3.html?_=' + (new Date).getTime().toString());
+	iframeTwc[0].contentWindow.AssignThemes({ Themes: $('input[type=\'radio\'][name=\'radThemes\']:checked').val() });
+
+	iframeTwc[0].contentWindow.AssignUnits({ Units: $('input[type=\'radio\'][name=\'radUnits\']:checked').val() });
+
+	iframeTwc[0].contentWindow.SetCallBack({ CallBack: TwcCallBack });
+
+	if (_IsPlaying) {
+		iframeTwc[0].contentWindow.NavigatePlayToggle();
+	}
+
+	if (_IsAudioPlaying) {
+		iframeTwc[0].contentWindow.AudioPlayToggle();
+	}
+
+	if (_IsNarrationPlaying) {
+		iframeTwc[0].contentWindow.NarrationPlayToggle();
+	}
+
+	$(iframeTwc[0].contentWindow.document).on('mousemove', document_mousemove);
+	$(iframeTwc[0].contentWindow.document).on('mousedown', document_mousemove);
+	$(iframeTwc[0].contentWindow.document).on('keydown', document_keydown);
+
+	var SwipeCallBack = function (event, direction) {
+		console.log('You swiped ' + direction);
+
+		switch (direction) {
+		case 'left':
+			btnNavigateNext_click();
 			break;
 
+		case 'right':
 		default:
-			iframeTwc.off('load');
-			FullScreenResize();
-
-			if (chkScrollText.is(':checked'))
-			{
-				iframeTwc[0].contentWindow.AssignScrollText({ ScrollText: txtScrollText.val() });
-			}
-
-			iframeTwc[0].contentWindow.AssignThemes({ Themes: $('input[type=\'radio\'][name=\'radThemes\']:checked').val() });
-
-			iframeTwc[0].contentWindow.AssignUnits({ Units: $('input[type=\'radio\'][name=\'radUnits\']:checked').val() });
-
-			iframeTwc[0].contentWindow.SetCallBack({ CallBack: TwcCallBack });
-
-			if (_IsPlaying)
-			{
-				iframeTwc[0].contentWindow.NavigatePlayToggle();
-			}
-
-			if (_IsAudioPlaying)
-			{
-				iframeTwc[0].contentWindow.AudioPlayToggle();
-			}
-
-			if (_IsNarrationPlaying)
-			{
-				iframeTwc[0].contentWindow.NarrationPlayToggle();
-			}
-
-			$(iframeTwc[0].contentWindow.document).on('mousemove', document_mousemove);
-			$(iframeTwc[0].contentWindow.document).on('mousedown', document_mousemove);
-			$(iframeTwc[0].contentWindow.document).on('keydown', document_keydown);
-
-			var SwipeCallBack = function (event, direction)
-			{
-				console.log('You swiped ' + direction);
-
-				switch (direction)
-				{
-				case 'left':
-					btnNavigateNext_click();
-					break;
-
-				case 'right':
-				default:
-					btnNavigatePrevious_click();
-					break;
-				}
-			};
-
-			$(iframeTwc[0].contentWindow.document).swipe({
-				//Generic swipe handler for all directions
-				swipeRight: SwipeCallBack,
-				swipeLeft: SwipeCallBack,
-
-				////Default is 75px, set to 0 for demo so any distance triggers swipe
-				//threshold: 0
-			});
-
-
+			btnNavigatePrevious_click();
 			break;
 		}
+	};
+
+	$(iframeTwc[0].contentWindow.document).swipe({
+		//Generic swipe handler for all directions
+		swipeRight: SwipeCallBack,
+		swipeLeft: SwipeCallBack,
 	});
-	iframeTwc.attr('src', 'about:blank');
 };
 
-var AssignLastUpdate = function ()
-{
+var AssignLastUpdate = function () {
 	var LastUpdate = '(None)';
 
-	if (_LastUpdate)
-	{
-		switch ($('input[type=\'radio\'][name=\'radUnits\']:checked').val())
-		{
+	if (_LastUpdate) {
+		switch ($('input[type=\'radio\'][name=\'radUnits\']:checked').val()) {
 		case 'ENGLISH':
 			LastUpdate = _LastUpdate.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short' });
 			break;
-		case 'METRIC':
+		default:
 			LastUpdate = _LastUpdate.toLocaleString('en-GB', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZoneName: 'short' });
 			break;
 		}
@@ -488,19 +396,15 @@ var AssignLastUpdate = function ()
 
 	spanLastRefresh.html(LastUpdate);
 
-	if (_LastUpdate)
-	{
-		if (chkAutoRefresh.is(':checked'))
-		{
+	if (_LastUpdate) {
+		if (chkAutoRefresh.is(':checked')) {
 			StartAutoRefreshTimer();
 		}
 	}
 };
 
-var TwcCallBack = function (e)
-{
-	switch (e.Status)
-	{
+var TwcCallBack = function (e) {
+	switch (e.Status) {
 	case 'LOADED':
 		console.log('Twc Loaded');
 
@@ -520,17 +424,14 @@ var TwcCallBack = function (e)
 		_IsPlaying = e.Value;
 		localStorage.setItem('TwcPlay', _IsPlaying);
 
-		if (_IsPlaying)
-		{
+		if (_IsPlaying) {
 			_NoSleep.enable();
 
 			$('img[src=\'images/nav/ic_play_arrow_white_24dp_1x.png\']').attr('title', 'Pause');
 			$('img[src=\'images/nav/ic_play_arrow_white_24dp_1x.png\']').attr('src', 'images/nav/ic_pause_white_24dp_1x.png');
 			$('img[src=\'images/nav/ic_play_arrow_white_24dp_2x.png\']').attr('title', 'Pause');
 			$('img[src=\'images/nav/ic_play_arrow_white_24dp_2x.png\']').attr('src', 'images/nav/ic_pause_white_24dp_2x.png');
-		}
-		else
-		{
+		} else {
 			_NoSleep.disable();
 
 			$('img[src=\'images/nav/ic_pause_white_24dp_1x.png\']').attr('title', 'Play');
@@ -545,15 +446,12 @@ var TwcCallBack = function (e)
 		_IsAudioPlaying = e.Value;
 		localStorage.setItem('TwcAudioPlay', _IsAudioPlaying);
 
-		if (_IsAudioPlaying)
-		{
+		if (_IsAudioPlaying) {
 			$('img[src=\'images/nav/ic_volume_off_white_24dp_1x.png\']').attr('title', 'Mute');
 			$('img[src=\'images/nav/ic_volume_off_white_24dp_1x.png\']').attr('src', 'images/nav/ic_volume_up_white_24dp_1x.png');
 			$('img[src=\'images/nav/ic_volume_off_white_24dp_2x.png\']').attr('title', 'Mute');
 			$('img[src=\'images/nav/ic_volume_off_white_24dp_2x.png\']').attr('src', 'images/nav/ic_volume_up_white_24dp_2x.png');
-		}
-		else
-		{
+		} else {
 			$('img[src=\'images/nav/ic_volume_up_white_24dp_1x.png\']').attr('title', 'Unmute');
 			$('img[src=\'images/nav/ic_volume_up_white_24dp_1x.png\']').attr('src', 'images/nav/ic_volume_off_white_24dp_1x.png');
 			$('img[src=\'images/nav/ic_volume_up_white_24dp_2x.png\']').attr('title', 'Unmute');
@@ -566,15 +464,12 @@ var TwcCallBack = function (e)
 		_IsNarrationPlaying = e.Value;
 		localStorage.setItem('TwcNarrationPlay', _IsNarrationPlaying);
 
-		if (_IsNarrationPlaying)
-		{
+		if (_IsNarrationPlaying) {
 			$('img[src=\'images/nav/ic_no_hearing_white_24dp_1x.png\']').attr('title', 'Turn off Narration');
 			$('img[src=\'images/nav/ic_no_hearing_white_24dp_1x.png\']').attr('src', 'images/nav/ic_hearing_white_24dp_1x.png');
 			$('img[src=\'images/nav/ic_no_hearing_white_24dp_2x.png\']').attr('title', 'Turn off Narration');
 			$('img[src=\'images/nav/ic_no_hearing_white_24dp_2x.png\']').attr('src', 'images/nav/ic_hearing_white_24dp_2x.png');
-		}
-		else
-		{
+		} else {
 			$('img[src=\'images/nav/ic_hearing_white_24dp_1x.png\']').attr('title', 'Turn on Narration');
 			$('img[src=\'images/nav/ic_hearing_white_24dp_1x.png\']').attr('src', 'images/nav/ic_no_hearing_white_24dp_1x.png');
 			$('img[src=\'images/nav/ic_hearing_white_24dp_2x.png\']').attr('title', 'Turn on Narration');
@@ -585,47 +480,41 @@ var TwcCallBack = function (e)
 	}
 };
 
-var btnNavigateRefresh_click = function ()
-{
+var btnNavigateRefresh_click = function () {
 	LoadTwcData(_TwcDataUrl);
 	UpdateFullScreenNavigate();
 
 	return false;
 };
 
-var btnNavigateNext_click = function ()
-{
+var btnNavigateNext_click = function () {
 	iframeTwc[0].contentWindow.NavigateNext();
 	UpdateFullScreenNavigate();
 
 	return false;
 };
 
-var btnNavigatePrevious_click = function ()
-{
+var btnNavigatePrevious_click = function () {
 	iframeTwc[0].contentWindow.NavigatePrevious();
 	UpdateFullScreenNavigate();
 
 	return false;
 };
 
-var window_resize = function ()
-{
+var window_resize = function () {
 	//var iFrameLocation = iframeTwc[0].contentWindow.location;
 	//var Hash = iFrameLocation.hash;
 
 	var $window = $(window);
 
-	if ($window.height() == _WindowHeight || $window.width() == _WindowWidth)
-	{
+	if ($window.height() == _WindowHeight || $window.width() == _WindowWidth) {
 		return;
 	}
 
 	_WindowHeight = $window.height();
 	_WindowWidth = $window.width();
 
-	try
-	{
+	try {
 		////iFrameLocation.hash = "";
 		////iFrameLocation.hash = Hash;
 		//iframeTwc[0].contentWindow.history.replaceState("", document.title, iFrameLocation.pathname);
@@ -638,8 +527,7 @@ var window_resize = function ()
 
 var _NavigateFadeIntervalId = null;
 
-var UpdateFullScreenNavigate = function ()
-{
+var UpdateFullScreenNavigate = function () {
 	$(document.activeElement).blur();
 
 	//console.log("window_mousemove: inFullScreen = True");
@@ -661,20 +549,17 @@ var UpdateFullScreenNavigate = function ()
 
 	//divTwcRight.fadeIn();
 
-	if (_NavigateFadeIntervalId)
-	{
+	if (_NavigateFadeIntervalId) {
 		window.clearTimeout(_NavigateFadeIntervalId);
 		_NavigateFadeIntervalId = null;
 	}
 
-	_NavigateFadeIntervalId = window.setTimeout(function ()
-	{
+	_NavigateFadeIntervalId = window.setTimeout(function () {
 		//console.log("window_mousemove: TimeOut");
 		var inFullScreen = InFullScreen();
 		//alert(inFullScreen)
 
-		if (inFullScreen)
-		{
+		if (inFullScreen) {
 			//$("body").css("cursor", "none !important");
 			$('body').addClass('HideCursor');
 			//$(iframeTwc[0].contentWindow).css("cursor", "none !important");
@@ -694,16 +579,13 @@ var UpdateFullScreenNavigate = function ()
 	}, 2000);
 };
 
-var document_mousemove = function (e)
-{
+var document_mousemove = function (e) {
 	var inFullScreen = InFullScreen();
 	//alert("document_mousemove")
 
 	//console.log(e.originalEvent.buttons);
-	if (inFullScreen)
-	{
-		if ((e.originalEvent.movementX == 0 && e.originalEvent.movementY == 0 && e.originalEvent.buttons == 0))
-		{
+	if (inFullScreen) {
+		if ((e.originalEvent.movementX == 0 && e.originalEvent.movementY == 0 && e.originalEvent.buttons == 0)) {
 			return;
 		}
 
@@ -711,8 +593,7 @@ var document_mousemove = function (e)
 	}
 };
 
-var document_keydown = function (e)
-{
+var document_keydown = function (e) {
 	//if (_AllowKeyDown == false)
 	//{
 	//    return;
@@ -727,10 +608,8 @@ var document_keydown = function (e)
 	var inFullScreen = InFullScreen();
 	var code = (e.keyCode || e.which);
 
-	if (inFullScreen || document.activeElement == document.body)
-	{
-		switch (code)
-		{
+	if (inFullScreen || document.activeElement == document.body) {
+		switch (code) {
 		case 32: // Space
 			btnNavigatePlay_click();
 			return false;
@@ -772,19 +651,17 @@ var document_keydown = function (e)
 			btnFullScreen_click();
 			return false;
 			break;
-				
+
 		}
 	}
 };
 
-$.fn.fadeIn2 = function ()
-{
+$.fn.fadeIn2 = function () {
 	var _self = this;
 	var opacity = 0.0;
 	var IntervalId = null;
 
-	if (_self.css('opacity') != '0')
-	{
+	if (_self.css('opacity') != '0') {
 		return;
 	}
 
@@ -792,14 +669,12 @@ $.fn.fadeIn2 = function ()
 	_self.css('visibility', 'visible');
 	_self.css('opacity', '0.0');
 
-	IntervalId = window.setInterval(function ()
-	{
+	IntervalId = window.setInterval(function () {
 		opacity += 0.1;
 		opacity = Math.round2(opacity, 1);
 		_self.css('opacity', opacity.toString());
 
-		if (opacity == 1.0)
-		{
+		if (opacity == 1.0) {
 			//_self.css("visibility", "");
 			_self.css('visibility', 'visible');
 			window.clearInterval(IntervalId);
@@ -809,14 +684,12 @@ $.fn.fadeIn2 = function ()
 	return _self;
 };
 
-$.fn.fadeOut2 = function ()
-{
+$.fn.fadeOut2 = function () {
 	var _self = this;
 	var opacity = 1.0;
 	var IntervalId = null;
 
-	if (_self.css('opacity') != '1')
-	{
+	if (_self.css('opacity') != '1') {
 		return;
 	}
 
@@ -824,14 +697,12 @@ $.fn.fadeOut2 = function ()
 	_self.css('visibility', 'visible');
 	_self.css('opacity', '1.0');
 
-	IntervalId = window.setInterval(function ()
-	{
+	IntervalId = window.setInterval(function () {
 		opacity -= 0.2;
 		opacity = Math.round2(opacity, 1);
 		_self.css('opacity', opacity.toString());
 
-		if (opacity == 0)
-		{
+		if (opacity == 0) {
 			_self.css('visibility', 'hidden');
 			window.clearInterval(IntervalId);
 		}
@@ -840,13 +711,11 @@ $.fn.fadeOut2 = function ()
 	return _self;
 };
 
-Math.round2 = function (value, decimals)
-{
+Math.round2 = function (value, decimals) {
 	return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
 };
 
-var btnNavigatePlay_click = function ()
-{
+var btnNavigatePlay_click = function () {
 	iframeTwc[0].contentWindow.NavigatePlayToggle();
 	UpdateFullScreenNavigate();
 
@@ -872,24 +741,21 @@ var btnNavigatePlay_click = function ()
 	return false;
 };
 
-var btnAudioPlay_click = function ()
-{
+var btnAudioPlay_click = function () {
 	iframeTwc[0].contentWindow.AudioPlayToggle();
 	UpdateFullScreenNavigate();
 
 	return false;
 };
 
-var btnNarrationPlay_click = function ()
-{
+var btnNarrationPlay_click = function () {
 	iframeTwc[0].contentWindow.NarrationPlayToggle();
 	UpdateFullScreenNavigate();
 
 	return false;
 };
 
-$(function ()
-{
+$(function () {
 	_WindowHeight = $(window).height();
 	_WindowWidth = $(window).width();
 
@@ -921,14 +787,12 @@ $(function ()
 	btnScrollText = $('#btnScrollText');
 
 	frmScrollText.on('submit', frmScrollText_submit);
-	txtScrollText.on('focus', function ()
-	{
+	txtScrollText.on('focus', function () {
 		txtScrollText.select();
 	});
 	chkScrollText.on('change', chkScrollText_change);
 
-	txtAddress.on('focus', function ()
-	{
+	txtAddress.on('focus', function () {
 		txtAddress.select();
 	});
 
@@ -989,13 +853,11 @@ $(function ()
 			'San Francisco, California, United States': { x: -122.3758, y: 37.6188 },
 			//'Dayton, Ohio, United States (City)': { x: -84.05, y: 39.85 },
 		},
-		roundToPlaces = function (num, decimals)
-		{
+		roundToPlaces = function (num, decimals) {
 			var n = Math.pow(10, decimals);
 			return Math.round((n * num).toFixed(decimals)) / n;
 		},
-		doRedirectToGeometry = function (geom)
-		{
+		doRedirectToGeometry = function (geom) {
 			latLon = {lat:roundToPlaces(geom.y, 4), lon:roundToPlaces(geom.x, 4)};
 			LoadTwcData();
 
@@ -1006,24 +868,19 @@ $(function ()
 
 	var PreviousSeggestionValue = null;
 	var PreviousSeggestion = null;
-	var OnSelect = function (suggestion)
-	{
+	var OnSelect = function (suggestion) {
 		var request;
 
 		// Do not auto get the same city twice.
-		if (PreviousSeggestionValue == suggestion.value)
-		{
+		if (PreviousSeggestionValue == suggestion.value) {
 			return;
 		}
 		PreviousSeggestionValue = suggestion.value;
 		PreviousSeggestion = suggestion;
 
-		if (overrides[suggestion.value])
-		{
+		if (overrides[suggestion.value]) {
 			doRedirectToGeometry(overrides[suggestion.value]);
-		}
-		else
-		{
+		} else {
 			request = $.ajax({
 				url: location.protocol + '//geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/find',
 				data: {
@@ -1034,15 +891,11 @@ $(function ()
 				jsonp: 'callback',
 				dataType: 'jsonp',
 			});
-			request.done(function (data)
-			{
+			request.done(function (data) {
 				var loc = data.locations[0];
-				if (loc)
-				{
+				if (loc) {
 					doRedirectToGeometry(loc.feature.geometry);
-				}
-				else
-				{
+				} else {
 					alert('An unexpected error occurred. Please try a different search string.');
 				}
 			});
@@ -1060,20 +913,16 @@ $(function ()
 			maxSuggestions: 10,
 		},
 		dataType: 'jsonp',
-		transformResult: function (response)
-		{
-			if (_AutoSelectQuery)
-			{
+		transformResult: function (response) {
+			if (_AutoSelectQuery) {
 				_AutoSelectQuery = false;
-				window.setTimeout(function ()
-				{
+				window.setTimeout(function () {
 					$(ac.suggestionsContainer.children[0]).click();
 				}, 1);
 			}
 
 			return {
-				suggestions: $.map(response.suggestions, function (i)
-				{
+				suggestions: $.map(response.suggestions, function (i) {
 					return {
 						value: i.text,
 						data: i.magicKey,
@@ -1090,16 +939,13 @@ $(function ()
 	});
 
 	var ac = $('#frmGetLatLng #txtAddress').devbridgeAutocomplete();
-	frmGetLatLng.submit(function ()
-	{
-		if (ac.suggestions[0])
-		{
+	frmGetLatLng.submit(function () {
+		if (ac.suggestions[0]) {
 			$(ac.suggestionsContainer.children[0]).click();
 			return false;
 			//PreviousSeggestion = ac.suggestions[0];
 		}
-		if (PreviousSeggestion)
-		{
+		if (PreviousSeggestion) {
 			PreviousSeggestionValue = null;
 			OnSelect(PreviousSeggestion);
 		}
@@ -1109,8 +955,7 @@ $(function ()
 
 	// Auto load the previous query
 	var TwcQuery = localStorage.getItem('TwcQuery');
-	if (TwcQuery)
-	{
+	if (TwcQuery) {
 		_AutoSelectQuery = true;
 		txtAddress.val(TwcQuery);
 		txtAddress.blur();
@@ -1118,40 +963,32 @@ $(function ()
 	}
 
 	var TwcPlay = localStorage.getItem('TwcPlay');
-	if (!TwcPlay || TwcPlay == 'true')
-	{
+	if (!TwcPlay || TwcPlay == 'true') {
 		_IsPlaying = true;
 	}
 
 	var TwcAudioPlay = localStorage.getItem('TwcAudioPlay');
-	if (!TwcAudioPlay || TwcAudioPlay == 'true')
-	{
+	if (!TwcAudioPlay || TwcAudioPlay == 'true') {
 		_IsAudioPlaying = true;
 	}
 
 	var TwcNarrationPlay = localStorage.getItem('TwcNarrationPlay');
-	if (TwcNarrationPlay == 'true')
-	{
+	if (TwcNarrationPlay == 'true') {
 		_IsNarrationPlaying = true;
 	}
 
 	var TwcScrollText = localStorage.getItem('TwcScrollText');
-	if (TwcScrollText)
-	{
+	if (TwcScrollText) {
 		txtScrollText.val(TwcScrollText);
 	}
 	var TwcScrollTextChecked = localStorage.getItem('TwcScrollTextChecked');
-	if (TwcScrollTextChecked && TwcScrollTextChecked == 'true')
-	{
+	if (TwcScrollTextChecked && TwcScrollTextChecked == 'true') {
 		chkScrollText.prop('checked', 'checked');
-	}
-	else
-	{
+	} else {
 		chkScrollText.prop('checked', '');
 	}
 
-	btnClearQuery.on('click', function ()
-	{
+	btnClearQuery.on('click', function () {
 		spanCity.text('');
 		spanState.text('');
 		spanStationId.text('');
@@ -1192,39 +1029,29 @@ $(function ()
 	});
 
 	var TwcUnits = localStorage.getItem('TwcUnits');
-	if (!TwcUnits || TwcUnits == 'ENGLISH')
-	{
+	if (!TwcUnits || TwcUnits == 'ENGLISH') {
 		$('#radEnglish').prop('checked', 'checked');
-	}
-	else if (TwcUnits == 'METRIC')
-	{
+	} else if (TwcUnits == 'METRIC') {
 		$('#radMetric').prop('checked', 'checked');
 	}
 
 	var TwcThemes = localStorage.getItem('TwcThemes');
-	if (!TwcThemes || TwcThemes == 'THEMEA')
-	{
+	if (!TwcThemes || TwcThemes == 'THEMEA') {
 		$('#radThemeA').prop('checked', 'checked');
-	}
-	else if (TwcThemes == 'THEMEB')
-	{
+	} else if (TwcThemes == 'THEMEB') {
 		$('#radThemeB').prop('checked', 'checked');
-	}
-	else if (TwcThemes == 'THEMEC')
-	{
+	} else if (TwcThemes == 'THEMEC') {
 		$('#radThemeC').prop('checked', 'checked');
 	}
 
-	$('input[type=\'radio\'][name=\'radUnits\']').on('change', function ()
-	{
+	$('input[type=\'radio\'][name=\'radUnits\']').on('change', function () {
 		var Units = $(this).val();
 		localStorage.setItem('TwcUnits', Units);
 		AssignLastUpdate();
 		iframeTwc[0].contentWindow.AssignUnits({ Units: Units });
 	});
 
-	$('input[type=\'radio\'][name=\'radThemes\']').on('change', function ()
-	{
+	$('input[type=\'radio\'][name=\'radThemes\']').on('change', function () {
 		var Themes = $(this).val();
 		localStorage.setItem('TwcThemes', Themes);
 		iframeTwc[0].contentWindow.AssignThemes({ Themes: Themes });
@@ -1236,18 +1063,13 @@ $(function ()
 	lblRefreshCountDown = $('#lblRefreshCountDown');
 	spanRefreshCountDown = $('#spanRefreshCountDown');
 
-	chkAutoRefresh.on('change', function ()
-	{
+	chkAutoRefresh.on('change', function () {
 		var Checked = $(this).is(':checked');
 
-		if (_LastUpdate)
-		{
-			if (Checked)
-			{
+		if (_LastUpdate) {
+			if (Checked) {
 				StartAutoRefreshTimer();
-			}
-			else
-			{
+			} else {
 				StopAutoRefreshTimer();
 			}
 		}
@@ -1256,12 +1078,9 @@ $(function ()
 	});
 
 	var TwcAutoRefresh = localStorage.getItem('TwcAutoRefresh');
-	if (!TwcAutoRefresh || TwcAutoRefresh == 'true')
-	{
+	if (!TwcAutoRefresh || TwcAutoRefresh == 'true') {
 		chkAutoRefresh.prop('checked', 'checked');
-	}
-	else
-	{
+	} else {
 		chkAutoRefresh.prop('checked', '');
 	}
 
@@ -1273,12 +1092,10 @@ $(function ()
 
 });
 
-var StartAutoRefreshTimer = function ()
-{
+var StartAutoRefreshTimer = function () {
 	//// Esnure that any previous timer has already stopped.
 	//StopAutoRefreshTimer();
-	if (_AutoRefreshIntervalId)
-	{
+	if (_AutoRefreshIntervalId) {
 		// Timer is already running.
 		return;
 	}
@@ -1286,22 +1103,19 @@ var StartAutoRefreshTimer = function ()
 	// Reset the time elapsed.
 	_AutoRefreshCountMs = 0;
 
-	var AutoRefreshTimer = function ()
-	{
+	var AutoRefreshTimer = function () {
 		// Increment the total time elapsed.
 		_AutoRefreshCountMs += _AutoRefreshIntervalMs;
 
 		// Display the count down.
 		var RemainingMs = (_AutoRefreshTotalIntervalMs - _AutoRefreshCountMs);
-		if (RemainingMs < 0)
-		{
+		if (RemainingMs < 0) {
 			RemainingMs = 0;
 		}
 		var dt = new Date(RemainingMs);
 		spanRefreshCountDown.html((dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes()) + ':' + (dt.getSeconds() < 10 ? '0' + dt.getSeconds() : dt.getSeconds()));
 
-		if (_AutoRefreshCountMs >= _AutoRefreshTotalIntervalMs)
-		{
+		if (_AutoRefreshCountMs >= _AutoRefreshTotalIntervalMs) {
 			// Time has elapsed.
 			LoadTwcData(_TwcDataUrl);
 		}
@@ -1309,25 +1123,20 @@ var StartAutoRefreshTimer = function ()
 	_AutoRefreshIntervalId = window.setInterval(AutoRefreshTimer, _AutoRefreshIntervalMs);
 	AutoRefreshTimer();
 };
-var StopAutoRefreshTimer = function ()
-{
-	if (_AutoRefreshIntervalId)
-	{
+var StopAutoRefreshTimer = function () {
+	if (_AutoRefreshIntervalId) {
 		window.clearInterval(_AutoRefreshIntervalId);
 		spanRefreshCountDown.html('--:--');
 		_AutoRefreshIntervalId = null;
 	}
 };
 
-var btnGetGps_click = function ()
-{
-	if (!navigator.geolocation)
-	{
+var btnGetGps_click = function () {
+	if (!navigator.geolocation) {
 		return;
 	}
 
-	var CurrentPosition = function (Position)
-	{
+	var CurrentPosition = function (Position) {
 		var Latitude = Position.coords.latitude;
 		var Longitude = Position.coords.longitude;
 		//Latitude = 40.7754622; Longitude = -73.2411506;
@@ -1345,8 +1154,7 @@ var btnGetGps_click = function ()
 			jsonp: 'callback',
 			dataType: 'jsonp',
 		});
-		request.done(function (data)
-		{
+		request.done(function (data) {
 			console.log(data);
 
 			var ZipCode = data.address.Postal;
@@ -1371,8 +1179,7 @@ var btnGetGps_click = function ()
 	navigator.geolocation.getCurrentPosition(CurrentPosition);
 };
 
-var PopulateWeatherParameters = function ()
-{
+var PopulateWeatherParameters = function () {
 	spanCity.text(_WeatherParameters.City + ', ');
 	spanState.text(_WeatherParameters.State);
 	spanStationId.text(_WeatherParameters.StationId);
@@ -1380,15 +1187,13 @@ var PopulateWeatherParameters = function ()
 	spanZoneId.text(_WeatherParameters.ZoneId);
 };
 
-var frmScrollText_submit = function (e)
-{
+var frmScrollText_submit = function (e) {
 	chkScrollText_change();
 
 	return false;
 };
 
-var chkScrollText_change = function (e)
-{
+var chkScrollText_change = function (e) {
 	txtScrollText.blur();
 
 	var ScrollText = txtScrollText.val();
@@ -1397,8 +1202,7 @@ var chkScrollText_change = function (e)
 	var ScrollTextChecked = chkScrollText.is(':checked');
 	localStorage.setItem('TwcScrollTextChecked', ScrollTextChecked);
 
-	if (chkScrollText.is(':checked') == false)
-	{
+	if (chkScrollText.is(':checked') == false) {
 		ScrollText = '';
 	}
 

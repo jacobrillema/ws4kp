@@ -1,0 +1,323 @@
+'use strict';
+// radar utilities
+
+/* globals _Units, Units, SuperGif */
+// eslint-disable-next-line no-unused-vars
+const utils = (() => {
+	// ****************************** weather data ********************************
+	const getPoint = async (lat, lon) => {
+		try {
+			return await $.ajax({
+				type: 'GET',
+				url: `https://api.weather.gov/points/${lat},${lon}`,
+				dataType: 'json',
+				crossDomain: true,
+			});
+		} catch (e) {
+			console.error('Unable to get point');
+			console.error(lat,lon);
+			console.error(e);
+			return false;
+		}
+	};
+
+	// ****************************** load images *********************************
+	// load an image from a blob or url
+	const loadImg = (imgData) => {
+		return new Promise(resolve => {
+			const img = new Image();
+			img.onload = (e) => {
+				resolve(e.target);
+			};
+			if (imgData instanceof Blob) {
+				img.src = window.URL.createObjectURL(imgData);
+			} else {
+				img.src = imgData;
+			}
+		});
+	};
+
+	// async version of SuperGif
+	const SuperGifAsync = (e) => {
+		return new Promise(resolve => {
+			const gif = new SuperGif(e);
+			gif.load(() => resolve(gif));
+		});
+	};
+
+	// *********************************** unit conversions ***********************
+
+	Math.round2 = (value, decimals) => Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
+
+	const MphToKph = (Mph) => Math.round(Mph * 1.60934);
+	const KphToMph = (Kph) => Math.round(Kph / 1.60934);
+	const CelsiusToFahrenheit = (Celsius) => Math.round(Celsius * 9 / 5 + 32);
+	const FahrenheitToCelsius = (Fahrenheit) => Math.round2(((Fahrenheit) - 32) * 5 / 9, 1);
+	const MilesToKilometers = (Miles) => Math.round(Miles * 1.60934);
+	const KilometersToMiles = (Kilometers) => Math.round(Kilometers / 1.60934);
+	const FeetToMeters = (Feet) => Math.round(Feet * 0.3048);
+	const MetersToFeet = (Meters) => Math.round(Meters / 0.3048);
+	const InchesToCentimeters = (Inches) => Math.round2(Inches * 2.54, 2);
+	const PascalToInHg = (Pascal) => Math.round2(Pascal*0.0002953,2);
+
+	// ***************************** calculations **********************************
+
+	const RelativeHumidity = (Temperature, DewPoint) => {
+		const T = Temperature;
+		const TD = DewPoint;
+		return Math.round(100 * (Math.exp((17.625 * TD) / (243.04 + TD)) / Math.exp((17.625 * T) / (243.04 + T))));
+	};
+
+	const HeatIndex = (Temperature, RelativeHumidity) => {
+		const T = Temperature;
+		const RH = RelativeHumidity;
+		let HI = 0.5 * (T + 61.0 + ((T - 68.0) * 1.2) + (RH * 0.094));
+		let ADJUSTMENT;
+
+		if (T >= 80) {
+			HI = -42.379 + 2.04901523 * T + 10.14333127 * RH - 0.22475541 * T * RH - 0.00683783 * T * T - 0.05481717 * RH * RH + 0.00122874 * T * T * RH + 0.00085282 * T * RH * RH - 0.00000199 * T * T * RH * RH;
+
+			if (RH < 13 && (T > 80 && T < 112)) {
+				ADJUSTMENT = ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
+				HI -= ADJUSTMENT;
+			} else if (RH > 85 && (T > 80 && T < 87)) {
+				ADJUSTMENT = ((RH - 85) / 10) * ((87 - T) / 5);
+				HI += ADJUSTMENT;
+			}
+		}
+
+		if (HI < Temperature) {
+			HI = Temperature;
+		}
+
+		return Math.round(HI);
+	};
+
+	const WindChill = (Temperature, WindSpeed) => {
+		if (WindSpeed === '0' || WindSpeed === 'Calm' || WindSpeed === 'NA') {
+			return '';
+		}
+
+		const T = Temperature;
+		const V = WindSpeed;
+
+		return Math.round(35.74 + (0.6215 * T) - (35.75 * Math.pow(V, 0.16)) + (0.4275 * T * Math.pow(V, 0.16)));
+	};
+
+	// wind direction
+	const DirectionToNSEW = (Direction) => {
+		const val = Math.floor((Direction / 22.5) + 0.5);
+		const arr = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+		return arr[(val % 16)];
+	};
+
+	// ********************************* date functions ***************************
+	const GetDateFromUTC = (date, utc) => {
+		const time = utc.split(':');
+		return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), time[0], time[1], 0));
+	};
+
+	const GetTimeZoneOffsetFromUTC = (timezone) => {
+		switch (timezone) {
+		case 'EST':
+			return -5;
+		case 'EDT':
+			return -4;
+		case 'CST':
+			return -6;
+		case 'CDT':
+			return -5;
+		case 'MST':
+			return -7;
+		case 'MDT':
+			return -6;
+		case 'PST':
+			return -8;
+		case 'PDT':
+			return -7;
+		case 'AST':
+		case 'AKST':
+			return -9;
+		case 'ADT':
+		case 'AKDT':
+			return -8;
+		case 'HST':
+			return -10;
+		case 'HDT':
+			return -9;
+		default:
+			return null;
+		}
+	};
+
+	Date.prototype.getTimeZone = function () {
+		const tz = this.toLocaleTimeString('en-us', { timeZoneName: 'short' }).split(' ')[2];
+
+		if (tz === null){
+			switch (this.toTimeString().split(' ')[2]) {
+			case '(Eastern':
+				return 'EST';
+			case '(Central':
+				return 'CST';
+			case '(Mountain':
+				return 'MST';
+			case '(Pacific':
+				return 'PST';
+			case '(Alaskan':
+				return 'AST';
+			case '(Hawaiian':
+				return 'HST';
+			default:
+			}
+		} else if (tz.length === 4) {
+			// Fix weird bug in Edge where it returns the timezone with a null character in the first position.
+			return tz.substr(1);
+		}
+
+		return tz;
+	};
+
+	const DateToTimeZone = (date, timezone) => {
+		const OldOffset = GetTimeZoneOffsetFromUTC(date.getTimeZone());
+		const NewOffset = GetTimeZoneOffsetFromUTC(timezone);
+
+		let dt = new Date(date);
+		dt = dt.addHours(OldOffset * -1);
+		dt = dt.addHours(NewOffset);
+		return dt;
+	};
+
+	const GetDateFromTime = (date, time, timezone) => {
+		const Time = time.split(':');
+		if (timezone) {
+			const Offset = GetTimeZoneOffsetFromUTC(timezone) * -1;
+			const newDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), Time[0], Time[1], 0));
+			return newDate.addHours(Offset);
+		} else {
+			return new Date(date.getFullYear(), date.getMonth(), date.getDate(), Time[0], Time[1], 0);
+		}
+	};
+
+	Date.prototype.getFormattedTime = function () {
+		let hours;
+		let minutes;
+		let ampm;
+
+		switch (_Units) {
+		case Units.English:
+			hours = this.getHours() === 0 ? '12' : this.getHours() > 12 ? this.getHours() - 12 : this.getHours();
+			minutes = (this.getMinutes() < 10 ? '0' : '') + this.getMinutes();
+			ampm = this.getHours() < 12 ? 'am' : 'pm';
+			return hours + ':' + minutes + ' ' + ampm;
+
+		default:
+			hours = (this.getHours() < 10 ? ' ' : '') + this.getHours();
+			minutes = (this.getMinutes() < 10 ? '0' : '') + this.getMinutes();
+			return hours + ':' + minutes;
+		}
+	};
+
+	Date.prototype.toTimeAMPM = function () {
+		const date = this;
+		let hours = date.getHours();
+		let minutes = date.getMinutes();
+		let ampm = hours >= 12 ? 'pm' : 'am';
+		hours = hours % 12;
+		hours = hours ? hours : 12; // the hour '0' should be '12'
+		minutes = minutes < 10 ? '0' + minutes : minutes;
+		return hours + ':' + minutes + ' ' + ampm;
+	};
+
+	const XmlDateToJsDate = (XmlDate) => {
+		let bits = XmlDate.split(/[-T:+]/g);
+
+		if (bits[5] === undefined) {
+			console.log('bit[5] is undefined');
+		}
+
+		bits[5] = bits[5].replace('Z', '');
+		const d = new Date(bits[0], bits[1] - 1, bits[2]);
+		d.setHours(bits[3], bits[4], bits[5]);
+
+		// Case for when no time zone offset if specified
+		if (bits.length < 8) {
+			bits.push('00');
+			bits.push('00');
+		}
+
+		// Get supplied time zone offset in minutes
+		const sign = /\d\d-\d\d:\d\d$/.test(XmlDate) ? '-' : '+';
+		const offsetMinutes = (sign==='-'?-1:1)*(bits[6] * 60 + Number(bits[7]));
+
+		// Apply offset and local timezone
+		// d is now a local time equivalent to the supplied time
+		return d.setMinutes(d.getMinutes() - offsetMinutes - d.getTimezoneOffset());
+	};
+
+	const TimeTo24Hour = (Time) => {
+		const AMPM = Time.substr(Time.length - 2);
+		const MM = Time.split(':')[1].substr(0, 2);
+		let HH = Time.split(':')[0];
+
+		switch (AMPM.toLowerCase()) {
+		case 'am':
+			if (HH === '12') HH = '0';
+			break;
+
+		case 'pm':
+			if (HH !== '12') HH = (parseInt(HH) + 12).toString();
+			break;
+		default:
+		}
+
+		return HH + ':' + MM;
+	};
+
+
+
+	// return an orderly object
+	return {
+		image: {
+			load: loadImg,
+			SuperGifAsync,
+		},
+		weather: {
+			getPoint,
+		},
+		units: {
+			MphToKph,
+			KphToMph,
+			CelsiusToFahrenheit,
+			FahrenheitToCelsius,
+			MilesToKilometers,
+			KilometersToMiles,
+			FeetToMeters,
+			MetersToFeet,
+			InchesToCentimeters,
+			PascalToInHg,
+		},
+		calc: {
+			RelativeHumidity,
+			HeatIndex,
+			WindChill,
+			DirectionToNSEW,
+		},
+		dateTime: {
+			GetDateFromUTC,
+			GetTimeZoneOffsetFromUTC,
+			DateToTimeZone,
+			GetDateFromTime,
+			XmlDateToJsDate,
+			TimeTo24Hour,
+		},
+	};
+})();
+
+// pass data through local server as CORS workaround
+$.ajaxCORS = function (e) {
+	// modify the URL
+	e.url = 'cors/?u=' + encodeURIComponent(e.url);
+
+	// call the ajax function
+	return $.ajax(e);
+};

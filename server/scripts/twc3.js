@@ -172,39 +172,7 @@ if (_UserAgent.indexOf('iPod') !== -1) _OperatingSystem = OperatingSystems.iOS;
 if (_UserAgent.toLowerCase().indexOf('android') !== -1) _OperatingSystem = OperatingSystems.Andriod;
 if (_UserAgent.indexOf('Windows Phone') !== -1) _OperatingSystem = OperatingSystems.WindowsPhone;
 
-const GetCurrentWeather = async (WeatherParameters) => {
-	// Load the observations
-	try {
-		// station observations
-		const observationsPromise = $.ajaxCORS({
-			type: 'GET',
-			url: `https://api.weather.gov/stations/${WeatherParameters.StationId}/observations`,
-			data: {
-				limit: 2,
-			},
-			dataType: 'json',
-			crossDomain: true,
-		});
-		// station info
-		const stationPromise = $.ajax({
-			type: 'GET',
-			url: `https://api.weather.gov/stations/${WeatherParameters.StationId}`,
-			dataType: 'json',
-			crossDomain: true,
-		});
 
-		// wait for the promises to resolve
-		const [observations, station] = await Promise.all([observationsPromise, stationPromise]);
-
-		// TODO: add retry for further stations if observations are unavailable
-		WeatherParameters.WeatherCurrentConditions = Object.assign({}, observations, {station: station});
-		PopulateCurrentConditions(WeatherParameters);
-	} catch (e) {
-		console.error('Unable to get current observations');
-		console.error(e);
-		return false;
-	}
-};
 
 const getExtendedForecast = async (WeatherParameters) => {
 	try {
@@ -694,29 +662,6 @@ var GetOutlookPrecipitationIndicator = function (PixelColor) {
 		return 'N';
 	}
 
-	//switch (PixelColor)
-	//{
-	//    case "B3D9AB":
-	//    case "94CD7E":
-	//    case "48AE38":
-	//    case "397C5E":
-	//    case "008E40":
-	//    case "28553D":
-	//    case "285517":
-	//        return "A";
-
-	//    case "F0D493":
-	//    case "D8A74E":
-	//    case "BB6D33":
-	//    case "9B5031":
-	//    case "934639":
-	//    case "804000":
-	//    case "4F2F2F":
-	//        return "B";
-
-	//    default:
-	//        return "N";
-	//}
 };
 
 const GetPixelColor = (context, x, y) => {
@@ -1614,14 +1559,6 @@ $(() => {
 	divHazardsScroll = $('#divHazardsScroll');
 	canvasHazards = $('#canvasHazards');
 
-	divSunriseTodayName = $('#divSunriseTodayName');
-	divSunsetTomorrowName = $('#divSunsetTomorrowName');
-	divSunrise = $('#divSunrise');
-	divSunriseToday = $('#divSunriseToday');
-	divSunriseTomorrow = $('#divSunriseTomorrow');
-	divSunset = $('#divSunset');
-	divSunsetToday = $('#divSunsetToday');
-	divSunsetTomorrow = $('#divSunsetTomorrow');
 	canvasAlmanac = $('#canvasAlmanac');
 	canvasAlmanacTides = $('#canvasAlmanacTides');
 	canvasOutlook = $('#canvasOutlook');
@@ -1679,89 +1616,10 @@ $(() => {
 
 	_WeatherParameters.TravelCities = _TravelCities;
 
-	var GetWeatherIntervalId = null;
-	const GetWeather = async () => {
-		window.clearInterval(GetWeatherIntervalId);
-
-		// get initial weather data
-		const point = await getPoint(window.parent.latLon.lat, window.parent.latLon.lon);
-
-		// get stations
-		const stations = await $.ajax({
-			type: 'GET',
-			url: point.properties.observationStations,
-			dataType: 'json',
-			crossDomain: true,
-		});
-
-		const StationId = stations.features[0].properties.stationIdentifier;
-
-		let city = point.properties.relativeLocation.properties.city;
-
-		if (StationId in _StationInfo) {
-			city = _StationInfo[StationId].City;
-			city = city.split('/')[0];
-		}
-
-		_WeatherParameters.Latitude = window.parent.latLon.lat;
-		_WeatherParameters.Longitude = window.parent.latLon.lon;
-		_WeatherParameters.ZoneId = point.properties.forecastZone.substr(-6);
-		_WeatherParameters.RadarId = point.properties.radarStation.substr(-3);
-		_WeatherParameters.StationId = StationId;
-		_WeatherParameters.WeatherOffice = point.properties.cwa;
-		_WeatherParameters.City = city;
-		_WeatherParameters.State = point.properties.relativeLocation.properties.state;
-		_WeatherParameters.TimeZone = point.properties.relativeLocation.properties.timeZone;
-		_WeatherParameters.Forecast = point.properties.forecast;
-
-		GetCurrentWeather(_WeatherParameters);
-		GetMonthPrecipitation(_WeatherParameters);
-		GetTravelWeather(_WeatherParameters);
-		GetAirQuality3(_WeatherParameters);
-		GetRegionalStations(_WeatherParameters);
-		ShowRegionalMap(_WeatherParameters);
-		ShowRegionalMap(_WeatherParameters, true);
-		ShowRegionalMap(_WeatherParameters, false, true);
-		ShowDopplerMap(_WeatherParameters);
-		GetWeatherHazards3(_WeatherParameters);
-		getExtendedForecast(_WeatherParameters);
-		getAlminacInfo(_WeatherParameters);
-
-		if (_UpdateWeatherCanvasInterval) {
-			window.clearInterval(_UpdateWeatherCanvasInterval);
-		}
-		_UpdateWeatherCanvasInterval = window.setInterval(function () {
-			UpdateWeatherCanvases(_WeatherParameters);
-		}, _UpdateWeatherUpdateMs);
-
-		if (_CallBack) _CallBack({ Status: 'WEATHERPARAMETERS', WeatherParameters: _WeatherParameters });
-
-	};
-
 	_WeatherParameters.Progress = new Progress({
 		WeatherParameters: _WeatherParameters,
-		OnLoad: () => {
-			GetWeatherIntervalId = window.setInterval(() => { GetWeather(); }, 100);
-			GetWeather();
-		},
 	});
 });
-
-const getPoint = async (lat, lon) => {
-	try {
-		return await $.ajax({
-			type: 'GET',
-			url: `https://api.weather.gov/points/${lat},${lon}`,
-			dataType: 'json',
-			crossDomain: true,
-		});
-	} catch (e) {
-		console.error('Unable to get point');
-		console.error(lat,lon);
-		console.error(e);
-		return false;
-	}
-};
 
 var NavigateMenu = function () {
 	if (_IsPlaying) {
@@ -2804,167 +2662,6 @@ var canvasProgress_click = function (e) {
 
 
 	}
-};
-
-const PopulateCurrentConditions = async (WeatherParameters) => {
-	// test if needed
-	if (!WeatherParameters.WeatherCurrentConditions || (_DontLoadGifs && WeatherParameters.Progress.CurrentConditions !== LoadStatuses.Loaded)) return;
-
-	const observations = WeatherParameters.WeatherCurrentConditions.features[0].properties;
-
-	// values from api are provided in metric
-	let Temperature = Math.round(observations.temperature.value);
-	let DewPoint = Math.round(observations.dewpoint.value);
-	let Ceiling = Math.round(observations.cloudLayers[0].base.value);
-	let CeilingUnit = 'm.';
-	let Visibility = Math.round(observations.visibility.value/1000);
-	let VisibilityUnit = ' km.';
-	let WindSpeed = Math.round(observations.windSpeed.value);
-	const WindDirection = utils.calc.DirectionToNSEW(observations.windDirection.value);
-	let Pressure = Math.round(observations.barometricPressure.value);
-	let HeatIndex = Math.round(observations.heatIndex.value);
-	let WindChill = Math.round(observations.windChill.value);
-	let WindGust = Math.round(observations.windGust.value);
-	let Humidity = Math.round(observations.relativeHumidity.value);
-	const Icon = icons.GetWeatherIconFromIconLink(observations.icon);
-	const StationName = WeatherParameters.WeatherCurrentConditions.station.properties.name;
-	let PressureDirection = '';
-	const TextConditions = observations.textDescription;
-
-	// difference since last measurement (pascals, looking for difference of more than 150)
-	const pressureDiff = (observations.barometricPressure.value - WeatherParameters.WeatherCurrentConditions.features[1].properties.barometricPressure.value);
-	if (pressureDiff > 150) PressureDirection = 'R';
-	if (pressureDiff < -150) PressureDirection = 'F';
-
-	if (_Units === Units.English) {
-		Temperature = utils.units.CelsiusToFahrenheit(Temperature);
-		DewPoint = utils.units.CelsiusToFahrenheit(DewPoint);
-		Ceiling = Math.round(utils.units.MetersToFeet(Ceiling)/100)*100;
-		CeilingUnit = 'ft.';
-		Visibility = utils.units.KilometersToMiles(observations.visibility.value/1000);
-		VisibilityUnit = ' mi.';
-		WindSpeed = utils.units.KphToMph(WindSpeed);
-		Pressure = utils.units.PascalToInHg(Pressure);
-		HeatIndex = utils.units.CelsiusToFahrenheit(HeatIndex);
-		WindChill = utils.units.CelsiusToFahrenheit(WindChill);
-		WindGust = utils.units.KphToMph(WindGust);
-	}
-
-	divTemperature.html(Temperature + '&deg;');
-	divStation.html(StationName);
-	divConditions.html(TextConditions);
-	divHumidity.html('Humidity: ' + Humidity + '%');
-	divDewpoint.html('Dewpoint: ' + DewPoint + '&deg;');
-	divCeiling.html('Ceiling: ' + (!observations.Ceiling ? 'Unlimited' : observations.Ceiling + ' ' + CeilingUnit));
-	divVisibility.html('Visibility: ' + Visibility + ' ' + VisibilityUnit);
-	divWind.html('Wind: ' + observations.windDirection.value + ' ' + WindSpeed);
-	divPressure.html('Pressure: ' + Pressure + PressureDirection);
-
-	divHeatIndex.empty();
-	if (HeatIndex !== Temperature) divHeatIndex.html('Heat Index: ' + HeatIndex + '&deg;');
-
-	divGust.empty();
-	if (WindGust !== '') divGust.html('Gust to ' + WindGust);
-
-	divIcon.html('<img src=\'' + Icon + '\' />');
-
-	// Draw canvas
-	const canvas = canvasCurrentWeather[0];
-	const context = canvas.getContext('2d');
-
-	if (_DontLoadGifs) {
-		DrawCurrentConditions();
-	} else {
-		await utils.SuperGifAsync({
-			src: Icon,
-			loop_delay: 100,
-			auto_play: true,
-			canvas: canvas,
-			x: 140,
-			y: 175,
-			max_width: 126,
-		});
-	}
-
-	context.drawImage(await utils.loadImg('images/BackGround1_1.png'), 0, 0);
-	DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-	DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-	DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
-	DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
-
-	DrawTitleText(context, 'Current', 'Conditions');
-
-	DrawText(context, 'Star4000 Large', '24pt', '#FFFFFF', 170, 135, Temperature + String.fromCharCode(176), 2);
-
-	let Conditions = observations.textDescription;
-	if (TextConditions.length > 15) {
-		Conditions = observations.ShortConditions;
-	}
-	DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 195, 170, Conditions, 2, 'center');
-
-	DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 80, 330, 'Wind:', 2);
-	DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 300, 330, WindDirection + ' ' + WindSpeed, 2, 'right');
-
-	if (WindGust)  DrawText(context, 'Star4000 Extended', '24pt', '#FFFFFF', 80, 375, 'Gusts to ' + WindGust, 2);
-
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFF00', 315, 120, WeatherParameters.WeatherCurrentConditions.station.properties.name.substr(0, 20), 2);
-
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 165, 'Humidity:', 2);
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 165, Humidity + '%', 2, 'right');
-
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 205, 'Dewpoint:', 2);
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 205, DewPoint + String.fromCharCode(176), 2, 'right');
-
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 245, 'Ceiling:', 2);
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 245, (Ceiling === '' ? 'Unlimited' : Ceiling + CeilingUnit), 2, 'right');
-
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 285, 'Visibility:', 2);
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 285, parseInt(Visibility) + VisibilityUnit, 2, 'right');
-
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 325, 'Pressure:', 2);
-	DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 535, 325, Pressure, 2, 'right');
-
-	switch (PressureDirection) {
-	case 'R':
-		// Shadow
-		DrawTriangle(context, '#000000', 552, 302, 542, 312, 562, 312);
-		DrawBox(context, '#000000', 549, 312, 6, 15);
-
-		// Border
-		DrawTriangle(context, '#000000', 550, 300, 540, 310, 560, 310);
-		DrawBox(context, '#000000', 547, 310, 6, 15);
-
-		// Fill
-		DrawTriangle(context, '#FFFF00', 550, 301, 541, 309, 559, 309);
-		DrawBox(context, '#FFFF00', 548, 309, 4, 15);
-		break;
-	case 'F':
-		// Shadow
-		DrawTriangle(context, '#000000', 552, 327, 542, 317, 562, 317);
-		DrawBox(context, '#000000', 549, 302, 6, 15);
-
-		// Border
-		DrawTriangle(context, '#000000', 550, 325, 540, 315, 560, 315);
-		DrawBox(context, '#000000', 547, 300, 6, 15);
-
-		// Fill
-		DrawTriangle(context, '#FFFF00', 550, 324, 541, 314, 559, 314);
-		DrawBox(context, '#FFFF00', 548, 301, 4, 15);
-		break;
-	default:
-	}
-
-	if (HeatIndex !== Temperature) {
-		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 365, 'Heat Index:', 2);
-		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 365, HeatIndex + String.fromCharCode(176), 2, 'right');
-	} else if (WindChill !== '' && WindChill < Temperature) {
-		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 365, 'Wind Chill:', 2);
-		DrawText(context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 365, WindChill + String.fromCharCode(176), 2, 'right');
-	}
-
-	WeatherParameters.Progress.CurrentConditions = LoadStatuses.Loaded;
-
-	UpdateWeatherCanvas(WeatherParameters, canvasCurrentWeather);
 };
 
 const shortenCurrentConditions = (condition) => {
@@ -4213,28 +3910,6 @@ const PopulateTravelCities = (WeatherParameters) => {
 
 };
 
-var DrawHorizontalGradient = function (context, x1, y1, x2, y2, color1, color2) {
-	// http://www.w3schools.com/tags/canvas_createlineargradient.asp
-
-	var LinearGradient = context.createLinearGradient(0, y1, 0, y2);
-	LinearGradient.addColorStop(0, color1);
-	LinearGradient.addColorStop(0.4, color2);
-	LinearGradient.addColorStop(0.6, color2);
-	LinearGradient.addColorStop(1, color1);
-	context.fillStyle = LinearGradient;
-	context.fillRect(x1, y1, x2 - x1, y2 - y1);
-};
-
-var DrawHorizontalGradientSingle = function (context, x1, y1, x2, y2, color1, color2) {
-	// http://www.w3schools.com/tags/canvas_createlineargradient.asp
-
-	var LinearGradient = context.createLinearGradient(0, y1, 0, y2);
-	LinearGradient.addColorStop(0, color1);
-	LinearGradient.addColorStop(1, color2);
-	context.fillStyle = LinearGradient;
-	context.fillRect(x1, y1, x2 - x1, y2 - y1);
-};
-
 const UpdateTravelCities =  (offset) => {
 	const canvas = canvasTravelForecast[0];
 	const context = canvas.getContext('2d');
@@ -4760,23 +4435,6 @@ const getRegionalObservation = async (point, city) => {
 		console.error(e);
 		return false;
 	}
-};
-
-const DrawText = (context, font, size, color, x, y, text, shadow = 0, align = 'start') => {
-	context.textAlign = align;
-	context.font = size + ` '${font}'`;
-	context.shadowColor = '#000000';
-	context.shadowOffsetX = shadow;
-	context.shadowOffsetY = shadow;
-	context.strokeStyle = '#000000';
-	context.lineWidth = 2;
-	context.strokeText(text, x, y);
-	context.fillStyle = color;
-	context.fillText(text, x, y);
-	context.fillStyle = '';
-	context.strokeStyle = '';
-	context.shadowOffsetX = 0;
-	context.shadowOffsetY = 0;
 };
 
 const GetDistance = (x1 ,y1, x2, y2) => {
@@ -5488,49 +5146,12 @@ const Progress = function (e) {
 };
 
 
-const DrawBox = (context, color, x, y, width, height) => {
-	context.fillStyle = color;
-	context.fillRect(x, y, width, height);
-};
-
-const DrawBorder = (context, color, lineWith, x, y, width, height) => {
-	context.strokeStyle = color;
-	context.lineWidth = lineWith;
-	context.strokeRect(x, y, width, height);
-};
-
-const DrawTriangle = (context, color, x1, y1, x2, y2, x3, y3) => {
-	context.fillStyle = color;
-	context.beginPath();
-	context.moveTo(x1, y1);
-	context.lineTo(x2, y2);
-	context.lineTo(x3, y3);
-	context.fill();
-};
-
 const SmoothingEnabled = (context, enable) => {
 	context.imageSmoothingEnabled = enable;
 	context.webkitImageSmoothingEnabled = enable;
 	context.mozImageSmoothingEnabled = enable;
 	context.msImageSmoothingEnabled = enable;
 	context.oImageSmoothingEnabled = enable;
-};
-
-const DrawTitleText = (context, title1, title2) => {
-	const font = 'Star4000';
-	const size = '24pt';
-	const color = '#ffff00';
-	const shadow = 3;
-	const x = 170;
-	let y = 55;
-
-	if (title2) {
-		DrawText(context, font, size, color, x, y, title1, shadow); y += 30;
-		DrawText(context, font, size, color, x, y, title2, shadow); y += 30;
-	} else {
-		y += 15;
-		DrawText(context, font, size, color, x, y, title1, shadow); y += 30;
-	}
 };
 
 const UpdateWeatherCanvases = function (WeatherParameters) {
@@ -5917,14 +5538,6 @@ const DrawCustomScrollText = (WeatherParameters, context) => {
 
 };
 
-$.ajaxCORS = function (e) {
-	// modify the URL
-	e.url = 'cors/?u=' + encodeURIComponent(e.url);
-
-	// call the ajax function
-	return $.ajax(e);
-};
-
 let _CallBack = null;
 
 var SetCallBack = (e) => _CallBack = e.CallBack;
@@ -5934,17 +5547,6 @@ const Units = {
 	Metric: 1,
 };
 var _Units = Units.English;
-
-const Themes = {
-	ThemeA: 1, // Classic
-	ThemeB: 2, // Sea Foam
-	ThemeC: 3, // Comsic
-};
-var _Themes = Themes.ThemeA;
-let _TopColor1 = 'rgb(192, 91, 2)';
-let _TopColor2 = 'rgb(72, 34, 64)';
-let _SideColor1 = 'rgb(46, 18, 80)';
-let _SideColor2 = 'rgb(192, 91, 2)';
 
 var _ScrollText = '';
 
@@ -5958,35 +5560,6 @@ var AssignUnits = (e) => {
 		break;
 	case 'METRIC':
 		_Units = Units.Metric;
-		break;
-	default:
-	}
-
-	RefreshSegments();
-};
-
-var AssignThemes = (e) => {
-	switch (e.Themes) {
-	case 'THEMEA':
-		_Themes = Themes.ThemeA;
-		_TopColor1 = 'rgb(192, 91, 2)';
-		_TopColor2 = 'rgb(72, 34, 64)';
-		_SideColor1 = 'rgb(46, 18, 80)';
-		_SideColor2 = 'rgb(192, 91, 2)';
-		break;
-	case 'THEMEB':
-		_Themes = Themes.ThemeB;
-		_TopColor1 = 'rgb(0, 253, 127)';
-		_TopColor2 = 'rgb(46, 21, 82)';
-		_SideColor1 = 'rgb(46, 19, 81)';
-		_SideColor2 = 'rgb(0, 254, 128)';
-		break;
-	case 'THEMEC':
-		_Themes = Themes.ThemeC;
-		_TopColor1 = 'rgb(114, 27, 200)';
-		_TopColor2 = 'rgb(73, 34, 66)';
-		_SideColor1 = 'rgb(46, 18, 81)';
-		_SideColor2 = 'rgb(115, 27, 201)';
 		break;
 	default:
 	}

@@ -878,43 +878,6 @@
 
                 offset = frameOffsets[i];
 
-                // Attempt to save battery/cpu.
-                if (first_time == false && _RefreshGifs == false)
-                {
-                    if (frames.length == 1)
-                    {
-                        return;
-                    }
-
-                    var Elm = document.elementFromPoint(0, 100);
-                    if (Elm != options.canvas)
-                    {
-                        if (options.canvas.RelatedCanvas)
-                        {
-                            if (Elm != options.canvas.RelatedCanvas)
-                            {
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            return;
-                        }
-                    }
-                }
-                else
-                {
-                    first_time = false;
-                    //setTimeout(function ()
-                    //{
-                    //    tmpCanvas.getContext("2d").putImageData(frames[i].data, offset.x, offset.y);
-                    //    ctx.globalCompositeOperation = "copy";
-                    //    ctx.drawImage(tmpCanvas, 0, 0);
-                    //    options.canvas.getContext("2d").drawImage(canvas, options.x, options.y)
-                    //}, 100);
-                    //return;
-                }
-
                 tmpCanvas.getContext("2d").putImageData(frames[i].data, offset.x, offset.y);
                 ctx.globalCompositeOperation = "copy";
                 ctx.drawImage(tmpCanvas, 0, 0);
