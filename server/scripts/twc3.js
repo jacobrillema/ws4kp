@@ -42,15 +42,6 @@ var divHazards;
 var divHazardsScroll;
 var canvasHazards;
 
-var divSunriseTodayName;
-var divSunsetTomorrowName;
-var divSunrise;
-var divSunriseToday;
-var divSunriseTomorrow;
-var divSunset;
-var divSunsetToday;
-var divSunsetTomorrow;
-
 var canvasAlmanac;
 var canvasAlmanacTides;
 var canvasOutlook;
