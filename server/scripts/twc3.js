@@ -1,5 +1,5 @@
 /* globals _StationInfo, luxon, _RegionalCities, utils, icons, _TravelCities, SunCalc */
-
+const {DateTime} = luxon;
 const _DayShortNames = { 'Sunday': 'Sun', 'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed', 'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat' };
 const _DayLongNameArray = Object.keys(_DayShortNames);
 const _DayLongNames = { 'Sun': 'Sunday', 'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday', 'Thu': 'Thursday', 'Fri': 'Friday', 'Sat': 'Saturday' };
@@ -298,8 +298,8 @@ var GetTideInfo2 = function (WeatherParameters) {
 				return;
 			}
 
-			var Today = new Date();
-			var Tomorrow = Today.addDays(1);
+			const Today = DateTime.local();
+			const Tomorrow = Today.plus({days: 1});
 
 			StationIds.each(function () {
 				var StationName = this.name;
@@ -307,9 +307,9 @@ var GetTideInfo2 = function (WeatherParameters) {
 
 				//https://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&begin_date=20181228&end_date=20181229&datum=MLLW&station=9410840&time_zone=lst_ldt&units=english&interval=hilo&format=json
 				var Url = 'https://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL';
-				Url += '&begin_date=' + Today.getFullYear().pad() + (Today.getMonth() + 1).pad(2) + Today.getDate().pad(2);
-				Url += '&end_date=' + Tomorrow.getFullYear().pad() + (Tomorrow.getMonth() + 1).pad(2) + Tomorrow.getDate().pad(2);
-				Url += '&datum=MLLW&station=' + StationId;
+				Url += `&begin_date=${Today.toFormat('yyyyMMDD')}`;
+				Url += `&end_date=${Tomorrow.toFormat('yyyyMMDD')}`;
+				Url += `&datum=MLLW&station=${StationId}`;
 				Url += '&time_zone=lst_ldt&units=english&interval=hilo&format=json';
 
 				if (WeatherParameters.WeatherTides === null) {
@@ -1302,9 +1302,9 @@ var GetAirQuality3 = function (WeatherParameters) {
 	// TODO, this code does not currently execute because no zip code is provided
 
 	var ZipCode = WeatherParameters.ZipCode;
-	var date = new Date();
-	if (date.getHours() >= 12) {
-		date = date.addDays(1);
+	let date = DateTime.local();
+	if (date.hour >= 12) {
+		date = date.plus({days:1});
 	}
 	var _Date = date.getYYYYMMDD();
 
@@ -3069,41 +3069,6 @@ const shortenExtendedForecastText = (long) => {
 	return [short, short1, short2];
 };
 
-Date.prototype.addHours = function (hours) {
-	var dat = new Date(this.valueOf());
-	dat.setHours(dat.getHours() + hours);
-	return dat;
-};
-Date.prototype.addDays = function (days) {
-	var dat = new Date(this.valueOf());
-	dat.setDate(dat.getDate() + days);
-	return dat;
-};
-Date.prototype.addMonths = function (months) {
-	var dat = new Date(this.valueOf());
-	dat.setMonth(dat.getMonth() + months);
-	return dat;
-};
-Date.prototype.getMonthName = function () {
-	var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-	return months[this.getMonth()];
-};
-Date.prototype.getMonthShortName = function () {
-	var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-	return months[this.getMonth()];
-};
-Date.prototype.getDayName = function () {
-	var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-	return days[this.getDay()];
-};
-Date.prototype.getDayShortName = function () {
-	var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-	return days[this.getDay()];
-};
-Date.prototype.getYYYYMMDD = function () {
-	return this.toISOString().split('T')[0];
-};
-
 const PopulateExtendedForecast = async (WeatherParameters, ScreenIndex = 1) => {
 	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.FourDayForecast !== LoadStatuses.Loaded)) {
 		return;
@@ -3922,55 +3887,33 @@ Number.prototype.pad = function(size) {
 	return s;
 };
 
-var AlmanacInfo = function (MoonPhasesParser, SunRiseSetParserToday, SunRiseSetParserTomorrow) {
-	var _self = this;
-	//var Today = new Date();
-	//var Tomorrow = Today.addDays(1);
-
-	this.MoonPhases = [];
-	$(MoonPhasesParser.Phases).each(function () {
-		//var date = this.date.split(" ");
-		var date = new Date(this.date);
-		var time = this.time;
-		var phase = this.phase.split(' ');
-
-		_self.MoonPhases.push({
-			//Date: date[1] + " " + date[2],
-			//Date: GetDateFromUTC(date, time),
-			Date: utils.dateTime.GetDateFromTime(date, time),
-			Phase: phase[0],
-		});
-	});
-
-	//this.TodaySunRise = GetDateFromUTC(new Date(), SunRiseSetParserToday.SunRiseUTC);
-	//this.TodaySunSet = GetDateFromUTC(new Date(), SunRiseSetParserToday.SunSetUTC);
-
-	//this.TomorrowSunRise = GetDateFromUTC((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseUTC);
-	//this.TomorrowSunSet = GetDateFromUTC((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetUTC);
-
-	this.TodaySunRise = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunRiseLocal);
-	this.TodaySunSet = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunSetLocal);
-
-	this.TomorrowSunRise = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseLocal);
-	this.TomorrowSunSet = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetLocal);
-
-	this.TodaySunRiseLocal = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunRiseLocal);//, SunRiseSetParserToday.TimeZone);
-	this.TodaySunSetLocal = utils.dateTime.GetDateFromTime(new Date(), SunRiseSetParserToday.SunSetLocal);///, SunRiseSetParserToday.TimeZone);
-
-	this.TomorrowSunRiseLocal = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunRiseLocal);//, SunRiseSetParserToday.TimeZone);
-	this.TomorrowSunSetLocal = utils.dateTime.GetDateFromTime((new Date()).addDays(1), SunRiseSetParserTomorrow.SunSetLocal);//, SunRiseSetParserToday.TimeZone);
-
-};
-
 const getAlminacInfo = (WeatherParameters) => {
 	// calculated locally for today and tomorrow
 	const sun = [
 		SunCalc.getTimes(new Date(), WeatherParameters.Latitude, WeatherParameters.Longitude),
-		SunCalc.getTimes((new Date()).addDays(1), WeatherParameters.Latitude, WeatherParameters.Longitude)
+		SunCalc.getTimes(DateTime.local().plus({days:1}).toJSDate(), WeatherParameters.Latitude, WeatherParameters.Longitude)
 	];
 
 	// brute force the moon phases by scanning the next 30 days
-	const moon;
+	const moon = [];
+	// start with yesterday
+	let moonDate = DateTime.local().minus({days:1});
+	let moonPhase = SunCalc.getMoonIllumination(moonDate.toJSDate());
+	let iterations = 0;
+	do {
+		// get yesterday's moon info
+		const yesterdayPhase = moonPhase;
+		// calculate new values
+		moonDate = moonDate.plus({days:1});
+		moonPhase = SunCalc.getMoonIllumination(moonDate.toJSDate());
+		// check for 4 cases
+		if (yesterdayPhase < 0.25 && moonPhase >= 0.25) moon.push({type: 'First', date: moonDate});
+		if (yesterdayPhase < 0.50 && moonPhase >= 0.50) moon.push({type: 'Full', date: moonDate});
+		if (yesterdayPhase < 0.70 && moonPhase >= 0.75) moon.push({type: 'Last', date: moonDate});
+		if (yesterdayPhase > moonPhase) moon.push({type: 'New', date: moonDate});
+
+		// stop after 30 days or 4 moon phases
+	} while (iterations <= 30 && moon.length < 4);
 
 	WeatherParameters.AlmanacInfo = {
 		sun,
@@ -4438,17 +4381,11 @@ const PopulateRegionalObservations = async (WeatherParameters) => {
 
 const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowForecast2) => {
 	if (TomorrowForecast1) {
-		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.TomorrowsRegionalMap !== LoadStatuses.Loaded)) {
-			return;
-		}
+		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.TomorrowsRegionalMap !== LoadStatuses.Loaded)) return;
 	} else if (TomorrowForecast2) {
-		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.TomorrowsRegionalMap !== LoadStatuses.Loaded)) {
-			return;
-		}
+		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.TomorrowsRegionalMap !== LoadStatuses.Loaded)) return;
 	} else {
-		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.CurrentRegionalMap !== LoadStatuses.Loaded)) {
-			return;
-		}
+		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.CurrentRegionalMap !== LoadStatuses.Loaded)) return;
 	}
 
 	let cnvRegionalMap;
@@ -4484,8 +4421,7 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 
 	const DontLoadGifs = _DontLoadGifs;
 
-	const Today = new Date();
-	var addDays = 0;
+	const Today = DateTime.local();
 	var IsNightTime;
 	var RegionalForecastCities;
 
@@ -4495,17 +4431,11 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 		}
 		RegionalForecastCities = WeatherParameters.RegionalForecastCities2;
 
-		if (Today.getHours() >= 12) {
+		if (Today.hour >= 12) {
 			// Tomorrow's daytime forecast
-			addDays = 1;
-			Today.setHours(0, 0, 0, 0);
+			Today = Today.plus({hours:12});
 			IsNightTime = false;
 		} else {
-			// Todays's nighttime forecast
-			if (Today.getHours() === 0) {
-				// Prevent Midnight from causing the wrong icons to appear.
-				Today.setHours(1, 0, 0, 0);
-			}
 			IsNightTime = true;
 		}
 	} else {
@@ -4514,23 +4444,15 @@ const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowFor
 		}
 		RegionalForecastCities = WeatherParameters.RegionalForecastCities1;
 
-		if (Today.getHours() >= 12) {
-			// Todays's nighttime forecast
-			// Prevent Midnight from causing the wrong icons to appear.
-			Today.setHours(1, 0, 0, 0);
+		if (Today.hour >= 12) {
 			IsNightTime = true;
 		} else {
-			// Today's daytime forecast
-			if (Today.getHours() === 0) {
-				// Prevent Midnight from causing the wrong icons to appear.
-				Today.setHours(1, 0, 0, 0);
-			}
 			IsNightTime = false;
 		}
 	}
 
-	const Tomorrow = Today.addDays(addDays);
-	const DayName = Tomorrow.getDayName();
+	const Tomorrow = Today.plus({hours:12});
+	const DayName = Tomorrow.toLocaleString({weekday: 'long'}).toUpperCase();
 
 	const PopulateRegionalMap = async () => {
 		if (TomorrowForecast1 || TomorrowForecast2) {
@@ -6647,8 +6569,8 @@ const GetNarrationText = () => {
 
 	case CanvasTypes.Almanac:
 	{	const AlmanacInfo = _WeatherParameters.AlmanacInfo;
-		const Today = new Date();
-		const Tomorrow = Today.addDays(1);
+		const Today = DateTime.local();
+		const Tomorrow = Today.plus({days: 1});
 
 		if (isNaN(AlmanacInfo.TodaySunRise)) {
 			Text += 'No sunrise for ' + Today.getDayName() + ' ';
