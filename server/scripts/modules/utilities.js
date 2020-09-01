@@ -38,7 +38,7 @@ const utils = (() => {
 	};
 
 	// async version of SuperGif
-	const SuperGifAsync = (e) => {
+	const superGifAsync = (e) => {
 		return new Promise(resolve => {
 			const gif = new SuperGif(e);
 			gif.load(() => resolve(gif));
@@ -49,26 +49,26 @@ const utils = (() => {
 
 	Math.round2 = (value, decimals) => Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
 
-	const MphToKph = (Mph) => Math.round(Mph * 1.60934);
-	const KphToMph = (Kph) => Math.round(Kph / 1.60934);
-	const CelsiusToFahrenheit = (Celsius) => Math.round(Celsius * 9 / 5 + 32);
-	const FahrenheitToCelsius = (Fahrenheit) => Math.round2(((Fahrenheit) - 32) * 5 / 9, 1);
-	const MilesToKilometers = (Miles) => Math.round(Miles * 1.60934);
-	const KilometersToMiles = (Kilometers) => Math.round(Kilometers / 1.60934);
-	const FeetToMeters = (Feet) => Math.round(Feet * 0.3048);
-	const MetersToFeet = (Meters) => Math.round(Meters / 0.3048);
-	const InchesToCentimeters = (Inches) => Math.round2(Inches * 2.54, 2);
-	const PascalToInHg = (Pascal) => Math.round2(Pascal*0.0002953,2);
+	const mphToKph = (Mph) => Math.round(Mph * 1.60934);
+	const kphToMph = (Kph) => Math.round(Kph / 1.60934);
+	const celsiusToFahrenheit = (Celsius) => Math.round(Celsius * 9 / 5 + 32);
+	const fahrenheitToCelsius = (Fahrenheit) => Math.round2(((Fahrenheit) - 32) * 5 / 9, 1);
+	const milesToKilometers = (Miles) => Math.round(Miles * 1.60934);
+	const kilometersToMiles = (Kilometers) => Math.round(Kilometers / 1.60934);
+	const feetToMeters = (Feet) => Math.round(Feet * 0.3048);
+	const metersToFeet = (Meters) => Math.round(Meters / 0.3048);
+	const inchesToCentimeters = (Inches) => Math.round2(Inches * 2.54, 2);
+	const pascalToInHg = (Pascal) => Math.round2(Pascal*0.0002953,2);
 
 	// ***************************** calculations **********************************
 
-	const RelativeHumidity = (Temperature, DewPoint) => {
+	const relativeHumidity = (Temperature, DewPoint) => {
 		const T = Temperature;
 		const TD = DewPoint;
 		return Math.round(100 * (Math.exp((17.625 * TD) / (243.04 + TD)) / Math.exp((17.625 * T) / (243.04 + T))));
 	};
 
-	const HeatIndex = (Temperature, RelativeHumidity) => {
+	const heatIndex = (Temperature, RelativeHumidity) => {
 		const T = Temperature;
 		const RH = RelativeHumidity;
 		let HI = 0.5 * (T + 61.0 + ((T - 68.0) * 1.2) + (RH * 0.094));
@@ -93,7 +93,7 @@ const utils = (() => {
 		return Math.round(HI);
 	};
 
-	const WindChill = (Temperature, WindSpeed) => {
+	const windChill = (Temperature, WindSpeed) => {
 		if (WindSpeed === '0' || WindSpeed === 'Calm' || WindSpeed === 'NA') {
 			return '';
 		}
@@ -105,19 +105,21 @@ const utils = (() => {
 	};
 
 	// wind direction
-	const DirectionToNSEW = (Direction) => {
+	const directionToNSEW = (Direction) => {
 		const val = Math.floor((Direction / 22.5) + 0.5);
 		const arr = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 		return arr[(val % 16)];
 	};
 
+	const distance = (x1 ,y1, x2, y2) => Math.sqrt((x2-=x1)*x2 + (y2-=y1)*y2);
+
 	// ********************************* date functions ***************************
-	const GetDateFromUTC = (date, utc) => {
+	const getDateFromUTC = (date, utc) => {
 		const time = utc.split(':');
 		return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), time[0], time[1], 0));
 	};
 
-	const GetTimeZoneOffsetFromUTC = (timezone) => {
+	const getTimeZoneOffsetFromUTC = (timezone) => {
 		switch (timezone) {
 		case 'EST':
 			return -5;
@@ -177,9 +179,25 @@ const utils = (() => {
 		return tz;
 	};
 
-	const DateToTimeZone = (date, timezone) => {
-		const OldOffset = GetTimeZoneOffsetFromUTC(date.getTimeZone());
-		const NewOffset = GetTimeZoneOffsetFromUTC(timezone);
+	Date.prototype.addHours = function (hours) {
+		var dat = new Date(this.valueOf());
+		dat.setHours(dat.getHours() + hours);
+		return dat;
+	};
+
+	Date.prototype.getDayShortName = function () {
+		var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+		return days[this.getDay()];
+	};
+
+	Date.prototype.getMonthShortName = function () {
+		var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+		return months[this.getMonth()];
+	};
+
+	const dateToTimeZone = (date, timezone) => {
+		const OldOffset = getTimeZoneOffsetFromUTC(date.getTimeZone());
+		const NewOffset = getTimeZoneOffsetFromUTC(timezone);
 
 		let dt = new Date(date);
 		dt = dt.addHours(OldOffset * -1);
@@ -187,10 +205,10 @@ const utils = (() => {
 		return dt;
 	};
 
-	const GetDateFromTime = (date, time, timezone) => {
+	const getDateFromTime = (date, time, timezone) => {
 		const Time = time.split(':');
 		if (timezone) {
-			const Offset = GetTimeZoneOffsetFromUTC(timezone) * -1;
+			const Offset = getTimeZoneOffsetFromUTC(timezone) * -1;
 			const newDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), Time[0], Time[1], 0));
 			return newDate.addHours(Offset);
 		} else {
@@ -228,7 +246,7 @@ const utils = (() => {
 		return hours + ':' + minutes + ' ' + ampm;
 	};
 
-	const XmlDateToJsDate = (XmlDate) => {
+	const xmlDateToJsDate = (XmlDate) => {
 		let bits = XmlDate.split(/[-T:+]/g);
 
 		if (bits[5] === undefined) {
@@ -254,7 +272,7 @@ const utils = (() => {
 		return d.setMinutes(d.getMinutes() - offsetMinutes - d.getTimezoneOffset());
 	};
 
-	const TimeTo24Hour = (Time) => {
+	const timeTo24Hour = (Time) => {
 		const AMPM = Time.substr(Time.length - 2);
 		const MM = Time.split(':')[1].substr(0, 2);
 		let HH = Time.split(':')[0];
@@ -279,36 +297,37 @@ const utils = (() => {
 	return {
 		image: {
 			load: loadImg,
-			SuperGifAsync,
+			superGifAsync,
 		},
 		weather: {
 			getPoint,
 		},
 		units: {
-			MphToKph,
-			KphToMph,
-			CelsiusToFahrenheit,
-			FahrenheitToCelsius,
-			MilesToKilometers,
-			KilometersToMiles,
-			FeetToMeters,
-			MetersToFeet,
-			InchesToCentimeters,
-			PascalToInHg,
+			mphToKph,
+			kphToMph,
+			celsiusToFahrenheit,
+			fahrenheitToCelsius,
+			milesToKilometers,
+			kilometersToMiles,
+			feetToMeters,
+			metersToFeet,
+			inchesToCentimeters,
+			pascalToInHg,
 		},
 		calc: {
-			RelativeHumidity,
-			HeatIndex,
-			WindChill,
-			DirectionToNSEW,
+			relativeHumidity,
+			heatIndex,
+			windChill,
+			directionToNSEW,
+			distance,
 		},
 		dateTime: {
-			GetDateFromUTC,
-			GetTimeZoneOffsetFromUTC,
-			DateToTimeZone,
-			GetDateFromTime,
-			XmlDateToJsDate,
-			TimeTo24Hour,
+			getDateFromUTC,
+			getTimeZoneOffsetFromUTC,
+			dateToTimeZone,
+			getDateFromTime,
+			xmlDateToJsDate,
+			timeTo24Hour,
 		},
 	};
 })();

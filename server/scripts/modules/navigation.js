@@ -1,6 +1,7 @@
 'use strict';
 // navigation handles progress, next/previous and initial load messages from the parent frame
-/* globals utils, _StationInfo, CurrentWeather, STATUS */
+/* globals utils, _StationInfo, STATUS */
+/* globals CurrentWeather, LatestObservations */
 
 // jquery for initial load
 $(() => {
@@ -78,6 +79,7 @@ const navigation = (() => {
 		// start loading canvases
 		displays = [
 			new CurrentWeather(0,'currentWeather', weatherParameters),
+			new LatestObservations(1, 'latestObservations', weatherParameters),
 		];
 
 		// GetMonthPrecipitation(this.weatherParameters);
@@ -107,8 +109,8 @@ const navigation = (() => {
 		}, 1);
 	};
 
-	// track units
-	const units = UNITS.english;
+	// TODO: track units
+	const units = () => UNITS.english;
 
 	return {
 		init,

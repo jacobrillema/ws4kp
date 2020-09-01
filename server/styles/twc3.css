@@ -93,10 +93,10 @@ jsgif
     cursor: none !important;
 }
 
-.container {
+#container {
 	position: absolute;
 }
 
-.container canvas {
+#container canvas {
 	position: absolute;
 }

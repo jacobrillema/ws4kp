@@ -60,9 +60,6 @@ var cnvOutlookPrcp;
 var tblRegionalObservations;
 var canvasLatestObservations;
 
-var _MaximumRegionalStations = 7;
-
-
 var _WeatherParameters = null;
 
 var _DopplerRadarInterval = null;
@@ -2664,24 +2661,6 @@ var canvasProgress_click = function (e) {
 	}
 };
 
-const shortenCurrentConditions = (condition) => {
-	condition = condition.replaceAll('Light', 'L');
-	condition = condition.replaceAll('Heavy', 'H');
-	condition = condition.replaceAll('Partly', 'P');
-	condition = condition.replaceAll('Mostly', 'M');
-	condition = condition.replaceAll('Few', 'F');
-	condition = condition.replaceAll('Thunderstorm', 'T\'storm');
-	condition = condition.replaceAll(' in ', '');
-	condition = condition.replaceAll('Vicinity', '');
-	condition = condition.replaceAll(' and ', ' ');
-	condition = condition.replaceAll('Freezing Rain', 'Frz Rn');
-	condition = condition.replaceAll('Freezing', 'Frz');
-	condition = condition.replaceAll('Unknown Precip', '');
-	condition = condition.replaceAll('L Snow Fog', 'L Snw/Fog');
-	condition = condition.replaceAll(' with ', '/');
-	return condition;
-};
-
 // the api provides the forecast in 12 hour increments, flatten to day increments with high and low temperatures
 const ParseExtendedForecast = (fullForecast) => {
 	// create a list of days starting with today
@@ -3938,141 +3917,6 @@ const UpdateTravelCities =  (offset) => {
 };
 
 
-const GetRegionalStations = async (WeatherParameters) => {
-	// calculate distance to each station
-	const stationsByDistance = Object.keys(_StationInfo).map(key => {
-		const station = _StationInfo[key];
-		const distance = GetDistance(parseFloat(station.Latitude), parseFloat(station.Longitude), WeatherParameters.Latitude, WeatherParameters.Longitude);
-		return Object.assign({}, station, {distance});
-	});
-
-	// sort the stations by distance
-	const sortedStations = stationsByDistance.sort((a,b) => a.distance - b.distance);
-	// try up to 30 regional stations
-	const regionalStations = sortedStations.slice(0,30);
-
-	// get data for regional stations
-	const allConditions = await Promise.all(regionalStations.map(async station => {
-		try {
-			const data = await $.ajax({
-				type: 'GET',
-				url: `https://api.weather.gov/stations/${station.StationId}/observations/latest`,
-				dataType: 'json',
-				crossDomain: true,
-			});
-			// format the return values
-			return Object.assign({}, data.properties, {
-				StationId: station.StationId,
-				City: station.City,
-			});
-		} catch (e) {
-			console.log(`Unable to get latest observations for ${station.StationId}`);
-			console.error(e);
-			return false;
-		}
-	}));
-	// remove and stations that did not return data
-	const actualConditions = allConditions.filter(condition => condition);
-	// cut down to the maximum of 7
-	const conditions = actualConditions.slice(0,_MaximumRegionalStations);
-
-	WeatherParameters.WeatherCurrentRegionalConditions = conditions;
-	PopulateRegionalObservations(WeatherParameters);
-
-};
-
-const PopulateRegionalObservations = async (WeatherParameters) => {
-	if (!WeatherParameters || (_DontLoadGifs && WeatherParameters.Progress.NearbyConditions !== LoadStatuses.Loaded)) return;
-
-	const conditions = WeatherParameters.WeatherCurrentRegionalConditions;
-
-	let Html = '';
-
-	const $tbodyRegionalObservations = tblRegionalObservations.find('tbody');
-	$tbodyRegionalObservations.empty();
-
-	Html = '<tr>';
-	Html += '<td></td>';
-	Html += '<td>&deg;F</td>';
-	Html += '<td>WEATHER</td>';
-	Html += '<td>WIND</td>';
-	Html += '</tr>';
-	$tbodyRegionalObservations.append(Html);
-
-	// sort array by station name
-	const sortedConditions = conditions.sort((a,b) => ((a.Name < b.Name) ? -1 : ((a.Name > b.Name) ? 1 : 0)));
-
-	const stationHtml = sortedConditions.map(condition => {
-		let Html = '<tr>';
-		Html += '<td>' + condition.Name + '</td>';
-		Html += '<td>' + condition.temperature.value + '</td>';
-		Html += '<td>' + condition.textDescription + '</td>';
-		Html += '<td>' + (condition.windSpeed.value === 0 ? 'Calm' : condition.windDirection.value + ' ' + condition.windSpeed.value) + '</td>';
-		Html += '</tr>';
-		return Html;
-	});
-	Html += stationHtml.join('');
-	$tbodyRegionalObservations.append(Html);
-
-	conditions.SortedArray = sortedConditions;
-
-	// Draw canvas
-	const canvas = canvasLatestObservations[0];
-	const context = canvas.getContext('2d');
-
-	const BackGroundImage = await utils.loadImg('images/BackGround1_1.png');
-
-	context.drawImage(BackGroundImage, 0, 0);
-	DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-	DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-	DrawHorizontalGradientSingle(context, 0, 90, 52, 399, _SideColor1, _SideColor2);
-	DrawHorizontalGradientSingle(context, 584, 90, 640, 399, _SideColor1, _SideColor2);
-
-	DrawTitleText(context, 'Latest', 'Observations');
-
-	if (_Units === Units.English) {
-		DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 295, 105, String.fromCharCode(176) + 'F', 2);
-	} else {
-		DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 295, 105, String.fromCharCode(176) + 'C', 2);
-	}
-	DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 345, 105, 'WEATHER', 2);
-	DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 495, 105, 'WIND', 2);
-
-	let y = 140;
-
-	sortedConditions.forEach((condition) => {
-		let Temperature = condition.temperature.value;
-		let WindSpeed = condition.windSpeed.value;
-		const windDirection = utils.calc.DirectionToNSEW(condition.windDirection.value);
-
-		if (_Units === Units.English) {
-			Temperature = utils.units.CelsiusToFahrenheit(Temperature);
-			WindSpeed = utils.units.KphToMph(WindSpeed);
-		}
-
-		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 65, y, condition.City.substr(0, 14), 2);
-		DrawText(context, 'Star4000', '24pt', '#FFFFFF', 345, y, shortenCurrentConditions(condition.textDescription).substr(0, 9), 2);
-
-		if (WindSpeed > 0) {
-			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, windDirection + (Array(6 - windDirection.length - WindSpeed.toString().length).join(' ')) + WindSpeed.toString(), 2);
-		} else if (WindSpeed === 'NA') {
-			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, 'NA', 2);
-		} else {
-			DrawText(context, 'Star4000', '24pt', '#FFFFFF', 495, y, 'Calm', 2);
-		}
-
-		const x = (325 - (Temperature.toString().length * 15));
-		DrawText(context, 'Star4000', '24pt', '#FFFFFF', x, y, Temperature, 2);
-
-		y += 40;
-	});
-
-	WeatherParameters.Progress.NearbyConditions = LoadStatuses.Loaded;
-
-	UpdateWeatherCanvas(WeatherParameters, canvasLatestObservations);
-
-};
-
 const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowForecast2) => {
 	if (TomorrowForecast1) {
 		if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.TomorrowsRegionalMap !== LoadStatuses.Loaded)) return;
@@ -4435,10 +4279,6 @@ const getRegionalObservation = async (point, city) => {
 		console.error(e);
 		return false;
 	}
-};
-
-const GetDistance = (x1 ,y1, x2, y2) => {
-	return Math.sqrt((x2-=x1)*x2 + (y2-=y1)*y2);
 };
 
 const GetXYFromLatitudeLongitude = (Latitude, Longitude, OffsetX, OffsetY) => {

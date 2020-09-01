@@ -5,6 +5,10 @@
 class CurrentWeather extends WeatherDisplay {
 	constructor(a,b,weatherParameters) {
 		super(...arguments);
+		// pre-load background image (returns promise)
+		this.backgroundImage = utils.image.load('images/BackGround1_1.png');
+
+		// get the data
 		this.getData(weatherParameters);
 	}
 
@@ -42,12 +46,13 @@ class CurrentWeather extends WeatherDisplay {
 			return;
 		}
 		// we only get here if there was no error above
-		await this.populateCanvas(Object.assign({}, observations, {station: station}));
-		this.setStatus(STATUS.loaded);
+		this.data = Object.assign({}, observations, {station: station});
+		this.drawCanvas();
 	}
 
-	async populateCanvas (data) {
-		const observations = data.features[0].properties;
+	async drawCanvas () {
+		super.drawCanvas();
+		const observations = this.data.features[0].properties;
 		// values from api are provided in metric
 		let Temperature = Math.round(observations.temperature.value);
 		let DewPoint = Math.round(observations.dewpoint.value);
@@ -56,7 +61,7 @@ class CurrentWeather extends WeatherDisplay {
 		let Visibility = Math.round(observations.visibility.value/1000);
 		let VisibilityUnit = ' km.';
 		let WindSpeed = Math.round(observations.windSpeed.value);
-		const WindDirection = utils.calc.DirectionToNSEW(observations.windDirection.value);
+		const WindDirection = utils.calc.directionToNSEW(observations.windDirection.value);
 		let Pressure = Math.round(observations.barometricPressure.value);
 		let HeatIndex = Math.round(observations.heatIndex.value);
 		let WindChill = Math.round(observations.windChill.value);
@@ -68,39 +73,37 @@ class CurrentWeather extends WeatherDisplay {
 		const TextConditions = observations.textDescription;
 
 		// difference since last measurement (pascals, looking for difference of more than 150)
-		const pressureDiff = (observations.barometricPressure.value - data.features[1].properties.barometricPressure.value);
+		const pressureDiff = (observations.barometricPressure.value - this.data.features[1].properties.barometricPressure.value);
 		if (pressureDiff > 150) PressureDirection = 'R';
 		if (pressureDiff < -150) PressureDirection = 'F';
 
-		if (navigation.units === UNITS.english) {
-			Temperature = utils.units.CelsiusToFahrenheit(Temperature);
-			DewPoint = utils.units.CelsiusToFahrenheit(DewPoint);
-			Ceiling = Math.round(utils.units.MetersToFeet(Ceiling)/100)*100;
+		if (navigation.units() === UNITS.english) {
+			Temperature = utils.units.celsiusToFahrenheit(Temperature);
+			DewPoint = utils.units.celsiusToFahrenheit(DewPoint);
+			Ceiling = Math.round(utils.units.metersToFeet(Ceiling)/100)*100;
 			CeilingUnit = 'ft.';
-			Visibility = utils.units.KilometersToMiles(observations.visibility.value/1000);
+			Visibility = utils.units.kilometersToMiles(observations.visibility.value/1000);
 			VisibilityUnit = ' mi.';
-			WindSpeed = utils.units.KphToMph(WindSpeed);
-			Pressure = utils.units.PascalToInHg(Pressure);
-			HeatIndex = utils.units.CelsiusToFahrenheit(HeatIndex);
-			WindChill = utils.units.CelsiusToFahrenheit(WindChill);
-			WindGust = utils.units.KphToMph(WindGust);
+			WindSpeed = utils.units.kphToMph(WindSpeed);
+			Pressure = utils.units.pascalToInHg(Pressure);
+			HeatIndex = utils.units.celsiusToFahrenheit(HeatIndex);
+			WindChill = utils.units.celsiusToFahrenheit(WindChill);
+			WindGust = utils.units.kphToMph(WindGust);
 		}
 
-		// get images
-		const [, backgroundImage] = await Promise.all([
-			utils.image.SuperGifAsync({
-				src: Icon,
-				loop_delay: 100,
-				auto_play: true,
-				canvas: this.canvas,
-				x: 140,
-				y: 175,
-				max_width: 126,
-			}),
-			utils.image.load('images/BackGround1_1.png'),
-		]);
+		// get main icon
+		this.gifs.push(await utils.image.superGifAsync({
+			src: Icon,
+			loop_delay: 100,
+			auto_play: true,
+			canvas: this.canvas,
+			x: 140,
+			y: 175,
+			max_width: 126,
+		}));
 
-		this.context.drawImage(backgroundImage, 0, 0);
+
+		this.context.drawImage(await this.backgroundImage, 0, 0);
 		draw.horizontalGradientSingle(this.context, 0, 30, 500, 90, draw.topColor1, draw.topColor2);
 		draw.triangle(this.context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
 		draw.horizontalGradientSingle(this.context, 0, 90, 52, 399, draw.sideColor1, draw.sideColor2);
@@ -121,7 +124,7 @@ class CurrentWeather extends WeatherDisplay {
 
 		if (WindGust) draw.text(this.context, 'Star4000 Extended', '24pt', '#FFFFFF', 80, 375, 'Gusts to ' + WindGust, 2);
 
-		draw.text(this.context, 'Star4000 Large', 'bold 16pt', '#FFFF00', 315, 120, data.station.properties.name.substr(0, 20), 2);
+		draw.text(this.context, 'Star4000 Large', 'bold 16pt', '#FFFF00', 315, 120, this.data.station.properties.name.substr(0, 20), 2);
 
 		draw.text(this.context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 165, 'Humidity:', 2);
 		draw.text(this.context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 165, Humidity + '%', 2, 'right');
@@ -175,6 +178,8 @@ class CurrentWeather extends WeatherDisplay {
 			draw.text(this.context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 340, 365, 'Wind Chill:', 2);
 			draw.text(this.context, 'Star4000 Large', 'bold 16pt', '#FFFFFF', 560, 365, WindChill + String.fromCharCode(176), 2, 'right');
 		}
+		this.finishDraw();
+		this.setStatus(STATUS.loaded);
 	}
 
 }
