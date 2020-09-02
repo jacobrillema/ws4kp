@@ -116,12 +116,17 @@ class WeatherDisplay {
 		const color = '#ffffff';
 		const shadow = 2;
 
-		// // Clear the date and time area.
-		// if (bottom) {
-		// 	draw.box(this.context, 'rgb(25, 50, 112)', 0, 389, 640, 16);
-		// } else {
-		// 	this.drawImage(canvasBackGroundDateTime[0], 0, 0, 175, 60, 410, 30, 175, 60);
-		// }
+		// on the first pass store the background for the date and time
+		if (!this.dateTimeBackground) {
+			this.dateTimeBackground = this.context.getImageData(410, 30, 175, 60);
+		}
+
+		// Clear the date and time area.
+		if (bottom) {
+			draw.box(this.context, 'rgb(25, 50, 112)', 0, 389, 640, 16);
+		} else {
+			this.context.putImageData(this.dateTimeBackground, 410, 30);
+		}
 
 		// Get the current date and time.
 		const now = DateTime.local();
