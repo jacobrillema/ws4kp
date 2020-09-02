@@ -103,7 +103,7 @@ class TravelForecast extends WeatherDisplay {
 				const xHigh = (560 - (highString.length * 20));
 				draw.text(this.longContext, 'Star4000 Large', '24pt', '#FFFF00', xHigh, y, highString, 2);
 
-				await utils.image.superGifAsync({
+				this.gifs.push(await utils.image.superGifAsync({
 					src: city.icon,
 					loop_delay: 100,
 					auto_play: true,
@@ -111,7 +111,7 @@ class TravelForecast extends WeatherDisplay {
 					x: 330,
 					y: y - 35,
 					max_width: 47,
-				});
+				}));
 			} else {
 				draw.text(this.longContext, 'Star4000 Small', '24pt', '#FFFFFF', 400, y - 18, 'NO TRAVEL', 2);
 				draw.text(this.longContext, 'Star4000 Small', '24pt', '#FFFFFF', 400, y, 'DATA AVAILABLE', 2);

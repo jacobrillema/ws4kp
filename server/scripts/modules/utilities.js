@@ -291,7 +291,18 @@ const utils = (() => {
 		return HH + ':' + MM;
 	};
 
-
+	// compare objects on shallow equality (nested objects ignored)
+	const shallowEqual= (obj1, obj2) => {
+		if (typeof obj1 !== 'object') return false;
+		if (typeof obj2 !== 'object') return false;
+		const keys1 = Object.keys(obj1);
+		const keys2 = Object.keys(obj2);
+		if (keys1.length !== keys2.length) return false;
+		for (const key of keys1) {
+			if (typeof obj1[key] !== 'object' && obj1[key] !== obj2[key]) return false;
+		}
+		return true;
+	};
 
 	// return an orderly object
 	return {
@@ -328,6 +339,9 @@ const utils = (() => {
 			getDateFromTime,
 			xmlDateToJsDate,
 			timeTo24Hour,
+		},
+		object: {
+			shallowEqual,
 		},
 	};
 })();

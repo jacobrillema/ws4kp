@@ -1,7 +1,7 @@
 'use strict';
 // navigation handles progress, next/previous and initial load messages from the parent frame
 /* globals utils, _StationInfo, STATUS */
-/* globals CurrentWeather, LatestObservations, TravelForecast */
+/* globals CurrentWeather, LatestObservations, TravelForecast, RegionalForecast */
 
 // jquery for initial load
 $(() => {
@@ -82,6 +82,10 @@ const navigation = (() => {
 				new CurrentWeather(0,'currentWeather', weatherParameters),
 				new LatestObservations(1, 'latestObservations', weatherParameters),
 				new TravelForecast(2, 'travelForecast', weatherParameters),
+				// Regional Forecast: 0 = regional conditions, 1 = today, 2 = tomorrow
+				new RegionalForecast(3, 'regionalForecast1', weatherParameters, 1),
+				new RegionalForecast(4, 'regionalForecast2', weatherParameters, 2),
+				new RegionalForecast(5, 'regionalForecast0', weatherParameters, 0),
 			];
 		} else {
 			// or just call for new data if the canvases already exist
@@ -89,12 +93,7 @@ const navigation = (() => {
 		}
 
 		// GetMonthPrecipitation(this.weatherParameters);
-		// GetTravelWeather(this.weatherParameters);
 		// GetAirQuality3(this.weatherParameters);
-		// GetRegionalStations(this.weatherParameters);
-		// ShowRegionalMap(this.weatherParameters);
-		// ShowRegionalMap(this.weatherParameters, true);
-		// ShowRegionalMap(this.weatherParameters, false, true);
 		// ShowDopplerMap(this.weatherParameters);
 		// GetWeatherHazards3(this.weatherParameters);
 		// getExtendedForecast(this.weatherParameters);
