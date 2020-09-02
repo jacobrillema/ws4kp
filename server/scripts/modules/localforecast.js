@@ -1,15 +1,13 @@
 // display text based local forecast
-// period 0 = first available forecast period
-// makes use of global data retrevial through LocalForecastData
 
-/* globals WeatherDisplay, utils, STATUS, UNITS, draw, navigation, LocalForecastData */
+/* globals WeatherDisplay, utils, STATUS, UNITS, draw, navigation*/
 
 // eslint-disable-next-line no-unused-vars
 class LocalForecast extends WeatherDisplay {
-	constructor(navId,elemId,weatherParameters,period) {
+	constructor(navId,elemId,weatherParameters) {
 		super(navId,elemId);
-		// store the period, see above
-		this.period = period;
+
+		// reset the screens
 		this.currentScreen = 0;
 		this.lastScreen = 0;
 
@@ -20,60 +18,84 @@ class LocalForecast extends WeatherDisplay {
 		this.getData(weatherParameters);
 	}
 
-	// get the data form the globally shared object
 	async getData(weatherParameters) {
 		super.getData();
-		this.data = await LocalForecastData.updateData(weatherParameters);
+		// request us or si units
+		let units = 'us';
+		let forecastRaw;
+		if (navigation.units() === UNITS.metric) units = 'si';
+		try {
+			forecastRaw = await $.ajax({
+				type: 'GET',
+				url: weatherParameters.forecast,
+				data: {
+					units,
+				},
+				dataType: 'json',
+				crossDomain: true,
+			});
+
+		} catch (e) {
+			console.error(`GetWeatherForecast failed: ${weatherParameters.forecast}`);
+			console.error(e);
+			return false;
+		}
+
+		const conditions = this.parseLocalForecast(forecastRaw);
 
 		// split this forecast into the correct number of screens
-		const condition = this.data[this.period];
 		const MaxRows = 7;
 		const MaxCols = 32;
 
-		// process the text
-		let text = condition.DayName.toUpperCase() + '...';
-		let conditionText = condition.Text;
-		if (navigation.units() === UNITS.metric) {
-			conditionText = condition.TextC;
-		}
-		text += conditionText.toUpperCase().replace('...', ' ');
-
-		text = text.wordWrap(MaxCols, '\n');
-		const Lines = text.split('\n');
-		const LineCount = Lines.length;
-		let ScreenText = '';
-		const MaxRowCount = MaxRows;
-		let RowCount = 0;
 		this.screenTexts = [];
 
-		// if (PrependAlert) {
-		// 	ScreenText = LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1];
-		// 	RowCount = ScreenText.split('\n').length - 1;
-		// }
-
-		for (let i = 0; i <= LineCount - 1; i++) {
-			if (Lines[i] === '') continue;
-
-			if (RowCount > MaxRowCount - 1) {
-				// if (PrependAlert) {
-				// 	LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
-				// 	PrependAlert = false;
-				// } else {
-				this.screenTexts.push(ScreenText);
-				// }
-				ScreenText = '';
-				RowCount = 0;
+		// read each text
+		conditions.forEach(condition => {
+			// process the text
+			let text = condition.DayName.toUpperCase() + '...';
+			let conditionText = condition.Text;
+			if (navigation.units() === UNITS.metric) {
+				conditionText = condition.TextC;
 			}
+			text += conditionText.toUpperCase().replace('...', ' ');
 
-			ScreenText += Lines[i] + '\n';
-			RowCount++;
-		}
-		// if (PrependAlert) {
-		// 	this.screenTexts[this.screenTexts.length - 1] = ScreenText;
-		// 	PrependAlert = false;
-		// } else {
-		this.screenTexts.push(ScreenText);
-		// }
+			text = text.wordWrap(MaxCols, '\n');
+			const Lines = text.split('\n');
+			const LineCount = Lines.length;
+			let ScreenText = '';
+			const MaxRowCount = MaxRows;
+			let RowCount = 0;
+
+
+			// if (PrependAlert) {
+			// 	ScreenText = LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1];
+			// 	RowCount = ScreenText.split('\n').length - 1;
+			// }
+
+			for (let i = 0; i <= LineCount - 1; i++) {
+				if (Lines[i] === '') continue;
+
+				if (RowCount > MaxRowCount - 1) {
+					// if (PrependAlert) {
+					// 	LocalForecastScreenTexts[LocalForecastScreenTexts.length - 1] = ScreenText;
+					// 	PrependAlert = false;
+					// } else {
+					this.screenTexts.push(ScreenText);
+					// }
+					ScreenText = '';
+					RowCount = 0;
+				}
+
+				ScreenText += Lines[i] + '\n';
+				RowCount++;
+			}
+			// if (PrependAlert) {
+			// 	this.screenTexts[this.screenTexts.length - 1] = ScreenText;
+			// 	PrependAlert = false;
+			// } else {
+			this.screenTexts.push(ScreenText);
+			// }
+		});
 
 		this.currentScreen = 0;
 		this.lastScreen = this.screenTexts.length - 1;
@@ -104,5 +126,15 @@ class LocalForecast extends WeatherDisplay {
 		this.finishDraw();
 		this.setStatus(STATUS.loaded);
 
+	}
+
+	// format the forecast
+	parseLocalForecast (forecast) {
+		// only use the first 6 lines
+		return forecast.properties.periods.slice(0,6).map(text => ({
+			// format day and text
+			DayName: text.name.toUpperCase(),
+			Text: text.detailedForecast,
+		}));
 	}
 }

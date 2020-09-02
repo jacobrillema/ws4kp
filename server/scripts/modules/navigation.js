@@ -87,12 +87,7 @@ const navigation = (() => {
 				new RegionalForecast(4, 'regionalForecast2', weatherParameters, 2),
 				new RegionalForecast(5, 'regionalForecast0', weatherParameters, 0),
 				// all local (text) forecast periods
-				new LocalForecast(6, 'localForecast0', weatherParameters, 0),
-				new LocalForecast(7, 'localForecast1', weatherParameters, 1),
-				new LocalForecast(8, 'localForecast2', weatherParameters, 2),
-				new LocalForecast(9, 'localForecast3', weatherParameters, 3),
-				new LocalForecast(10, 'localForecast4', weatherParameters, 4),
-				new LocalForecast(11, 'localForecast5', weatherParameters, 5),
+				new LocalForecast(6, 'localForecast0', weatherParameters),
 			];
 		} else {
 			// or just call for new data if the canvases already exist
