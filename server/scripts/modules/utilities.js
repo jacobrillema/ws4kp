@@ -304,6 +304,56 @@ const utils = (() => {
 		return true;
 	};
 
+	// ********************************* strings *********************************************
+	if (!String.prototype.startsWith) {
+		String.prototype.startsWith = function (searchString, position) {
+			position = position || 0;
+			return this.substr(position, searchString.length) === searchString;
+		};
+	}
+	if (!String.prototype.endsWith) {
+		String.prototype.endsWith = function(searchString, position) {
+			var subjectString = this.toString();
+			if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+				position = subjectString.length;
+			}
+			position -= searchString.length;
+			var lastIndex = subjectString.lastIndexOf(searchString, position);
+			return lastIndex !== -1 && lastIndex === position;
+		};
+	}
+	String.prototype.wordWrap =  function () {
+
+		let str = this;
+
+		let m = ((arguments.length >= 1) ? arguments[0] : 75);
+		let b = ((arguments.length >= 2) ? arguments[1] : '\n');
+		let c = ((arguments.length >= 3) ? arguments[2] : false);
+
+		let i, j, l, s, r;
+
+		str += '';
+
+		if (m < 1) {
+			return str;
+		}
+
+		for (i = -1, l = (r = str.split(/\r\n|\n|\r/)).length; ++i < l; r[i] += s) {
+			// @todo: Split this up over many more lines and more semantic variable names
+			// so it becomes readable
+			for (s = r[i], r[i] = '';
+				s.length > m;
+				r[i] += s.slice(0, j) + ((s = s.slice(j)).length ? b : '')) {
+				j = c === 2 || (j = s.slice(0, m + 1).match(/\S*(\s)?$/))[1]
+					? m
+					: j.input.length - j[0].length || c === true && m ||
+						j.input.length + (j = s.slice(m).match(/^\S*/))[0].length;
+			}
+		}
+
+		return r.join('\n').replace(/\n /g, '\n');
+	};
+
 	// return an orderly object
 	return {
 		image: {

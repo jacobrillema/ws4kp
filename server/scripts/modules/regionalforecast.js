@@ -20,6 +20,7 @@ class RegionalForecast extends WeatherDisplay {
 
 	// get the data from the globally shared object
 	async getData(weatherParameters) {
+		super.getData();
 		// pre-load the base map (returns promise)
 		let src = 'images/Basemap2.png';
 		if (weatherParameters.State === 'HI') {
@@ -73,16 +74,19 @@ class RegionalForecast extends WeatherDisplay {
 		this.context.drawImage(await this.baseMap, sourceXY.x, sourceXY.y, (offsetXY.x * 2), (offsetXY.y * 2), 0, mapYOff, 640, 312);
 		await Promise.all(data.map(async city => {
 			const period = city[this.period];
-			// draw the icon
-			this.gifs.push(await utils.image.superGifAsync({
-				src: icons.getWeatherRegionalIconFromIconLink(period.icon, !period.daytime),
-				max_width: 42,
-				loop_delay: 100,
-				auto_play: true,
-				canvas: this.canvas,
-				x: period.x,
-				y: period.y - 15+mapYOff,
-			}));
+			// draw the icon if possible
+			const icon = icons.getWeatherRegionalIconFromIconLink(period.icon, !period.daytime);
+			if (icon) {
+				this.gifs.push(await utils.image.superGifAsync({
+					src: icon,
+					max_width: 42,
+					loop_delay: 100,
+					auto_play: true,
+					canvas: this.canvas,
+					x: period.x,
+					y: period.y - 15+mapYOff,
+				}));
+			}
 
 			// City Name
 			draw.text(this.context, 'Star4000', '20px', '#ffffff', period.x - 40, period.y - 15+mapYOff, period.name, 2);

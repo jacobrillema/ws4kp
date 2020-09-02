@@ -8,14 +8,14 @@
 // eslint-disable-next-line no-unused-vars
 const RegionalForecastData = (() => {
 	let dataPromise;
-	let lastWeatherParamaters;
+	let lastWeatherParameters;
 
 	// update the data by providing weatherParamaters
 	const updateData = (weatherParameters) => {
 		// test for new data comparing weather paramaters
-		if (utils.object.shallowEqual(lastWeatherParamaters, weatherParameters)) return dataPromise;
+		if (utils.object.shallowEqual(lastWeatherParameters, weatherParameters)) return dataPromise;
 		// update the promise by calling get data
-		lastWeatherParamaters = weatherParameters;
+		lastWeatherParameters = weatherParameters;
 		dataPromise = getData(weatherParameters);
 		return dataPromise;
 	};

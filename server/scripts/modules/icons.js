@@ -124,6 +124,7 @@ const icons = (() => {
 
 		default:
 			console.log(`Unable to locate regional icon for ${link} ${isNightTime}`);
+			return false;
 		}
 	};
 
@@ -225,7 +226,7 @@ const icons = (() => {
 
 		default:
 			console.error('Unable to locate icon for \'' + link + '\'');
-			return addPath('');
+			return false;
 		}
 	};
 
