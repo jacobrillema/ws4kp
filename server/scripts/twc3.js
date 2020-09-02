@@ -93,8 +93,6 @@ var _UpdateWeatherCurrentConditionCounterMs = 0;
 
 var _UpdateCustomScrollTextMs = 0;
 
-var _UpdateTravelCitiesY = 0;
-
 var _UpdateHazardsY = 0;
 
 var _UpdateLocalForecastIndex = 0;
@@ -1672,14 +1670,6 @@ const Navigate = (offset) => {
 				}
 				break;
 
-			case CanvasTypes.TravelForecast:
-				if (_WeatherParameters.Progress.TravelForecast === LoadStatuses.Loaded) {
-					if (_UpdateTravelCitiesY < $cnvTravelCitiesScroll.height() - 289) {
-						UpdateTravelCities(1);
-						return;
-					}
-				}
-				break;
 
 			case CanvasTypes.Hazards:
 				if (_WeatherParameters.Progress.Hazards === LoadStatuses.Loaded && Hazards.length > 0) {
@@ -1712,15 +1702,6 @@ const Navigate = (offset) => {
 							UpdateLocalForecast(-1);
 							return;
 						}
-					}
-				}
-				break;
-
-			case CanvasTypes.TravelForecast:
-				if (_WeatherParameters.Progress.TravelForecast === LoadStatuses.Loaded) {
-					if (_UpdateTravelCitiesY > 0) {
-						UpdateTravelCities(-1);
-						return;
 					}
 				}
 				break;
@@ -2393,23 +2374,7 @@ var UpdatePlayPosition = function () {
 		_CurrentPosition = _CurrentCanvasType;
 		SubMs = _PlayMs - _PlayMsOffsets.TravelForecast_Start;
 
-		// Wait 3 seconds and then start scrolling.
-		if (SubMs < 3000) {
-			_UpdateTravelCitiesY = 0;
-		}
-		if (SubMs >= 3000) {
-			//y += 1;
-			_UpdateTravelCitiesY = 3 * ((SubMs - 3000) / _PlayInterval);
-		}
-		if (_UpdateTravelCitiesY > cnvTravelCitiesScroll.height() - 289) {
-			_UpdateTravelCitiesY = cnvTravelCitiesScroll.height() - 289;
 
-			// Wait 10 seconds and start all over.
-		}
-
-		//_CurrentPosition += Math.floor(_UpdateTravelCitiesY / 72) / 10;
-
-		UpdateTravelCities();
 	} else if (_PlayMs >= _PlayMsOffsets.RegionalForecast1_Start && _PlayMs < _PlayMsOffsets.RegionalForecast1_End) {
 		_CurrentCanvasType = CanvasTypes.RegionalForecast1;
 		_CurrentPosition = _CurrentCanvasType;
@@ -3699,222 +3664,7 @@ const PopulateAlmanacInfo = async (WeatherParameters) => {
 
 };
 
-const GetTravelWeather = async (WeatherParameters) => {
-	const TravelCities = WeatherParameters.TravelCities;
 
-	const forecastPromises = TravelCities.map(async city => {
-		try {
-			// get point then forecast
-			const point = await getPoint(city.Latitude, city.Longitude);
-			const forecast = await $.ajax({
-				url: point.properties.forecast,
-				dataType: 'json',
-				crossDomain: true,
-			});
-			// determine today or tomorrow (shift periods by 1 if tomorrow)
-			const todayShift = forecast.properties.periods[0].isDaytime? 0:1;
-			// return a pared-down forecast
-			return {
-				today: todayShift === 0,
-				high: forecast.properties.periods[todayShift].temperature,
-				low: forecast.properties.periods[todayShift+1].temperature,
-				name: city.Name,
-				icon: icons.GetWeatherRegionalIconFromIconLink(forecast.properties.periods[todayShift].icon),
-			};
-		} catch (e) {
-			console.error(`GetTravelWeather for ${city.Name} failed`);
-			console.error(e);
-			return {name: city.Name};
-		}
-	});
-
-	// wait for all forecasts
-	const forecasts = await Promise.all(forecastPromises);
-	// update global object
-	WeatherParameters = Object.assign({}, WeatherParameters, {TravelCities: forecasts});
-	PopulateTravelCities(WeatherParameters);
-
-};
-
-const PopulateTravelCities = (WeatherParameters) => {
-	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.TravelForecast !== LoadStatuses.Loaded)) return;
-
-	// set up variables
-	const cities = WeatherParameters.TravelCities;
-	let html = '';
-
-	// get the element and clear it
-	const $tbodyTravelCities = tblTravelCities.find('tbody');
-	$tbodyTravelCities.empty();
-
-	// set up first row
-	html = '<tr>';
-	html += '<td></td>';
-	html += '<td></td>';
-	html += '<td>LOW</td>';
-	html += '<td>HIGH</td>';
-	html += '</tr>';
-	$tbodyTravelCities.append(html);
-
-	// process each city's html
-	const citiesHtml = cities.map((city) =>	{
-
-		// start of row
-		let html = '<tr>';
-		html += '<td>' + city.Name + '</td>';
-
-		// test for no data
-		if (!city.forecastGenerator) {
-			html += '<tr><td colspan=\'3\'>NO TRAVEL DATA AVAILABLE</td></tr>';
-		} else {
-			// find the first daytime period, this automatically switches between today's forecast and tomorrows forcast when the first period returned is night time
-			html += `<td><img src='${city.icon}></td>`;
-			html += `<td>${city.low}</td>`;
-			html += `<td>${city.high}</td>`;
-		}
-		html += '</tr>';
-		return html;
-	});
-	// add the html
-	$tbodyTravelCities.append(citiesHtml.join(''));
-
-	const DrawTravelCities = async ($cnvTravelCitiesScroll) => {
-		// Draw canvas
-		const canvas = canvasTravelForecast[0];
-		const context = canvas.getContext('2d');
-
-		const BackGroundImage = await utils.loadImg('images/BackGround6_1.png');
-		context.drawImage(BackGroundImage, 0, 0);
-		DrawHorizontalGradientSingle(context, 0, 30, 500, 90, _TopColor1, _TopColor2);
-		DrawTriangle(context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
-
-		DrawTitleText(context, 'Travel Forecast', 'For ' + GetTravelCitiesDayName(cities));
-
-		DrawText(context, 'Star4000 Small', '24pt', '#FFFF00', 455, 105, 'LOW', 2);
-		DrawText(context, 'Star4000 Small', '24pt', '#FFFF00', 510, 105, 'HIGH', 2);
-
-		window.setInterval(() => {
-			const elm = document.elementFromPoint(0, 100);
-			if (elm !== canvas) return;
-			context.drawImage($cnvTravelCitiesScroll[0], 0, _UpdateTravelCitiesY, 640, 289, 0, 110, 640, 289);
-		}, 100);
-
-		WeatherParameters.Progress.TravelForecast = LoadStatuses.Loaded;
-
-		UpdateWeatherCanvas(WeatherParameters, canvasTravelForecast);
-	};
-
-	const ShowTravelCitiesScroll = () => {
-		const cnvTravelCitiesScrollId = 'cnvTravelCitiesScroll';
-		const cities = WeatherParameters.TravelCities;
-
-		if (!_DontLoadGifs)	{
-			// Clear the current image.
-			divTravelCitiesScroll.empty();
-
-			divTravelCitiesScroll.html(`<canvas id='${cnvTravelCitiesScrollId}' />`);
-			const $cnvTravelCitiesScroll = $('#' + cnvTravelCitiesScrollId);
-			$cnvTravelCitiesScroll.attr('width', '640'); // For Chrome.
-			$cnvTravelCitiesScroll.attr('height', '1728'); // For Chrome.
-			$cnvTravelCitiesScroll[0].RelatedCanvas = canvasTravelForecast[0];
-		}
-		const $cnvTravelCitiesScroll = $('#' + cnvTravelCitiesScrollId);
-		const context = $cnvTravelCitiesScroll[0].getContext('2d');
-
-		DrawBox(context, 'rgb(35, 50, 112)', 0, 0, 640, 1728);
-
-		for (let i = 0; i <= 4; i++) {
-			const y = i * 346;
-			DrawHorizontalGradient(context, 0, y, 640, y + 346, '#102080', '#001040');
-		}
-
-		let y = 50;
-		let counter = 0;
-		const MaxIcons = cities.length;
-
-		cities.forEach(async city => {
-			DrawText(context, 'Star4000 Large Compressed', '24pt', '#FFFF00', 80, y, city.name, 2);
-
-			// check for forecast data
-			if (city.icon) {
-				// get temperatures and convert if necessary
-				let {low, high} = city;
-
-				if (_Units === Units.English) {
-					low = utils.units.FahrenheitToCelsius(low);
-					high = utils.units.FahrenheitToCelsius(high);
-				}
-
-				// convert to strings with no decimal
-				const lowString = Math.round(low).toString();
-				const highString = Math.round(high).toString();
-
-				const xLow = (500 - (lowString.length * 20));
-				DrawText(context, 'Star4000 Large', '24pt', '#FFFF00', xLow, y, lowString, 2);
-
-				const xHigh = (560 - (highString.length * 20));
-				DrawText(context, 'Star4000 Large', '24pt', '#FFFF00', xHigh, y, highString, 2);
-
-				if (_DontLoadGifs) {
-					counter++;
-					if (counter >= MaxIcons) DrawTravelCities($cnvTravelCitiesScroll);
-				} else {
-					const gifIcon = new SuperGif({
-						src: city.icon,
-						loop_delay: 100,
-						auto_play: true,
-						canvas: $cnvTravelCitiesScroll[0],
-						x: 330,
-						y: y - 35,
-						max_width: 47,
-					});
-
-					gifIcon.load(() => {
-						counter++;
-						if (counter >= MaxIcons) DrawTravelCities($cnvTravelCitiesScroll);
-					});
-				}
-			} else {
-				DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 400, y - 18, 'NO TRAVEL', 2);
-				DrawText(context, 'Star4000 Small', '24pt', '#FFFFFF', 400, y, 'DATA AVAILABLE', 2);
-
-				counter++;
-				if (counter >= MaxIcons) DrawTravelCities();
-			}
-
-			y += 72;
-		});
-	};
-	ShowTravelCitiesScroll();
-
-};
-
-const UpdateTravelCities =  (offset) => {
-	const canvas = canvasTravelForecast[0];
-	const context = canvas.getContext('2d');
-	const $cnvTravelCitiesScroll = $('#cnvTravelCitiesScroll');
-
-	switch (offset) {
-	case undefined:
-		break;
-	case 0:
-		_UpdateTravelCitiesY = 0;
-		break;
-	case Infinity:
-		_UpdateTravelCitiesY = $cnvTravelCitiesScroll.height() - 289;
-		break;
-	default:
-		_UpdateTravelCitiesY += (289 * offset);
-		if (_UpdateTravelCitiesY > $cnvTravelCitiesScroll.height() - 289) {
-			_UpdateTravelCitiesY = $cnvTravelCitiesScroll.height() - 289;
-		} else if (_UpdateTravelCitiesY < 0) {
-			_UpdateTravelCitiesY = 0;
-		}
-		break;
-	}
-
-	context.drawImage($cnvTravelCitiesScroll[0], 0, _UpdateTravelCitiesY, 640, 289, 0, 110, 640, 289);
-};
 
 
 const ShowRegionalMap = async (WeatherParameters, TomorrowForecast1, TomorrowForecast2) => {
@@ -6474,17 +6224,3 @@ const AssignScrollText = (e) => {
 	_UpdateWeatherCurrentConditionCounterMs = 0;
 };
 
-const GetTravelCitiesDayName = (cities) => {
-	// effectively returns early on the first found date
-	return cities.reduce((dayName, city) => {
-		if (city && dayName === '') {
-			// today
-			let dayNum = (new Date()).getDay();
-			// add one day for tomorrow
-			if (!city.today) dayNum++;
-			// return the day
-			return _DayLongNameArray[dayNum%7];
-		}
-		return dayName;
-	}, '');
-};

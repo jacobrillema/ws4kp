@@ -11,7 +11,7 @@ const STATUS = {
 
 // eslint-disable-next-line no-unused-vars
 class WeatherDisplay {
-	constructor(navId, elemId) {
+	constructor(navId, elemId, canvasWidth, canvasHeight) {
 		// navId is used in messaging
 		this.navId = navId;
 		this.elemId = undefined;
@@ -20,7 +20,7 @@ class WeatherDisplay {
 		this.loadingStatus = STATUS.loading;
 
 		this.setStatus(STATUS.loading);
-		this.createCanvas(elemId);
+		this.createCanvas(elemId, canvasWidth, canvasHeight);
 	}
 
 	// set data status and send update to navigation module
@@ -40,12 +40,12 @@ class WeatherDisplay {
 		this.loadingStatus = state;
 	}
 
-	createCanvas(elemId) {
+	createCanvas(elemId, width = 640, height = 480) {
 		// only create it once
 		if (this.elemId) return;
 		this.elemId = elemId;
 		const container = document.getElementById('container');
-		container.innerHTML += `<canvas id='${elemId+'Canvas'}' width='640' height='480'/ style='display: none;'>`;
+		container.innerHTML += `<canvas id='${elemId+'Canvas'}' width='${width}' height='${height}'/ style='display: none;'>`;
 	}
 
 	// get necessary data for this display
@@ -99,9 +99,15 @@ class WeatherDisplay {
 			OkToDrawLogoImage = false;
 		}
 		// draw functions
-		if (OkToDrawCurrentDateTime) this.DrawCurrentDateTime(bottom);
-		if (OkToDrawLogoImage) this.DrawLogoImage();
-		if (OkToDrawNoaaImage) this.DrawNoaaImage();
+		if (OkToDrawCurrentDateTime) {
+			this.drawCurrentDateTime(bottom);
+			// auto clock refresh
+			if (!this.dateTimeInterval) {
+				setInterval(() => this.drawCurrentDateTime(bottom), 100);
+			}
+		}
+		if (OkToDrawLogoImage) this.drawLogoImage();
+		if (OkToDrawNoaaImage) this.drawNoaaImage();
 		// TODO: fix current conditions scroll
 		// if (OkToDrawCurrentConditions) DrawCurrentConditions(WeatherParameters, this.context);
 		// TODO: add custom scroll text
@@ -109,7 +115,9 @@ class WeatherDisplay {
 	}
 
 	// TODO: update clock automatically
-	DrawCurrentDateTime(bottom) {
+	drawCurrentDateTime(bottom) {
+		// only draw if canvas is active to conserve battery
+		if (!this.isActive()) return;
 		const {DateTime} = luxon;
 		const font = 'Star4000 Small';
 		const size = '24pt';
@@ -148,7 +156,7 @@ class WeatherDisplay {
 
 		draw.text(this.context, font, size, color, x, y, time.toUpperCase(), shadow); //y += 20;
 
-		const date = now.toFormat('ccc LLL ') + now.day.toString().padStart(2,' ');
+		const date = now.toFormat(' ccc LLL ') + now.day.toString().padStart(2,' ');
 
 		if (bottom) {
 			x = 55;
@@ -160,23 +168,29 @@ class WeatherDisplay {
 		draw.text(this.context, font, size, color, x, y, date.toUpperCase(), shadow);
 	}
 
-	async DrawNoaaImage () {
+	async drawNoaaImage () {
 		// load the image and store locally
-		if (!this.DrawNoaaImage.image) {
-			this.DrawNoaaImage.image = utils.image.load('images/noaa5.gif');
+		if (!this.drawNoaaImage.image) {
+			this.drawNoaaImage.image = utils.image.load('images/noaa5.gif');
 		}
 		// wait for the image to load completely
-		const img = await this.DrawNoaaImage.image;
+		const img = await this.drawNoaaImage.image;
 		this.context.drawImage(img, 356, 39);
 	}
 
-	async DrawLogoImage () {
+	async drawLogoImage () {
 		// load the image and store locally
-		if (!this.DrawLogoImage.image) {
-			this.DrawLogoImage.image = utils.image.load('images/Logo3.png');
+		if (!this.drawLogoImage.image) {
+			this.drawLogoImage.image = utils.image.load('images/Logo3.png');
 		}
 		// wait for the image load completely
-		const img = await this.DrawLogoImage.image;
+		const img = await this.drawLogoImage.image;
 		this.context.drawImage(img, 50, 30, 85, 67);
 	}
+
+	isActive() {
+		return document.getElementById(this.elemId+'Canvas').offsetParent !== null;
+	}
+
+	// TODO: implement playback timings
 }

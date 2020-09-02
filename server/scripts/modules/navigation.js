@@ -1,7 +1,7 @@
 'use strict';
 // navigation handles progress, next/previous and initial load messages from the parent frame
 /* globals utils, _StationInfo, STATUS */
-/* globals CurrentWeather, LatestObservations */
+/* globals CurrentWeather, LatestObservations, TravelForecast */
 
 // jquery for initial load
 $(() => {
@@ -76,11 +76,17 @@ const navigation = (() => {
 		weatherParameters.forecast = point.properties.forecast;
 		weatherParameters.stations = stations.features;
 
-		// start loading canvases
-		displays = [
-			new CurrentWeather(0,'currentWeather', weatherParameters),
-			new LatestObservations(1, 'latestObservations', weatherParameters),
-		];
+		// start loading canvases if necessary
+		if (displays.length === 0) {
+			displays = [
+				new CurrentWeather(0,'currentWeather', weatherParameters),
+				new LatestObservations(1, 'latestObservations', weatherParameters),
+				new TravelForecast(2, 'travelForecast', weatherParameters),
+			];
+		} else {
+			// or just call for new data if the canvases already exist
+			displays.forEach(display => display.getData(weatherParameters));
+		}
 
 		// GetMonthPrecipitation(this.weatherParameters);
 		// GetTravelWeather(this.weatherParameters);
