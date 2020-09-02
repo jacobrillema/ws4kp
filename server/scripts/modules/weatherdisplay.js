@@ -1,6 +1,6 @@
 // base weather display class
 
-/* globals navigation, utils, draw, UNITS */
+/* globals navigation, utils, draw, UNITS, luxon */
 
 const STATUS = {
 	loading: 0,
@@ -108,9 +108,9 @@ class WeatherDisplay {
 		// if (OkToDrawCustomScrollText) DrawCustomScrollText(WeatherParameters, context);
 	}
 
-	// TODO: cleanup
 	// TODO: update clock automatically
 	DrawCurrentDateTime(bottom) {
+		const {DateTime} = luxon;
 		const font = 'Star4000 Small';
 		const size = '24pt';
 		const color = '#ffffff';
@@ -124,56 +124,12 @@ class WeatherDisplay {
 		// }
 
 		// Get the current date and time.
-		let now = new Date();
-		now = utils.dateTime.dateToTimeZone(now, 'CDT');
+		const now = DateTime.local();
 
 		//time = "11:35:08 PM";
-		let h = now.getHours();
-		let m = now.getMinutes();
-		let s = now.getSeconds();
-		let time = '';
-		let x;
-		let y;
-		let date;
+		const time = now.toLocaleString(DateTime.TIME_WITH_SECONDS);
 
-		if (navigation.units() === UNITS.english) {
-			if (h < 10) {
-				if (h === 0) {
-					time = '12';
-				} else {
-					time += ' ' + h.toString();
-				}
-			} else if (h > 12) {
-				if (h - 12 < 10) {
-					time += ' ' + (h - 12).toString();
-				} else {
-					time += (h - 12).toString();
-				}
-			} else {
-				time += h.toString();
-			}
-		} else {
-			if (h < 10) {
-				time += ' ' + h.toString();
-			} else {
-				time += h.toString();
-			}
-		}
-
-		time += ':';
-		if (m < 10) time += '0';
-		time += m.toString() + ':';
-		if (s < 10) time += '0';
-		time += s.toString() + ' ';
-
-		if (navigation.units() === UNITS.english) {
-			if (h >= 12) {
-				time += 'PM';
-			} else {
-				time += 'AM';
-			}
-		}
-
+		let x,y;
 		if (bottom) {
 			x = 400;
 			y = 402;
@@ -185,28 +141,9 @@ class WeatherDisplay {
 			x += 45;
 		}
 
-		draw.text(this.context, font, size, color, x, y, time, shadow); //y += 20;
+		draw.text(this.context, font, size, color, x, y, time.toUpperCase(), shadow); //y += 20;
 
-		if (navigation.units() === UNITS.english) {
-			date = ' ';
-			const W = now.getDayShortName().toUpperCase();
-			date += W + ' ';
-			const M = now.getMonthShortName().toUpperCase();
-			date += M + ' ';
-			const D = now.getDate();
-			if (D < 10) date += ' ';
-			//date += " " + D.toString();
-			date += D.toString();
-		} else {
-			date = ' ';
-			const W = now.getDayShortName().toUpperCase();
-			date += W + ' ';
-			const D = now.getDate();
-			if (D < 10) date += ' ';
-			date += D.toString();
-			const M = now.getMonthShortName().toUpperCase();
-			date += ' ' + M;
-		}
+		const date = now.toFormat('ccc LLL ') + now.day.toString().padStart(2,' ');
 
 		if (bottom) {
 			x = 55;
@@ -215,7 +152,7 @@ class WeatherDisplay {
 			x = 410;
 			y = 85;
 		}
-		draw.text(this.context, font, size, color, x, y, date, shadow);
+		draw.text(this.context, font, size, color, x, y, date.toUpperCase(), shadow);
 	}
 
 	async DrawNoaaImage () {
