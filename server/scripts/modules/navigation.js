@@ -117,8 +117,13 @@ const navigation = (() => {
 		// display the first canvas loaded on the next scan (allows display constructors to finish loading)
 		initialLoadDone = true;
 		setTimeout(() => {
-			displays[value.id].drawCanvas;
+			hideAllCanvases();
+			displays[value.id].showCanvas();
 		}, 1);
+	};
+
+	const hideAllCanvases = () => {
+		displays.forEach(display => display.hideCanvas());
 	};
 
 	// TODO: track units

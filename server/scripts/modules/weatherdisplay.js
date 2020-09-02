@@ -140,7 +140,7 @@ class WeatherDisplay {
 		const now = DateTime.local();
 
 		//time = "11:35:08 PM";
-		const time = now.toLocaleString(DateTime.TIME_WITH_SECONDS);
+		const time = now.toLocaleString(DateTime.TIME_WITH_SECONDS).padStart(11,' ');
 
 		let x,y;
 		if (bottom) {
@@ -186,6 +186,17 @@ class WeatherDisplay {
 		// wait for the image load completely
 		const img = await this.drawLogoImage.image;
 		this.context.drawImage(img, 50, 30, 85, 67);
+	}
+
+	// show the canvas
+	showCanvas() {
+		this.canvas.style.display = 'block';
+	}
+
+	// hide the canvas if it's available
+	hideCanvas() {
+		if (!this.canvas) return;
+		this.canvas.style.display = 'none';
 	}
 
 	isActive() {
