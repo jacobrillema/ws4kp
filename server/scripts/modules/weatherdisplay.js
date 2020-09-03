@@ -231,6 +231,8 @@ class WeatherDisplay {
 	//	[{time, si}, ...] = time as above, si is specific screen index to display during this interval
 	//	if the array forms are used totalScreens is overwritten by the size of the array
 	navBaseTime() {
+		// see if play is active
+		if (!navigation.isPlaying()) return;
 		// increment the base count
 		this.navBaseCount++;
 

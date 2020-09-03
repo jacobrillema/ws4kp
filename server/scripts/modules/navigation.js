@@ -16,6 +16,8 @@ const navigation = (() => {
 	let weatherParameters = {};
 	let displays = [];
 	let initialLoadDone = false;
+	let currentUnits = UNITS.english;
+	let playing = false;
 
 	const init = () => {
 		// set up message receive and dispatch accordingly
@@ -26,18 +28,32 @@ const navigation = (() => {
 			const data = JSON.parse(event.data);
 
 			// dispatch event
-			if (!data.eventType) return;
-			switch (data.eventType) {
+			if (!data.type) return;
+			switch (data.type) {
 			case 'latLon':
-				GetWeather(data.latLon);
+				getWeather(data.message);
 				break;
+
+			case 'units':
+				setUnits(data.message);
+				break;
+
+			case 'navButton':
+				handleNavButton(data.message);
+				break;
+
 			default:
-				console.error(`Unknown event '${data.eventType}`);
+				console.error(`Unknown event ${data.type}`);
 			}
 		}, false);
 	};
 
-	const GetWeather = async (latLon) => {
+	const postMessage = (type, message = {}) => {
+		const parent = window.parent;
+		parent.postMessage(JSON.stringify({type, message}, window.location.origin));
+	};
+
+	const getWeather = async (latLon) => {
 		// reset statuses
 		initialLoadDone = false;
 
@@ -74,6 +90,9 @@ const navigation = (() => {
 		weatherParameters.timeZone = point.properties.relativeLocation.properties.timeZone;
 		weatherParameters.forecast = point.properties.forecast;
 		weatherParameters.stations = stations.features;
+
+		// update the main process for display purposes
+		postMessage('weatherParameters', weatherParameters);
 
 		// start loading canvases if necessary
 		if (displays.length === 0) {
@@ -113,17 +132,27 @@ const navigation = (() => {
 			hideAllCanvases();
 			displays[value.id].showCanvas();
 		}, 1);
+		// send loaded messaged to parent
+		postMessage('loaded');
 	};
 
 	const hideAllCanvases = () => {
 		displays.forEach(display => display.hideCanvas());
 	};
 
-	// TODO: track units
-	const units = () => UNITS.english;
+	const units = () => currentUnits;
+	const setUnits = (_unit) => {
+		const unit = _unit.toLowerCase();
+		if (unit === 'english') {
+			currentUnits = UNITS.english;
+		} else {
+			currentUnits = UNITS.metric;
+		}
+		// TODO: refresh current screen
+	};
 
 	// is playing interface
-	const isPlaying = () => false;
+	const isPlaying = () => playing;
 
 	// navigation message constants
 	const msg = {
@@ -143,6 +172,18 @@ const navigation = (() => {
 	// receive naivgation messages from displays
 	const displayNavMessage = (message) => {
 		console.log(message);
+	};
+
+	// handle all navigation buttons
+	const handleNavButton = (button) => {
+		switch (button) {
+		case 'playToggle':
+			playing = !playing;
+			postMessage('isPlaying', playing);
+			break;
+		default:
+			console.error(`Unknown navButton ${button}`);
+		}
 	};
 
 	return {

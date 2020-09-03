@@ -41,8 +41,6 @@ let _AutoRefreshCountMs = 0;
 
 let _FullScreenOverride = false;
 
-let _WeatherParameters = null;
-
 let _WindowHeight = 0;
 let _WindowWidth = 0;
 
@@ -267,7 +265,7 @@ const ExitFullscreen = () => {
 };
 
 const btnNavigateMenu_click = () => {
-	iframeTwc[0].contentWindow.NavigateMenu();
+	postMessage('navButton', 'menu');
 	UpdateFullScreenNavigate();
 	return false;
 };
@@ -278,22 +276,19 @@ const LoadTwcData = () => {
 	_LastUpdate = null;
 	AssignLastUpdate();
 
-	iframeTwc[0].contentWindow.postMessage(JSON.stringify({eventType: 'latLon', latLon}, window.location.origin));
+	postMessage('latLon', latLon);
 
 	iframeTwc.off('load');
 	FullScreenResize();
 
 	if (chkScrollText.is(':checked')) {
-		iframeTwc[0].contentWindow.AssignScrollText({ ScrollText: txtScrollText.val() });
+		postMessage('assignScrollText', txtScrollText.val());
 	}
 
-	iframeTwc[0].contentWindow.AssignThemes({ Themes: $('input[type=\'radio\'][name=\'radThemes\']:checked').val() });
+	postMessage('units', $('input[type=\'radio\'][name=\'radUnits\']:checked').val());
 
-	iframeTwc[0].contentWindow.AssignUnits({ Units: $('input[type=\'radio\'][name=\'radUnits\']:checked').val() });
 
-	iframeTwc[0].contentWindow.SetCallBack({ CallBack: TwcCallBack });
-
-	if (_IsPlaying) iframeTwc[0].contentWindow.NavigatePlayToggle();
+	if (_IsPlaying) postMessage('navButton', 'playToggle');
 
 	$(iframeTwc[0].contentWindow.document).on('mousemove', document_mousemove);
 	$(iframeTwc[0].contentWindow.document).on('mousedown', document_mousemove);
@@ -338,49 +333,6 @@ const AssignLastUpdate = () => {
 	if (_LastUpdate && chkAutoRefresh.is(':checked')) StartAutoRefreshTimer();
 };
 
-const TwcCallBack = (e) => {
-	switch (e.Status) {
-	case 'LOADED':
-		console.log('Twc Loaded');
-
-		_LastUpdate = e.LastUpdate;
-		AssignLastUpdate();
-		break;
-
-	case 'WEATHERPARAMETERS':
-		console.log('Weather Parameters');
-
-		_WeatherParameters = e.WeatherParameters;
-		PopulateWeatherParameters();
-		break;
-
-	case 'ISPLAYING':
-		console.log('Play Toggled');
-		_IsPlaying = e.Value;
-		localStorage.setItem('TwcPlay', _IsPlaying);
-
-		if (_IsPlaying) {
-			_NoSleep.enable();
-
-			$('img[src=\'images/nav/ic_play_arrow_white_24dp_1x.png\']').attr('title', 'Pause');
-			$('img[src=\'images/nav/ic_play_arrow_white_24dp_1x.png\']').attr('src', 'images/nav/ic_pause_white_24dp_1x.png');
-			$('img[src=\'images/nav/ic_play_arrow_white_24dp_2x.png\']').attr('title', 'Pause');
-			$('img[src=\'images/nav/ic_play_arrow_white_24dp_2x.png\']').attr('src', 'images/nav/ic_pause_white_24dp_2x.png');
-		} else {
-			_NoSleep.disable();
-
-			$('img[src=\'images/nav/ic_pause_white_24dp_1x.png\']').attr('title', 'Play');
-			$('img[src=\'images/nav/ic_pause_white_24dp_1x.png\']').attr('src', 'images/nav/ic_play_arrow_white_24dp_1x.png');
-			$('img[src=\'images/nav/ic_pause_white_24dp_2x.png\']').attr('title', 'Play');
-			$('img[src=\'images/nav/ic_pause_white_24dp_2x.png\']').attr('src', 'images/nav/ic_play_arrow_white_24dp_2x.png');
-		}
-		break;
-
-
-	default:
-	}
-};
-
 const btnNavigateRefresh_click = () => {
 	LoadTwcData(_TwcDataUrl);
 	UpdateFullScreenNavigate();
@@ -389,14 +341,14 @@ const btnNavigateRefresh_click = () => {
 };
 
 const btnNavigateNext_click = () => {
-	iframeTwc[0].contentWindow.NavigateNext();
+	postMessage('navButton', 'next');
 	UpdateFullScreenNavigate();
 
 	return false;
 };
 
 const btnNavigatePrevious_click = () => {
-	iframeTwc[0].contentWindow.NavigatePrevious();
+	postMessage('navButton', 'previous');
 	UpdateFullScreenNavigate();
 
 	return false;
@@ -411,7 +363,7 @@ const window_resize = () => {
 	_WindowWidth = $window.width();
 
 	try {
-		iframeTwc[0].contentWindow.NavigateReset();
+		postMessage('navButton', 'reset');
 	} catch (ex) {
 		console.log(ex);
 	}
@@ -543,7 +495,7 @@ $.fn.fadeOut2 = function () {
 Math.round2 = (value, decimals) => Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
 
 const btnNavigatePlay_click = () => {
-	iframeTwc[0].contentWindow.NavigatePlayToggle();
+	postMessage('navButton', 'playToggle');
 	UpdateFullScreenNavigate();
 
 	return false;
@@ -609,6 +561,9 @@ $(() => {
 	document.addEventListener('touchmove', e => { if (_FullScreenOverride) e.preventDefault(); });
 	$('.ToggleFullScreen').on('click', btnFullScreen_click);
 	FullScreenResize();
+
+	// listen for messages (from iframe) and handle accordingly
+	window.addEventListener('message', messageHandler, false);
 
 	const categories = [
 		'Land Features',
@@ -777,9 +732,6 @@ $(() => {
 		$('#radEnglish').prop('checked', 'checked');
 		localStorage.removeItem('TwcUnits');
 
-		$('#radThemeA').prop('checked', 'checked');
-		localStorage.removeItem('TwcThemes');
-
 		TwcCallBack({ Status: 'ISPLAYING', Value: false });
 		localStorage.removeItem('TwcPlay');
 		_IsPlaying = true;
@@ -803,7 +755,7 @@ $(() => {
 		e;
 		localStorage.setItem('TwcUnits', Units);
 		AssignLastUpdate();
-		iframeTwc[0].contentWindow.AssignUnits({ Units: Units });
+		postMessage('units', Units);
 	});
 
 
@@ -840,10 +792,63 @@ $(() => {
 	spanRadarId = $('#spanRadarId');
 	spanZoneId = $('#spanZoneId');
 
+
 });
+// read and dispatch an event from the iframe
+const messageHandler = (event) => {
+	// test for trust
+	if (!event.isTrusted) return;
+	// get the data
+	const data = JSON.parse(event.data);
+
+	// dispatch event
+	if (!data.type) return;
+	switch (data.type) {
+	case 'loaded':
+		_LastUpdate = new Date();
+		AssignLastUpdate();
+		break;
+
+	case 'weatherParameters':
+		populateWeatherParameters(data.message);
+		break;
+
+	case 'isPlaying':
+		console.log('Play Toggled');
+		_IsPlaying = data.message;
+		localStorage.setItem('TwcPlay', _IsPlaying);
+
+		if (_IsPlaying) {
+			_NoSleep.enable();
+
+			$('img[src=\'images/nav/ic_play_arrow_white_24dp_1x.png\']').attr('title', 'Pause');
+			$('img[src=\'images/nav/ic_play_arrow_white_24dp_1x.png\']').attr('src', 'images/nav/ic_pause_white_24dp_1x.png');
+			$('img[src=\'images/nav/ic_play_arrow_white_24dp_2x.png\']').attr('title', 'Pause');
+			$('img[src=\'images/nav/ic_play_arrow_white_24dp_2x.png\']').attr('src', 'images/nav/ic_pause_white_24dp_2x.png');
+		} else {
+			_NoSleep.disable();
+
+			$('img[src=\'images/nav/ic_pause_white_24dp_1x.png\']').attr('title', 'Play');
+			$('img[src=\'images/nav/ic_pause_white_24dp_1x.png\']').attr('src', 'images/nav/ic_play_arrow_white_24dp_1x.png');
+			$('img[src=\'images/nav/ic_pause_white_24dp_2x.png\']').attr('title', 'Play');
+			$('img[src=\'images/nav/ic_pause_white_24dp_2x.png\']').attr('src', 'images/nav/ic_play_arrow_white_24dp_2x.png');
+		}
+		break;
+
+
+	default:
+		console.error(`Unknown event '${data.eventType}`);
+	}
+};
+
+// post a message to the iframe
+const postMessage = (type, message = {}) => {
+	const iframeWindow = document.getElementById('iframeTwc').contentWindow;
+	iframeWindow.postMessage(JSON.stringify({type, message}, window.location.origin));
+};
 
 const StartAutoRefreshTimer = () => {
-	//// Esnure that any previous timer has already stopped.
+	// Esnure that any previous timer has already stopped.
 	//StopAutoRefreshTimer();
 	if (_AutoRefreshIntervalId) {
 		// Timer is already running.
@@ -922,12 +927,12 @@ const btnGetGps_click = () => {
 	navigator.geolocation.getCurrentPosition(CurrentPosition);
 };
 
-const PopulateWeatherParameters = () => {
-	spanCity.text(_WeatherParameters.City + ', ');
-	spanState.text(_WeatherParameters.State);
-	spanStationId.text(_WeatherParameters.StationId);
-	spanRadarId.text(_WeatherParameters.RadarId);
-	spanZoneId.text(_WeatherParameters.ZoneId);
+const populateWeatherParameters = (weatherParameters) => {
+	spanCity.text(weatherParameters.city + ', ');
+	spanState.text(weatherParameters.state);
+	spanStationId.text(weatherParameters.stationId);
+	spanRadarId.text(weatherParameters.radarId);
+	spanZoneId.text(weatherParameters.zoneId);
 };
 
 const frmScrollText_submit = () => {
@@ -948,6 +953,5 @@ const chkScrollText_change = () => {
 	if (chkScrollText.is(':checked') === false) {
 		ScrollText = '';
 	}
-
-	iframeTwc[0].contentWindow.AssignScrollText({ ScrollText: ScrollText });
+	postMessage('assignScrollText', ScrollText);
 };
