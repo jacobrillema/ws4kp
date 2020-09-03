@@ -102,7 +102,6 @@ class CurrentWeather extends WeatherDisplay {
 			max_width: 126,
 		}));
 
-
 		this.context.drawImage(await this.backgroundImage, 0, 0);
 		draw.horizontalGradientSingle(this.context, 0, 30, 500, 90, draw.topColor1, draw.topColor2);
 		draw.triangle(this.context, 'rgb(28, 10, 87)', 500, 30, 450, 90, 500, 90);
@@ -115,7 +114,7 @@ class CurrentWeather extends WeatherDisplay {
 
 		let Conditions = observations.textDescription;
 		if (TextConditions.length > 15) {
-			Conditions = observations.ShortConditions;
+			Conditions = this.shortConditions(Conditions);
 		}
 		draw.text(this.context, 'Star4000 Extended', '24pt', '#FFFFFF', 195, 170, Conditions, 2, 'center');
 
@@ -180,6 +179,24 @@ class CurrentWeather extends WeatherDisplay {
 		}
 		this.finishDraw();
 		this.setStatus(STATUS.loaded);
+	}
+
+	shortConditions(condition) {
+		condition = condition.replace(/Light/g, 'L');
+		condition = condition.replace(/Heavy/g, 'H');
+		condition = condition.replace(/Partly/g, 'P');
+		condition = condition.replace(/Mostly/g, 'M');
+		condition = condition.replace(/Few/g, 'F');
+		condition = condition.replace(/Thunderstorm/g, 'T\'storm');
+		condition = condition.replace(/ in /g, '');
+		condition = condition.replace(/Vicinity/g, '');
+		condition = condition.replace(/ and /g, ' ');
+		condition = condition.replace(/Freezing Rain/g, 'Frz Rn');
+		condition = condition.replace(/Freezing/g, 'Frz');
+		condition = condition.replace(/Unknown Precip/g, '');
+		condition = condition.replace(/L Snow Fog/g, 'L Snw/Fog');
+		condition = condition.replace(/ with /g, '/');
+		return condition;
 	}
 
 }
