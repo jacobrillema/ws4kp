@@ -167,26 +167,6 @@ if (_UserAgent.indexOf('iPod') !== -1) _OperatingSystem = OperatingSystems.iOS;
 if (_UserAgent.toLowerCase().indexOf('android') !== -1) _OperatingSystem = OperatingSystems.Andriod;
 if (_UserAgent.indexOf('Windows Phone') !== -1) _OperatingSystem = OperatingSystems.WindowsPhone;
 
-
-
-const getExtendedForecast = async (WeatherParameters) => {
-	try {
-		const forecast = await $.ajax({
-			type: 'GET',
-			url: WeatherParameters.Forecast,
-			crossDomain: true,
-		});
-		WeatherParameters.ExtendedForecast = ParseExtendedForecast(forecast.properties.periods);
-
-		PopulateExtendedForecast(WeatherParameters, 1);
-		PopulateExtendedForecast(WeatherParameters, 2);
-	} catch (e) {
-		console.error('Unable to get extended forecast');
-		console.error(e);
-		return false;
-	}
-};
-
 const GetMonthPrecipitation = async (WeatherParameters) => {
 	const DateTime = luxon.DateTime;
 	const today = DateTime.local().startOf('day').toISO().replace('.000','');
@@ -2607,80 +2587,7 @@ var canvasProgress_click = function (e) {
 	}
 };
 
-// the api provides the forecast in 12 hour increments, flatten to day increments with high and low temperatures
-const ParseExtendedForecast = (fullForecast) => {
-	// create a list of days starting with today
-	const _Days = [0, 1, 2, 3, 4, 5, 6];
 
-	const dates = _Days.map(shift => {
-		const date = luxon.DateTime.local().startOf('day').plus({days:shift});
-		return date.toLocaleString({weekday: 'short'});
-	});
-
-	// track the destination forecast index
-	let destIndex = 0;
-	const forecast = [];
-	fullForecast.forEach(period => {
-		// create the destination object if necessary
-		if (!forecast[destIndex]) forecast.push({dayName:'', low: undefined, high: undefined, text: undefined, icon: undefined});
-		// get the object to modify/populate
-		const fDay = forecast[destIndex];
-		// high temperature will always be last in the source array so it will overwrite the low values assigned below
-		// TODO: change to commented line when incons are matched up
-		// fDay.icon = icons.GetWeatherIconFromIconLink(period.icon);
-		fDay.icon = icons.GetWeatherRegionalIconFromIconLink(period.icon);
-		fDay.text = shortenExtendedForecastText(period.shortForecast);
-		fDay.dayName = dates[destIndex];
-
-		if (period.isDaytime) {
-			// day time is the high temperature
-			fDay.high = period.temperature;
-			destIndex++;
-		} else {
-			// low temperature
-			fDay.low = period.temperature;
-		}
-	});
-
-	return forecast;
-};
-
-const shortenExtendedForecastText = (long) => {
-	let short = long;
-	short = short.replaceAll(' and ', ' ');
-	short = short.replaceAll('Slight ', '');
-	short = short.replaceAll('Chance ', '');
-	short = short.replaceAll('Very ', '');
-	short = short.replaceAll('Patchy ', '');
-	short = short.replaceAll('Areas ', '');
-	short = short.replaceAll('Dense ', '');
-
-	let conditions = short.split(' ');
-	if (short.indexOf('then') !== -1) {
-		conditions = short.split(' then ');
-		conditions = conditions[1].split(' ');
-	}
-
-	let short1 = conditions[0].substr(0, 10);
-	let short2 = '';
-	if (conditions[1]) {
-		if (!short1.endsWith('.')) {
-			short2 = conditions[1].substr(0, 10);
-		} else {
-			short1 = short1.replaceAll('.', '');
-		}
-
-		if (short2 === 'Blowing') {
-			short2 = '';
-		}
-	}
-	short = short1;
-	if (short2 !== '') {
-		short += ' ' + short2;
-	}
-
-	return [short, short1, short2];
-};
 
 const PopulateExtendedForecast = async (WeatherParameters, ScreenIndex = 1) => {
 	if (WeatherParameters === null || (_DontLoadGifs && WeatherParameters.Progress.FourDayForecast !== LoadStatuses.Loaded)) {

@@ -14,34 +14,17 @@ class LocalForecast extends WeatherDisplay {
 		// pre-load background image (returns promise)
 		this.backgroundImage = utils.image.load('images/BackGround1_1.png');
 
-		// get the data and update the promise
+		// get the data
 		this.getData(weatherParameters);
 	}
 
 	async getData(weatherParameters) {
 		super.getData();
-		// request us or si units
-		let units = 'us';
-		let forecastRaw;
-		if (navigation.units() === UNITS.metric) units = 'si';
-		try {
-			forecastRaw = await $.ajax({
-				type: 'GET',
-				url: weatherParameters.forecast,
-				data: {
-					units,
-				},
-				dataType: 'json',
-				crossDomain: true,
-			});
 
-		} catch (e) {
-			console.error(`GetWeatherForecast failed: ${weatherParameters.forecast}`);
-			console.error(e);
-			return false;
-		}
-
-		const conditions = this.parseLocalForecast(forecastRaw);
+		// get raw data
+		const rawData = await this.getRawData(weatherParameters);
+		// parse raw data
+		const conditions = this.parseLocalForecast(rawData);
 
 		// split this forecast into the correct number of screens
 		const MaxRows = 7;
@@ -100,6 +83,29 @@ class LocalForecast extends WeatherDisplay {
 		this.currentScreen = 0;
 		this.lastScreen = this.screenTexts.length - 1;
 		this.drawCanvas();
+	}
+
+	// get the unformatted data (also used by extended forecast)
+	async getRawData(weatherParameters) {
+		// request us or si units
+		let units = 'us';
+		if (navigation.units() === UNITS.metric) units = 'si';
+		try {
+			return await $.ajax({
+				type: 'GET',
+				url: weatherParameters.forecast,
+				data: {
+					units,
+				},
+				dataType: 'json',
+				crossDomain: true,
+			});
+
+		} catch (e) {
+			console.error(`GetWeatherForecast failed: ${weatherParameters.forecast}`);
+			console.error(e);
+			return false;
+		}
 	}
 
 	// TODO: alerts needs a cleanup
