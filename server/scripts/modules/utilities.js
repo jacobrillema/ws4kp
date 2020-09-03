@@ -403,7 +403,7 @@ const utils = (() => {
 // pass data through local server as CORS workaround
 $.ajaxCORS = function (e) {
 	// modify the URL
-	e.url = 'cors/?u=' + encodeURIComponent(e.url);
+	e.url = e.url.replace('https://api.weather.gov/', '');
 
 	// call the ajax function
 	return $.ajax(e);

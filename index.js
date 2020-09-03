@@ -6,7 +6,8 @@ const port = 8080;
 // cors pass through
 const corsPassThru = require('./cors');
 
-app.get('/cors', corsPassThru);
+// cors pass-thru to api.weather.gov
+app.get('/stations/*', corsPassThru);
 
 // fallback
 app.get('*', express.static('./server'));
