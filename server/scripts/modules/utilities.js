@@ -113,6 +113,9 @@ const utils = (() => {
 
 	const distance = (x1 ,y1, x2, y2) => Math.sqrt((x2-=x1)*x2 + (y2-=y1)*y2);
 
+	// wrap a number to 0-m
+	const wrap = (x,m) => (x%m + m)%m;
+
 	// ********************************* date functions ***************************
 	const getDateFromUTC = (date, utc) => {
 		const time = utc.split(':');
@@ -381,6 +384,7 @@ const utils = (() => {
 			windChill,
 			directionToNSEW,
 			distance,
+			wrap,
 		},
 		dateTime: {
 			getDateFromUTC,

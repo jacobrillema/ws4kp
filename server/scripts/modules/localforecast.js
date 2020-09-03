@@ -7,6 +7,7 @@ class LocalForecast extends WeatherDisplay {
 	constructor(navId,elemId,weatherParameters) {
 		super(navId,elemId);
 
+		// set timings
 		this.timing.baseDelay= 3000;
 
 		// pre-load background image (returns promise)

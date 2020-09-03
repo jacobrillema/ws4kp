@@ -8,8 +8,8 @@ class ExtendedForecast extends WeatherDisplay {
 	constructor(navId,elemId,weatherParameters) {
 		super(navId,elemId);
 
-		// reset the screens
-		this.screenIndex = 0;
+		// set timings
+		this.timing.totalScreens = 2;
 
 		// pre-load background image (returns promise)
 		this.backgroundImage = utils.image.load('images/BackGround2_1.png');

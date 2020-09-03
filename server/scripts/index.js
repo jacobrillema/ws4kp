@@ -814,7 +814,6 @@ const messageHandler = (event) => {
 		break;
 
 	case 'isPlaying':
-		console.log('Play Toggled');
 		_IsPlaying = data.message;
 		localStorage.setItem('TwcPlay', _IsPlaying);
 

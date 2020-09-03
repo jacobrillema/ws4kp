@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const UNITS = {
-	english: 0,
-	metric: 1,
+	english: Symbol('english'),
+	metric: Symbol('metric'),
 };
 
 const navigation = (() => {
@@ -134,6 +134,7 @@ const navigation = (() => {
 		}, 1);
 		// send loaded messaged to parent
 		postMessage('loaded');
+		// store the display number
 	};
 
 	const hideAllCanvases = () => {
@@ -157,29 +158,76 @@ const navigation = (() => {
 	// navigation message constants
 	const msg = {
 		response: {	// display to navigation
-			previous: -1,		// already at first frame, calling function should switch to previous canvas
-			inProgress: 0,		// have data to display, calling function should do nothing
-			next: 1,			// end of frames reached, calling function should switch to next canvas
+			previous: Symbol('previous'),		// already at first frame, calling function should switch to previous canvas
+			inProgress: Symbol('inProgress'),	// have data to display, calling function should do nothing
+			next: Symbol('next'),				// end of frames reached, calling function should switch to next canvas
 		},
 		command: {	// navigation to display
-			firstFrame: -2,
-			previousFrame: -1,
-			nextFrame: 1,
-			lastFrame: 2,	// used when navigating backwards from the begining of the next canvas
+			firstFrame: Symbol('firstFrame'),
+			previousFrame: Symbol('previousFrame'),
+			nextFrame: Symbol('nextFrame'),
+			lastFrame: Symbol('lastFrame'),	// used when navigating backwards from the begining of the next canvas
 		},
 	};
 
 	// receive naivgation messages from displays
 	const displayNavMessage = (message) => {
-		console.log(message);
+		if (message.type === msg.response.previous) loadDisplay(-1);
+		if (message.type === msg.response.next) loadDisplay(1);
+	};
+
+	// navigate to next or previous
+	const navTo = (direction) => {
+		if (direction === msg.command.nextFrame) currentDisplay().navNext();
+		if (direction === msg.command.previousFrame) currentDisplay().navPrev();
+	};
+
+	// find the next or previous available display
+	const loadDisplay = (direction) => {
+		const totalDisplays = displays.length;
+		const curIdx = currentDisplayIndex();
+		let idx;
+		for (let i = 0; i < totalDisplays; i++) {
+			// convert form simple 0-10 to start at current display index +/-1 and wrap
+			idx = utils.calc.wrap(curIdx+(i+1)*direction,totalDisplays);
+			if (displays[idx].status === STATUS.loaded) break;
+		}
+		const newDisplay = displays[idx];
+		// hide all displays
+		hideAllCanvases();
+		// show the new display and navigate to an appropriate display
+		if (direction < 0) newDisplay.showCanvas(msg.command.lastFrame);
+		if (direction > 0) newDisplay.showCanvas(msg.command.firstFrame);
+	};
+
+	// get the current display index or value
+	const currentDisplayIndex = () => {
+		const index = displays.findIndex(display=>display.isActive());
+		if (index === undefined) console.error('No active display');
+		return index;
+	};
+	const currentDisplay = () => {
+		return displays[currentDisplayIndex()];
+	};
+
+	const setPlaying = (newValue) => {
+		playing = newValue;
+		postMessage('isPlaying', playing);
 	};
 
 	// handle all navigation buttons
 	const handleNavButton = (button) => {
 		switch (button) {
 		case 'playToggle':
-			playing = !playing;
-			postMessage('isPlaying', playing);
+			setPlaying(!playing);
+			break;
+		case 'next':
+			setPlaying(false);
+			navTo(msg.command.nextFrame);
+			break;
+		case 'previous':
+			setPlaying(false);
+			navTo(msg.command.previousFrame);
 			break;
 		default:
 			console.error(`Unknown navButton ${button}`);

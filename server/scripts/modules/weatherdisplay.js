@@ -3,10 +3,10 @@
 /* globals navigation, utils, draw, UNITS, luxon */
 
 const STATUS = {
-	loading: 0,
-	loaded: 1,
-	failed: 2,
-	noData: 3,
+	loading: Symbol('loading'),
+	loaded: Symbol('loaded'),
+	failed: Symbol('failed'),
+	noData: Symbol('noData'),
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -22,7 +22,7 @@ class WeatherDisplay {
 		// default navigation timing
 		this.timing = {
 			totalScreens: 1,
-			baseDelay: 1000, // 1 second
+			baseDelay: 5000, // 5 seconds
 			delay: 1, // 1*1second = 1 second total display time
 		};
 		this.navBaseCount = 0;
@@ -198,7 +198,11 @@ class WeatherDisplay {
 	}
 
 	// show/hide the canvas and start/stop the navigation timer
-	showCanvas(reset) {
+	showCanvas(navCmd) {
+		// if a nav command is present call it to set the screen index
+		if (navCmd === navigation.msg.command.firstFrame) this.navNext(navCmd);
+		if (navCmd === navigation.msg.command.lastFrame) this.navPrev(navCmd);
+
 		// see if the canvas is already showing
 		if (this.canvas.style.display === 'block') return false;
 
@@ -206,7 +210,7 @@ class WeatherDisplay {
 		this.canvas.style.display = 'block';
 
 		// reset timing
-		this.startNavCount(reset);
+		this.startNavCount(navigation.isPlaying());
 
 		// refresh the canvas (incase the screen index chagned)
 		this.drawCanvas();
@@ -231,8 +235,8 @@ class WeatherDisplay {
 	//	[{time, si}, ...] = time as above, si is specific screen index to display during this interval
 	//	if the array forms are used totalScreens is overwritten by the size of the array
 	navBaseTime() {
-		// see if play is active
-		if (!navigation.isPlaying()) return;
+		// see if play is active and screen is active
+		if (!navigation.isPlaying() || !this.isActive()) return;
 		// increment the base count
 		this.navBaseCount++;
 
@@ -242,18 +246,50 @@ class WeatherDisplay {
 		// determine type of timing
 		// simple delay
 		if (typeof this.timing.delay === 'number') {
-			// increment screen index
-			this.screenIndex++;
-			// test for end reached
-			if (this.screenIndex >= this.timing.totalScreens) {
-				this.sendNavDisplayMessage(navigation.msg.response.next);
-				this.stopNavBaseCount();
-				return;
-			}
-			// if the end was not reached, update the canvas
+			this.navNext();
+			return;
+		}
+	}
+
+	// navigate to next screen
+	navNext(command) {
+		// check for special 'first frame' command
+		if (command === navigation.msg.command.firstFrame) {
+			this.resetNavBaseCount();
 			this.drawCanvas();
 			return;
 		}
+
+		// increment screen index
+		this.screenIndex++;
+		// test for end reached
+		if (this.screenIndex >= this.timing.totalScreens) {
+			this.sendNavDisplayMessage(navigation.msg.response.next);
+			this.stopNavBaseCount();
+			return;
+		}
+		// if the end was not reached, update the canvas
+		this.drawCanvas();
+	}
+
+	// navigate to previous screen
+	navPrev(command) {
+		// check for special 'last frame' command
+		if (command === navigation.msg.command.lastFrame) {
+			this.screenIndex = this.timing.totalScreens-1;
+			this.drawCanvas();
+			return;
+		}
+		// decrement screen index
+		this.screenIndex--;
+
+		// test for end reached
+		if (this.screenIndex < 0) {
+			this.sendNavDisplayMessage(navigation.msg.response.previous);
+			return;
+		}
+		// if the end was not reached, update the canvas
+		this.drawCanvas();
 	}
 
 	// start and stop base counter
@@ -270,7 +306,6 @@ class WeatherDisplay {
 		this.navBaseCount = 0;
 		this.screenIndex = 0;
 	}
-
 
 	sendNavDisplayMessage(message) {
 		navigation.displayNavMessage({
