@@ -47,10 +47,10 @@ class TravelForecast extends WeatherDisplay {
 		// wait for all forecasts
 		const forecasts = await Promise.all(forecastPromises);
 		this.data = forecasts;
-		this.drawCanvas();
+		this.drawCanvas(true);
 	}
 
-	async drawCanvas() {
+	async drawCanvas(newData) {
 		// there are technically 2 canvases: the standard canvas and the extra-long canvas that contains the complete
 		// list of cities. The second canvas is copied into the standard canvas to create the scroll
 		super.drawCanvas();
@@ -62,11 +62,10 @@ class TravelForecast extends WeatherDisplay {
 			this.longCanvas.height = 1728;
 			this.longContext = this.longCanvas.getContext('2d');
 		}
-		// clear the long canvas
-		this.longContext.clearRect(0,0,this.longCanvas.width,this.longCanvas.height);
-
 		// set up variables
 		const cities = this.data;
+
+		this.longContext.clearRect(0,0,this.longCanvas.width,this.longCanvas.height);
 
 		// draw the "long" canvas with all cities
 		draw.box(this.longContext, 'rgb(35, 50, 112)', 0, 0, 640, 1728);
@@ -119,6 +118,7 @@ class TravelForecast extends WeatherDisplay {
 
 		}));
 
+
 		// draw the standard context
 		this.context.drawImage(await this.backgroundImage, 0, 0);
 		draw.horizontalGradientSingle(this.context, 0, 30, 500, 90, draw.topColor1, draw.topColor2);
@@ -128,6 +128,9 @@ class TravelForecast extends WeatherDisplay {
 
 		draw.text(this.context, 'Star4000 Small', '24pt', '#FFFF00', 455, 105, 'LOW', 2);
 		draw.text(this.context, 'Star4000 Small', '24pt', '#FFFF00', 510, 105, 'HIGH', 2);
+
+		// copy the scrolled portion of the canvas for the initial run before the scrolling starts
+		this.context.drawImage(this.longCanvas, 0, 0, 640, 289, 0, 110, 640, 289);
 
 		// set up scrolling one time
 		if (!this.scrollInterval) {

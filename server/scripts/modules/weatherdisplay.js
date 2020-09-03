@@ -213,7 +213,7 @@ class WeatherDisplay {
 		this.startNavCount(navigation.isPlaying());
 
 		// refresh the canvas (incase the screen index chagned)
-		this.drawCanvas();
+		if (navCmd) this.drawCanvas();
 	}
 	hideCanvas() {
 		this.stopNavBaseCount(true);
