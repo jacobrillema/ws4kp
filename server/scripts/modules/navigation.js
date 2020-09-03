@@ -3,8 +3,7 @@
 /* globals utils, _StationInfo, STATUS */
 /* globals CurrentWeather, LatestObservations, TravelForecast, RegionalForecast, LocalForecast, ExtendedForecast, Almanac */
 
-// jquery for initial load
-$(() => {
+document.addEventListener('DOMContentLoaded', () => {
 	navigation.init();
 });
 
@@ -83,12 +82,12 @@ const navigation = (() => {
 				new LatestObservations(1, 'latestObservations', weatherParameters),
 				new TravelForecast(2, 'travelForecast', weatherParameters),
 				// Regional Forecast: 0 = regional conditions, 1 = today, 2 = tomorrow
-				new RegionalForecast(3, 'regionalForecast1', weatherParameters, 1),
-				new RegionalForecast(4, 'regionalForecast2', weatherParameters, 2),
-				new RegionalForecast(5, 'regionalForecast0', weatherParameters, 0),
+				new RegionalForecast(3, 'regionalForecast0', weatherParameters, 0),
+				new RegionalForecast(4, 'regionalForecast1', weatherParameters, 1),
+				new RegionalForecast(5, 'regionalForecast2', weatherParameters, 2),
 				new LocalForecast(6, 'localForecast', weatherParameters),
 				new ExtendedForecast(7, 'extendedForecast', weatherParameters),
-				new Almanac(7, 'alamanac', weatherParameters),
+				new Almanac(8, 'alamanac', weatherParameters),
 			];
 		} else {
 			// or just call for new data if the canvases already exist
@@ -99,8 +98,6 @@ const navigation = (() => {
 		// GetAirQuality3(this.weatherParameters);
 		// ShowDopplerMap(this.weatherParameters);
 		// GetWeatherHazards3(this.weatherParameters);
-		// getExtendedForecast(this.weatherParameters);
-		// getAlminacInfo(this.weatherParameters);
 	};
 
 	// receive a status update from a module {id, value}
@@ -125,9 +122,35 @@ const navigation = (() => {
 	// TODO: track units
 	const units = () => UNITS.english;
 
+	// is playing interface
+	const isPlaying = () => false;
+
+	// navigation message constants
+	const msg = {
+		response: {	// display to navigation
+			previous: -1,		// already at first frame, calling function should switch to previous canvas
+			inProgress: 0,		// have data to display, calling function should do nothing
+			next: 1,			// end of frames reached, calling function should switch to next canvas
+		},
+		command: {	// navigation to display
+			firstFrame: -2,
+			previousFrame: -1,
+			nextFrame: 1,
+			lastFrame: 2,	// used when navigating backwards from the begining of the next canvas
+		},
+	};
+
+	// receive naivgation messages from displays
+	const displayNavMessage = (message) => {
+		console.log(message);
+	};
+
 	return {
 		init,
 		updateStatus,
 		units,
+		isPlaying,
+		displayNavMessage,
+		msg,
 	};
 })();

@@ -7,9 +7,7 @@ class LocalForecast extends WeatherDisplay {
 	constructor(navId,elemId,weatherParameters) {
 		super(navId,elemId);
 
-		// reset the screens
-		this.currentScreen = 0;
-		this.lastScreen = 0;
+		this.timing.baseDelay= 3000;
 
 		// pre-load background image (returns promise)
 		this.backgroundImage = utils.image.load('images/BackGround1_1.png');
@@ -81,7 +79,7 @@ class LocalForecast extends WeatherDisplay {
 		});
 
 		this.currentScreen = 0;
-		this.lastScreen = this.screenTexts.length - 1;
+		this.timing.totalScreens = this.screenTexts.length;
 		this.drawCanvas();
 	}
 
@@ -124,7 +122,7 @@ class LocalForecast extends WeatherDisplay {
 		// clear existing text
 		draw.box(this.context, 'rgb(33, 40, 90)', 65, 105, 505, 280);
 		// Draw the text.
-		this.screenTexts[this.currentScreen].split('\n').forEach((text, index) => {
+		this.screenTexts[this.screenIndex].split('\n').forEach((text, index) => {
 			draw.text(this.context, 'Star4000', '24pt', '#FFFFFF', 75, 140+40*index, text, 2);
 		});
 

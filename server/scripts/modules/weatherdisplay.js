@@ -19,6 +19,15 @@ class WeatherDisplay {
 		this.data = undefined;
 		this.loadingStatus = STATUS.loading;
 
+		// default navigation timing
+		this.timing = {
+			totalScreens: 1,
+			baseDelay: 1000, // 1 second
+			delay: 1, // 1*1second = 1 second total display time
+		};
+		this.navBaseCount = 0;
+		this.screenIndex = 0;
+
 		this.setStatus(STATUS.loading);
 		this.createCanvas(elemId, canvasWidth, canvasHeight);
 	}
@@ -188,13 +197,23 @@ class WeatherDisplay {
 		this.context.drawImage(img, 50, 30, 85, 67);
 	}
 
-	// show the canvas
-	showCanvas() {
-		this.canvas.style.display = 'block';
-	}
+	// show/hide the canvas and start/stop the navigation timer
+	showCanvas(reset) {
+		// see if the canvas is already showing
+		if (this.canvas.style.display === 'block') return false;
 
-	// hide the canvas if it's available
+		// show the canvas
+		this.canvas.style.display = 'block';
+
+		// reset timing
+		this.startNavCount(reset);
+
+		// refresh the canvas (incase the screen index chagned)
+		this.drawCanvas();
+	}
 	hideCanvas() {
+		this.stopNavBaseCount(true);
+
 		if (!this.canvas) return;
 		this.canvas.style.display = 'none';
 	}
@@ -203,5 +222,58 @@ class WeatherDisplay {
 		return document.getElementById(this.elemId+'Canvas').offsetParent !== null;
 	}
 
-	// TODO: implement playback timings
+	// navigation timings
+	// totalScreens = total number of screens that are available
+	// baseDelay = ms to delay before re-evaluating screenIndex
+	// delay: three options
+	//	integer = each screen will display for this number of baseDelays
+	//	[integer, integer, ...] = screenIndex 0 displays for integer[0]*baseDelay, etc.
+	//	[{time, si}, ...] = time as above, si is specific screen index to display during this interval
+	//	if the array forms are used totalScreens is overwritten by the size of the array
+	navBaseTime() {
+		// increment the base count
+		this.navBaseCount++;
+
+		// update total screens
+		if (Array.isArray(this.timing.delay)) this.timing.totalScreens = this.timing.delay.length;
+
+		// determine type of timing
+		// simple delay
+		if (typeof this.timing.delay === 'number') {
+			// increment screen index
+			this.screenIndex++;
+			// test for end reached
+			if (this.screenIndex >= this.timing.totalScreens) {
+				this.sendNavDisplayMessage(navigation.msg.response.next);
+				this.stopNavBaseCount();
+				return;
+			}
+			// if the end was not reached, update the canvas
+			this.drawCanvas();
+			return;
+		}
+	}
+
+	// start and stop base counter
+	startNavCount(reset) {
+		if (reset) this.resetNavBaseCount();
+		if (!this.navInterval) this.navInterval = setInterval(()=>this.navBaseTime(), this.timing.baseDelay);
+	}
+	stopNavBaseCount(reset) {
+		clearInterval(this.navInterval);
+		this.navInterval = undefined;
+		if (reset) this.resetNavBaseCount();
+	}
+	resetNavBaseCount() {
+		this.navBaseCount = 0;
+		this.screenIndex = 0;
+	}
+
+
+	sendNavDisplayMessage(message) {
+		navigation.displayNavMessage({
+			id: this.navId,
+			type: message,
+		});
+	}
 }
