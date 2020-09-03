@@ -1,7 +1,7 @@
 'use strict';
 // navigation handles progress, next/previous and initial load messages from the parent frame
 /* globals utils, _StationInfo, STATUS */
-/* globals CurrentWeather, LatestObservations, TravelForecast, RegionalForecast, LocalForecast, ExtendedForecast */
+/* globals CurrentWeather, LatestObservations, TravelForecast, RegionalForecast, LocalForecast, ExtendedForecast, Almanac */
 
 // jquery for initial load
 $(() => {
@@ -88,6 +88,7 @@ const navigation = (() => {
 				new RegionalForecast(5, 'regionalForecast0', weatherParameters, 0),
 				new LocalForecast(6, 'localForecast', weatherParameters),
 				new ExtendedForecast(7, 'extendedForecast', weatherParameters),
+				new Almanac(7, 'alamanac', weatherParameters),
 			];
 		} else {
 			// or just call for new data if the canvases already exist
